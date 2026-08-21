@@ -101,3 +101,18 @@ entrances are not framerule-bound.
 
 **Next.** P0.9 (community claims — is 1-1's missing frame known impossible?), P0.6 (warps/area
 loading, Track B), P1.1 (fast core).
+## 2026-08-21 — Session 2 (cont.): P0.9 done — community claims
+**Did.** Read #2964S/#2362S and their threads, thread 1337 pp. 57/59/60/62/63, UserFiles, Maru's
+page, six speedrun.com threads/guides (via the r.jina.ai proxy — speedrun.com and
+web.archive.org block direct fetches). Wrote `docs/community-claims.md`; facts F35–F37 (S);
+H21 annotated (no proof exists), H23 re-ranked, H25/H26 added.
+
+**Learned.** The community has known since 2009 that 1-1 is "1 frame short" and calls it
+impossible, with only a naive brute-force size estimate as argument; the WR deliberately loses
+time before the 1-1 pole for an FPG-feasible subpixel. 4-2's true gap is 2 frames on the
+top-floor route (HappyLee). 8-3: FPG with timer 242 is 3 frames faster (7 left). 8-4: Maru's
+RTA-rules TAS has a 1-frame turnaround-room idea to check against the WR.
+
+**Next.** P0.6 (warps/area loading — Track B), P1.1 (fast core), then P2.1 on 1-1 with the FPG
+subpixel condition built into the objective. Still to mine: thread 1337 pp. 1–56/58/61, Maru's
+movie file, Sockfolder's FPG subpixel analysis.
