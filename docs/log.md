@@ -31,3 +31,25 @@ U+D never. The published length counts the trailing coast (F17).
 **Next.** On the Linux box: copy the ROM into `roms/`, then P0.1 (tooling), P0.3 (sync the
 WR and record the axe frame), P0.4 (RAM dump + slack table). P0.5/P0.6 need only the
 disassembly.
+
+## 2026-08-21 — Session 2 (Linux box): P0.1 tooling done
+**Did.** First session on the Linux box (Fedora 43, i5-1335U, 15 GiB). ROM and WR movie were
+already in place (ROM re-verified with `tools/verify_rom.py`). Host `sudo` needs a password, so
+instead of blocking on Matt I built a rootless `toolbox` container (`smb1`) with FCEUX 2.6.6
+(RPM Fusion, Lua 5.1), Xvfb, mono 6.12 (+libgdiplus) and dev tools; Mesen 2.1.1 runs natively;
+BizHawk 2.11.1 runs on mono in the container. All three pass a headless Lua smoke test
+(300 frames, RAM reads to a file). Wrote `tools/toolbox_setup.sh` (idempotent reproduce),
+`tools/{fceux,mesen2,bizhawk}_run.sh`, `tools/lua/{smoke,bench}_*.lua`,
+`docs/experiments/P0.1-tooling.md`; facts F18–F22.
+
+**Learned.** Eight tooling gotchas (all in the experiment file): Mesen2 needs a pre-seeded
+settings.json (else it opens the GUI wizard before checking `--testrunner`),
+`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` on Fedora 43, and file output (emu.log isn't on
+stdout); FCEUX defaults to real-time speed and segfaults in `emu.exit()` after finishing;
+BizHawk hangs on invisible modal dialogs (sound device, config version) until config.ini is
+seeded; `toolbox run` drops the caller's env. Throughput: FCEUX ≈1,400 fps, Mesen2 ≈400 fps,
+BizHawk ≈100 fps under Lua loops — reference emulators only. Boot-time frame alignment differs
+by emulator (F22) — P0.3 must pin it down.
+
+**Next.** P0.3: replay the WR .fm2 in FCEUX (`--playmov` + Lua), confirm the ending, record
+the axe frame; then the same via BizHawk (fm2→bk2 conversion) as the second emulator.

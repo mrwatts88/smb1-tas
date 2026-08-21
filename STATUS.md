@@ -1,11 +1,11 @@
 # STATUS — SMB1 TAS project
 
-Updated: 2026-08-21 (session 1 — planning only; no engineering yet)
+Updated: 2026-08-21 (session 2 — P0.1 done on the Linux box)
 Phase: **P0 — Ground truth**
 Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31) — last input on frame 17848 (0-based), then a 19-frame coast to the axe. A new movie must finish the game with an earlier last input.
-ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Mac — copy it to the Linux box (gitignored).
+ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Linux box (gitignored) — re-verified 2026-08-21.
 Our best full movie: none yet
-Host: Linux box (primary). Git: private GitHub remote — commit after every unit, then push (document → STATUS → commit → push)
+Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox container `smb1`, Mesen2 native — run via `tools/{fceux,mesen2,bizhawk}_run.sh`, rebuild with `tools/toolbox_setup.sh` (see `docs/experiments/P0.1-tooling.md`). Git: private GitHub remote — commit after every unit, then push (document → STATUS → commit → push)
 
 ## Running jobs
 (none)
@@ -17,8 +17,7 @@ Host: Linux box (primary). Git: private GitHub remote — commit after every uni
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| P0.1 | Tooling install on the Linux box: FCEUX (SDL build with Lua), BizHawk (EmuHawkMono) and/or Mesen2; record versions and machine specs (CPU cores, RAM, distro) in docs/facts.md | infra | S | — | Each launches headless/scripted; versions + specs in docs/facts.md |
-| P0.3 | Sync the WR: replay `data/wr/happylee-supermariobros,warped.fm2` in FCEUX (and BizHawk via conversion) with `roms/Super Mario Bros. (W) [!].nes`; confirm the 8-4 axe/ending is reached; record the frame the axe is touched | A | S | P0.1, ROM on this machine | Movie reaches the ending; axe frame recorded; any desync documented |
+| P0.3 | Sync the WR: replay `data/wr/happylee-supermariobros,warped.fm2` in FCEUX (`tools/fceux_run.sh --playmov … --loadlua …`; then BizHawk via fm2→bk2 conversion) with `roms/Super Mario Bros. (W) [!].nes`; confirm the 8-4 axe/ending is reached; record the frame the axe is touched; pin down fm2-frame ↔ emulator-frame alignment (F22) | A | S | — | Movie reaches the ending; axe frame recorded; any desync documented |
 | P0.4 | Per-frame RAM dump of the WR (Lua) → `data/wr/` + CSV of key addresses; build the **slack table**: per-level frames, framerule phase at flagpole/axe, frames-to-previous-framerule, lag frames, RNG state at each level entry, ending-input coast length | A | M | P0.3 | `tools/slack_table.py` prints the table; numbers land in docs/facts.md and Key numbers |
 | P0.5 | Disassembly study #1 — timing: IntervalTimerControl / framerule counter, end-of-level sequence (slide, walk, time-bonus countdown, fade, next-area timer), pipe/area transitions, lag (NMI overrun). Write `docs/timing-model.md` | C | M | — | Model predicts the WR's level-end frames exactly (checked against the P0.4 dump) |
 | P0.6 | Disassembly study #2 — warps & area loading: WarpZoneControl + WarpZoneNumbers, pipe index from Mario X, AreaPointer / WorldAddrOffsets / AreaAddrOffsets, EntrancePage / AltEntranceControl, Minus World arithmetic, warm boot ($07FD/$07FF), Bowser-replacement table, object jump tables. Write `docs/warp-model.md` | B | M | — | Every player-influenceable table index is listed with its out-of-bounds behavior |
@@ -41,11 +40,10 @@ Host: Linux box (primary). Git: private GitHub remote — commit after every uni
 ## Done
 - 2026-08-21 — Research of the current record and community state; plan, process, and status scaffolding written (PLAN.md, PROCESS.md, this file, docs/*). Git initialized, initial commit. See docs/log.md.
 - 2026-08-21 — **P0.2 done**: WR movie fetched to `data/wr/`, 17,868 frames confirmed, ROM verified against TASVideos hashes and the movie's romChecksum; `tools/fm2_info.py`, `tools/verify_rom.py`. Facts F1/F15–F17.
+- 2026-08-21 — **P0.1 done**: FCEUX 2.6.6 (Lua), Mesen 2.1.1, BizHawk 2.11.1 (NesHawk) all run headless + scripted on the Linux box (toolbox container `smb1` for FCEUX/mono; no host sudo needed); wrappers `tools/*_run.sh`, reproduce with `tools/toolbox_setup.sh`; specs/versions/throughput in facts F18–F22; `docs/experiments/P0.1-tooling.md`.
 
 ## Blocked / Needs user input
-- **ROM on the Linux box**: copy `roms/Super Mario Bros. (W) [!].nes` from the Mac (or re-run
-  `tools/verify_rom.py <dump> --write-classic roms/"Super Mario Bros. (W) [!].nes"` on any
-  verified dump). `roms/` is gitignored, so it does not come with the clone. Blocks P0.3+.
+- (optional, not blocking) **Native emulator install on the host** would let `tools/fceux_run.sh` skip the container: `sudo dnf install -y fceux xorg-x11-server-Xvfb mono-core mono-devel libgdiplus lsb_release cmake clang gdb strace` (RPM Fusion is already enabled on the host). Everything currently runs in the rootless toolbox container, so this is a convenience only.
 - **Cloud**: preferred provider and how to authenticate (a plain VM provider with
   spot/preemptible instances fits CPU-burst search; Railway does not). Needed by P2.
 
