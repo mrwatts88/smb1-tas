@@ -79,11 +79,12 @@ verified it frame-exactly against the P0.3 RAM dump with `tools/slack_table.py`
 
 **Learned.** Flag levels: slack = post-frame ITC at the frame the star-flag interval timer is set
 (v), deficit = 21 − v; countdown = 1 frame per timer unit. Main-level loads start control at
-load + 147 + u (u = ITC at load) → pipe levels are quantized at the *next* load; sub-area loads
-(bonus rooms, 4-2 wrong warp, 8-4 rooms) are not quantized. **1-1 and 1-2 are each 1 frame from
-the next framerule**; then 4-2 (6), 4-1 (9), 8-3 (10), 8-1 (18), 8-2 (19). 8-4 unquantized. All
-24 lag frames are load/boot frames.
+load + 154 + w (w = ITC when ScreenTimer is written at load+8) → pipe levels are quantized at
+the *next* load; sub-area loads (bonus rooms, 4-2 wrong warp, 8-4 rooms) are not quantized.
+**1-1 is 1 frame from the next framerule**; then 1-2 (8), 4-1 (9), 8-3 (10), 4-2 (13), 8-1 (18),
+8-2 (19). 8-4 unquantized. All 24 lag frames are load/boot frames. (A first draft of this entry
+had 1-2 at 1 frame — wrong phase; corrected the same session.)
 
 **Next.** P0.5 (timing model doc from the code paths — most of the numbers are now in hand),
-P0.9 (check whether the community already proved 1-1/1-2 optimal at their framerule), then the
+P0.9 (check whether the community already proved 1-1 optimal at its framerule), then the
 fast core (P1.1) and the 1-1 search (P2.1). Track B unit P0.6 stays in the top 5.

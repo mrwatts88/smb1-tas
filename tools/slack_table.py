@@ -12,10 +12,12 @@ Row i (1-based) of the dump = fm2 frame i-1 (F25). Mechanism (data/disasm/smbdis
   deficit = 21 - v frames (T_set must be earlier to save a whole framerule).
 - Pipe levels (1-2, 4-2) end via VerticalPipeEntry + ChangeAreaTimer ($06DE), a per-frame countdown
   (no ITC quantization at the pipe itself) — but every area load runs ScreenRoutines whose
-  intermission card waits on ScreenTimer ($07A0) = 7, another interval timer, so control starts at
-  load + 147 + u with u = post-frame ITC at the load row (verified per load below). Hence for a
-  pipe level: slack = u, deficit = 21 - u, measured at the NEXT level's load row. Flag-level loads
-  always land on u = 19 (expiry + 1), so for them only the end quantization matters.
+  intermission card waits on ScreenTimer ($07A0) = 7, another interval timer, written on frame
+  load+8 (the load's single lag frame is at load+2). With post-frame ITC = w on that frame the
+  card ends at load+8+(w+1)+6*21 and control starts 19 frames later: control = load + 154 + w
+  (verified per load below; w = (u - 7) mod 21 with u = ITC at the load row). Hence for a pipe
+  level: slack = w, deficit = 21 - w, measured at the NEXT level's load. Flag-level loads always
+  land on u = 19 (expiry + 1, w = 12), so for them only the end quantization matters.
 - 8-4 ends on the axe (OperMode -> 2): no quantization; the bar is the axe frame itself.
 Levels are segmented by area-load rows (OperMode_Task -> 0) grouped by (World, Level).
 Usage: tools/slack_table.py data/wr/fceux_wr.ram [movie.fm2]   (prints markdown)
@@ -82,12 +84,12 @@ def main():
         else:
             p = pipes[-1]
             evt, evrow = f"pipe entry (GES={b(p, GES)}, CAT={b(p, CAT)})", p
-            u = b(end, ITC); v = f"u={u}"; slack, deficit = u, 21 - u; tset = f"next load {end}"
+            w = b(end + 8, ITC); v = f"w={w} (u={b(end, ITC)})"; slack, deficit = w, 21 - w; tset = f"next load {end} (+8)"
         print(f"| {name} | {start} | {subtxt} | {ctrl} | {evt} | {evrow} | {end} | {end - start} | {lag} | {b(start, ITC)} | {tset} | {v} | {slack} | {deficit} | {texp} | {mend} | {s5} | {timer(evrow)} | {rng} |")
     print()
-    print("Area loads (ScreenRoutines start wait). control = first GES==8 with Task==3 after the load; check: control - load - 147 - u")
-    print("| load row | W-L | AreaNum/AltEntr | u=ITC@load | task 0→1→2→3 rows | ScreenTimer=7 set rows (ITC) | ScreenTimer→0 rows | control row | control-load | check |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
+    print("Area loads (ScreenRoutines start wait). control = first GES==8 with Task==3 after the load; check: control - load - 154 - w (main entries only)")
+    print("| load row | W-L | AreaNum/AltEntr | u=ITC@load | w=ITC@load+8 | task 0→1→2→3 rows | ScreenTimer=7 set rows (ITC) | ScreenTimer→0 rows | control row | control-load | check |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for L in loads:
         nxt = next((x for x in loads if x > L), axe or n)
         tasks = []
@@ -96,9 +98,9 @@ def main():
         sets = [(i, b(i, ITC)) for i in range(L, nxt) if b(i, 0x07A0) == 7 and b(i - 1, 0x07A0) != 7]
         zeros = [i for i in range(L + 1, nxt) if b(i, 0x07A0) == 0 and b(i - 1, 0x07A0) != 0]
         ctrl = next((i for i in range(L, nxt) if b(i, GES) == 8 and b(i, Task) == 3), None)
-        u = b(L, ITC)
-        chk = (ctrl - L - 147 - u) if ctrl else None
-        print(f"| {L} | {b(L, World)+1}-{b(L, Level)+1} | {b(L, AreaNum)}/{b(L, ALT)} | {u} | {tasks} | {sets} | {zeros} | {ctrl} | {ctrl - L if ctrl else None} | {chk} |")
+        u = b(L, ITC); w = b(L + 8, ITC)
+        chk = (ctrl - L - 154 - w) if (ctrl and b(L, ALT) == 0) else "n/a"
+        print(f"| {L} | {b(L, World)+1}-{b(L, Level)+1} | {b(L, AreaNum)}/{b(L, ALT)} | {u} | {w} | {tasks} | {sets} | {zeros} | {ctrl} | {ctrl - L if ctrl else None} | {chk} |")
     total = sum(1 for i in lag_rows if i <= (axe or n))
     print(f"\nTotals: rows 1..{axe} = {axe} frames to the axe (fm2 frame {axe-1}); lag frames to the axe: {total}")
     if len(sys.argv) > 2:
