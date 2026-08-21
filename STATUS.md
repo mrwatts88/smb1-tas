@@ -2,7 +2,8 @@
 
 Updated: 2026-08-21 (session 1 — planning only; no engineering yet)
 Phase: **P0 — Ground truth**
-Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31)
+Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31) — last input on frame 17848 (0-based), then a 19-frame coast to the axe. A new movie must finish the game with an earlier last input.
+ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Mac — copy it to the Linux box (gitignored).
 Our best full movie: none yet
 Host: Linux box (primary). Git: private GitHub remote — commit after every unit, then push (document → STATUS → commit → push)
 
@@ -17,8 +18,7 @@ Host: Linux box (primary). Git: private GitHub remote — commit after every uni
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
 | P0.1 | Tooling install on the Linux box: FCEUX (SDL build with Lua), BizHawk (EmuHawkMono) and/or Mesen2; record versions and machine specs (CPU cores, RAM, distro) in docs/facts.md | infra | S | — | Each launches headless/scripted; versions + specs in docs/facts.md |
-| P0.2 | Fetch the #1715M movie file (.fm2) from https://tasvideos.org/1715M into `data/wr/`; parse the header (ROM checksum, frame count, emulator) with `tools/fm2_info.py` | A/C | S | — | Frame count == 17,868; ROM hash recorded in docs/facts.md |
-| P0.3 | Sync the WR: replay the .fm2 in FCEUX (and BizHawk via conversion) with the user-supplied ROM; confirm the 8-4 axe/ending is reached | A | S | P0.1, P0.2, ROM | Movie reaches the ending; any desync documented |
+| P0.3 | Sync the WR: replay `data/wr/happylee-supermariobros,warped.fm2` in FCEUX (and BizHawk via conversion) with `roms/Super Mario Bros. (W) [!].nes`; confirm the 8-4 axe/ending is reached; record the frame the axe is touched | A | S | P0.1, ROM on this machine | Movie reaches the ending; axe frame recorded; any desync documented |
 | P0.4 | Per-frame RAM dump of the WR (Lua) → `data/wr/` + CSV of key addresses; build the **slack table**: per-level frames, framerule phase at flagpole/axe, frames-to-previous-framerule, lag frames, RNG state at each level entry, ending-input coast length | A | M | P0.3 | `tools/slack_table.py` prints the table; numbers land in docs/facts.md and Key numbers |
 | P0.5 | Disassembly study #1 — timing: IntervalTimerControl / framerule counter, end-of-level sequence (slide, walk, time-bonus countdown, fade, next-area timer), pipe/area transitions, lag (NMI overrun). Write `docs/timing-model.md` | C | M | — | Model predicts the WR's level-end frames exactly (checked against the P0.4 dump) |
 | P0.6 | Disassembly study #2 — warps & area loading: WarpZoneControl + WarpZoneNumbers, pipe index from Mario X, AreaPointer / WorldAddrOffsets / AreaAddrOffsets, EntrancePage / AltEntranceControl, Minus World arithmetic, warm boot ($07FD/$07FF), Bowser-replacement table, object jump tables. Write `docs/warp-model.md` | B | M | — | Every player-influenceable table index is listed with its out-of-bounds behavior |
@@ -40,25 +40,28 @@ Host: Linux box (primary). Git: private GitHub remote — commit after every uni
 
 ## Done
 - 2026-08-21 — Research of the current record and community state; plan, process, and status scaffolding written (PLAN.md, PROCESS.md, this file, docs/*). Git initialized, initial commit. See docs/log.md.
+- 2026-08-21 — **P0.2 done**: WR movie fetched to `data/wr/`, 17,868 frames confirmed, ROM verified against TASVideos hashes and the movie's romChecksum; `tools/fm2_info.py`, `tools/verify_rom.py`. Facts F1/F15–F17.
 
 ## Blocked / Needs user input
-- **ROM**: place `Super Mario Bros. (W) [!].nes` in `roms/` on the Linux box — see
-  `docs/rom.md` for the exact version and legitimate ways to obtain it. Expected MD5
-  `811b027eaf99c2def7b933c5208636de` (unverified recollection — P0.2 confirms it from the
-  movie header). Blocks P0.3 and everything after it; P0.1, P0.2, P0.5–P0.9 can proceed now.
+- **ROM on the Linux box**: copy `roms/Super Mario Bros. (W) [!].nes` from the Mac (or re-run
+  `tools/verify_rom.py <dump> --write-classic roms/"Super Mario Bros. (W) [!].nes"` on any
+  verified dump). `roms/` is gitignored, so it does not come with the clone. Blocks P0.3+.
 - **Cloud**: preferred provider and how to authenticate (a plain VM provider with
   spot/preemptible instances fits CPU-burst search; Railway does not). Needed by P2.
 
 ## Key numbers (each must be reproducible by a script in tools/)
 | Quantity | Value | Source / script |
 |---|---|---|
-| WR movie length | 17,868 frames (4:57.31) | TASVideos #1715M (S) |
+| WR movie length | 17,868 frames (4:57.31) | `tools/fm2_info.py` (V) |
+| WR last input | frame 17848 (0-based); 19 input-free frames follow | `tools/fm2_info.py` (V) |
+| WR first Start press | frame 41 (0-based) | `tools/fm2_info.py` (V) |
+| WR Left+Right frames | 85 (U+D: 0) | `tools/fm2_info.py --list-lr` (V) |
 | RTA-timing equivalent | 4:54.032 | S |
 | RTA-rules (no L+R) TAS | 4:54.265 — 14 frames slower | S |
 | Framerule | 21 frames | S |
 | Per-level slack table | TBD (P0.4) | — |
 | Lag frames in WR | TBD (P0.4) | — |
-| Ending-input coast length in WR | TBD (P0.4) | — |
+| Ending-input coast length in WR | 19 frames after the last A press (axe frame itself: P0.3) | `tools/fm2_info.py` (V) |
 
 ## Spend
 Cloud total: $0 / $300 cap.
