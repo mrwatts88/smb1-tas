@@ -149,3 +149,19 @@ memory writes (H7 targets: $075F ≥ 7, $0750/$0751 = $65/16, $06D6 ∈ {2,6}).
 
 **Next.** P1.1 (fast core) is the top unblocked unit; P0.8 (prior tools survey) and P0.7 are the
 small Track C/B items. P3.1 now has a concrete target list.
+## 2026-08-21 — Session 3 (cont.): P1.1 done — QuickNES harness syncs the WR
+**Did.** Cloned/built libretro QuickNES (`tools/build_core.sh`, gitignored `third_party/`), wrote
+`src/fastcore/harness.c` (dlopen harness: env/input callbacks incl. `quicknes_up_down_allowed`,
+per-frame RAM dump, savestate round-trip bench), `tools/fm2_to_inputs.py`, `tools/compare_ram.py`
+(offset search, ignore ranges, all-rows mode). Scanned input-skip × row-offset to find the
+alignment, then compared all 17.8k rows.
+
+**Learned.** QuickNES is frame-exact on the WR (F45): identical RAM on every row after boot except
+2 OAM bytes on the post-Start lag frame (mid-NMI snapshot), same lag rows, axe on the expected
+row. Alignment: FCEUX row r ↔ QuickNES row r−3; FCEUX applies fm2 record j in row j+2 (resolves
+the Start-row loose end), QuickNES needs `--input-skip 2`. Speed (F46): 15.0k fps/instance,
+104k fps aggregate on 12 threads, 12.8 KB states at 2.5 µs per save+load. `emulate_skip_frame`
+(no rendering) is available in Nes_Emu but not through libretro → P1.1b.
+
+**Next.** P2.1: search engine v1 on 1-1 (in-process core, savestates, RAM-hash dedup, threshold
+objective from H21). Small units P0.8/P0.7 remain; P1.1b/P1.2 when the search is CPU-bound.

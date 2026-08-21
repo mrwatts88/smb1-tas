@@ -1,7 +1,7 @@
 # STATUS — SMB1 TAS project
 
-Updated: 2026-08-21 (session 3 — P0.6 done; P0 remaining: P0.7, P0.8; next unit P1.1)
-Phase: **P0 — Ground truth**
+Updated: 2026-08-21 (session 3 — P0.6, P1.1 done; next unit P2.1 search engine v1 on 1-1)
+Phase: **P0/P1 → P2** — ground truth mostly done (P0.7, P0.8 remain), stage-1 fast core done
 Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31) — last input on frame 17848 (0-based), then a 19-frame coast to the axe. A new movie must finish the game with an earlier last input.
 ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Linux box (gitignored) — re-verified 2026-08-21.
 Our best full movie: none yet
@@ -17,11 +17,11 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| P1.1 | Stage-1 fast core: headless libretro QuickNES harness (C/C++ or Rust) with savestate + RAM hash + input injection; benchmark fps/core | A | M | P0.3 | Replays the WR with identical RAM each frame vs the FCEUX dump; fps recorded |
-| P1.2 | Stage-2 core: static recompilation of the SMB1 ROM to C with cycle counting + minimal PPU timing (vblank, sprite-0) | A | L | P1.1 | Differential test vs Mesen on ≥ 10M random frames incl. lag; fps recorded |
+| P2.1 | Search engine v1 (in-process QuickNES via the libretro entry points, savestates, RAM-hash dedup): frame-layered BFS with the threshold objective on 1-1 (H21: glitch grab with grab + T ≤ 1658, FPG subpixel condition, fireworks off) | A | L | P1.1 | Ties the WR in 1-1 (same T_set framerule); reports whether T_set − 1 is reachable, with the search record |
 | P0.8 | Survey existing bots/tools (TASVideos thread, GitHub, speedrun.com resources): what exists, which state space each covered, source availability | C | S | — | `docs/prior-tools.md`; hypotheses ledger updated |
 | P0.7 | L+R / U+D semantics catalog from the code (all effects, not just the known decel); pause/Select effects on every timer | B | S | P0.5 | `docs/input-semantics.md` |
-| P2.1 | Search engine v1: frame-layered BFS, state hashing, threshold objective; run on 1-1 with the objective T_set ≤ WR − 1 (H21) | A | L | P1.1 | Ties the WR in 1-1; reports whether T_set − 1 is reachable |
+| P1.1b | Direct-link core: build Nes_Emu into the search binary, use `emulate_skip_frame` (no rendering), measure speedup; keep RAM-identity vs F45 | A | S | P1.1 | ≥ 2× fps over F46 with the same WR RAM trace |
+| P1.2 | Stage-2 core: static recompilation of the SMB1 ROM to C with cycle counting + minimal PPU timing (vblank, sprite-0) | A | L | P1.1 | Differential test vs QuickNES/Mesen on ≥ 10M random frames incl. lag; fps recorded |
 | P2.2 | 8-4 exhaustive search (frame-granular; Bowser RNG, L+R, ending-input trick) | A | L | P2.1 | Report: faster path (verified in two emulators) or proof record |
 | P2.3 | Threshold search for framerule N−1 in each flag/pipe level, in remaining-deficit order: 4-2 top route (2), 8-3 with FPG (7), 1-2 (8), 4-1 (9), 8-1 (18), 8-2 (19) | A | L | P2.1, P0.4 | Per-level report |
 | P2.4 | Cross-level DP over reachable entry states (RNG / framerule phase) | A | M | P2.2, P2.3 | Best-known full route + proof record |
@@ -33,6 +33,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | P4.1 | Assemble, verify in two emulators, draft submission text | ship | M | a result | User-reviewed before anything is submitted |
 
 ## Done
+- 2026-08-21 — **P1.1 done**: libretro QuickNES harness (`src/fastcore/harness.c`, `tools/build_core.sh`, `tools/fm2_to_inputs.py`, `tools/compare_ram.py`) replays the WR with RAM identical to the FCEUX dump on every row (F45, alignment law: FCEUX row r ↔ QuickNES row r−3, input record j → QuickNES frame j−2); 15.0k fps/instance, 104k fps on 12 threads, savestate 12.8 KB / 2.5 µs (F46); `docs/experiments/P1.1-fast-core.md`.
 - 2026-08-21 — **P0.6 done**: `docs/warp-model.md` — WZC ∈ {0,1,4,5,6} at any pipe (proof), world 8 only from 4-2's $2F zone, all 58 pipe-destination commands tabulated, completion = axe with WorldNumber ≥ 7, Minus World closed at table level; `tools/warp_tables.py`, `tools/area_data.py`, `tools/ram_trace.py`; facts F38–F44; H5 refuted, H6/H13 refuted at table level, H7 sharpened; `docs/experiments/P0.6-warp-model.md`.
 - 2026-08-21 — Research of the current record and community state; plan, process, and status scaffolding written (PLAN.md, PROCESS.md, this file, docs/*). Git initialized, initial commit. See docs/log.md.
 - 2026-08-21 — **P0.2 done**: WR movie fetched to `data/wr/`, 17,868 frames confirmed, ROM verified against TASVideos hashes and the movie's romChecksum; `tools/fm2_info.py`, `tools/verify_rom.py`. Facts F1/F15–F17.
@@ -43,7 +44,8 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 - 2026-08-21 — **P0.1 done**: FCEUX 2.6.6 (Lua), Mesen 2.1.1, BizHawk 2.11.1 (NesHawk) all run headless + scripted on the Linux box (toolbox container `smb1` for FCEUX/mono; no host sudo needed); wrappers `tools/*_run.sh`, reproduce with `tools/toolbox_setup.sh`; specs/versions/throughput in facts F18–F22; `docs/experiments/P0.1-tooling.md`.
 
 ## Loose ends (small, unassigned)
-- Start-press row: `tools/fm2_info.py` reports the first Start on fm2 frame 41 (0-based), but the FCEUX dump's pad column shows Start on row 43 (= fm2 frame 42 under F25). One of the two counts the frame-0 reset line differently. Resolve when next touching `fm2_info.py`/`check_sync.py` (F16/F31 wording depends on it; nothing else does).
+- (resolved in P1.1, F45) Start-press row: FCEUX applies fm2 record j in dump row j+2, so record 41 acts on row 43; `fm2_info.py` (record index) and the dump (row) were both right.
+- The FCEUX/BizHawk dumps and the QuickNES output use different row origins (F45); any tool that mixes them must state the offset. `tools/check_sync.py`/`compare_dumps.py` are FCEUX/BizHawk-only.
 
 ## Blocked / Needs user input
 - (optional, not blocking) **Native emulator install on the host** would let `tools/fceux_run.sh` skip the container: `sudo dnf install -y fceux xorg-x11-server-Xvfb mono-core mono-devel libgdiplus lsb_release cmake clang gdb strace` (RPM Fusion is already enabled on the host). Everything currently runs in the rootless toolbox container, so this is a convenience only.
@@ -65,6 +67,8 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | Per-level slack/deficit (frames) | 1-1 20/**1**, 1-2 13/8, 4-1 12/9, 4-2 8/13 (top route: 2, S), 8-1 3/18, 8-2 2/19, 8-3 11/10 (FPG+242: 7, S), 8-4 unquantized | `tools/slack_table.py data/wr/fceux_wr.ram` (V) |
 | Per-level frames (load→next load) | 1-1 1902, 1-2 1870, 4-1 2228, 4-2 1729, 8-1 3042, 8-2 2143, 8-3 2101, 8-4 2810 (+43 boot/title) | `tools/slack_table.py` (V) |
 | Lag frames in WR (before the axe) | 24 (7 boot, 1 after Start, 16 area loads; none in-level) | `tools/check_sync.py`, `tools/slack_table.py` (V) |
+| Stage-1 core speed | 15.0k fps/instance, 69k (6) / 104k (12 threads) aggregate; state 12,792 B, save+load 2.5 µs | `tools/build_core.sh` then `./build/harness … --input-skip 2 [--state-every 1]` (V) |
+| Emulator alignment | FCEUX row r ↔ QuickNES row r−3; fm2 record j → FCEUX row j+2 / QuickNES frame j−2 | `tools/compare_ram.py … --offset -3 --from 10 --ignore 160-1ff --all` (V) |
 | Reachable warp destinations | 1-2 → {4,3,2} or {−1,5,−1}; 4-2 ceiling → 5; 4-2 $2F → {8,7,6}; WZC ∈ {0,1,4,5,6} | `tools/warp_tables.py` + `docs/warp-model.md` §5.4 (V) |
 | Ending-input coast length in WR | 19 frames: last A press on frame 17848, axe on 17867 | `tools/fm2_info.py`, `tools/check_sync.py` (V) |
 
