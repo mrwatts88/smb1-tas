@@ -85,7 +85,8 @@ climbable metatile (low nybble of X in [6, 10)) and the metatile is $24 (ball) o
 - `PlayerEndLevel` (GES 5): auto-walk right (`AutoControlPlayer` with Right only); when Y ≥ $AE
   the win music is queued; when `Player_CollisionBits` bit 0 clears (Mario behind the castle
   door), `StarFlagTaskControl` = 1. **Glitch grab → castle entry = 126 frames** in 1-1, 4-1,
-  8-1 (fixed geometry: pole X to door); 8-2's glitch happens at the door (1 frame).
+  8-1 (identical small-castle layouts: pole at X=89, door trigger 105 px right); 8-3 has the
+  large castle (longer walk); 8-2's glitch happens at the door (1 frame).
 - Star-flag object tasks (`RunStarFlagObj`, run from the enemy loop every frame):
   1 `GameTimerFireworks` (fireworks count from the timer's last digit: 1→ y=5? (6 fw), 3→3,
   6→0… as coded: digit 1 → 5 state, 3 → 3, 6 → 0 — i.e. fireworks only for digits 1/3/6;
