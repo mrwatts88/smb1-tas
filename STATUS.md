@@ -11,7 +11,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 (none)
 
 ## In progress
-(none)
+- **P0.5** — Timing model doc from the code paths (`docs/timing-model.md`): reproduce F27–F29 routine by routine; list every lever that moves T_set or a load row. Started 2026-08-21. Checkpoint: (none yet)
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
