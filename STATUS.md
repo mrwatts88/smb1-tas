@@ -1,6 +1,6 @@
 # STATUS — SMB1 TAS project
 
-Updated: 2026-08-21 (session 2 — P0.1, P0.3, P0.4, P0.5, P0.9 done)
+Updated: 2026-08-21 (session 2 — P0.1, P0.3, P0.4, P0.5, P0.9 done; P0.6 in progress with checkpoint)
 Phase: **P0 — Ground truth**
 Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31) — last input on frame 17848 (0-based), then a 19-frame coast to the axe. A new movie must finish the game with an earlier last input.
 ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Linux box (gitignored) — re-verified 2026-08-21.
@@ -11,7 +11,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 (none)
 
 ## In progress
-(none)
+- **P0.6** — Disassembly study #2: warps & area loading → `docs/warp-model.md` (every player-influenceable table index + OOB behavior). Started 2026-08-21. **Checkpoint (resume here):** read so far: `ScrollLockObject_Warp` (WZC = 4/5/6 by world/area type), `WarpZoneObject` (inc WZC when ScrollLock set and Mario Y even), pipe-entry lookup at smbdis.asm ~12288 (index (WZC&3)*4 + pipe by X thresholds $60/$A0; WorldNumber = byte−1; then WorldAddrOffsets/AreaAddrOffsets → AreaPointer). ROM: `WarpZoneNumbers` at $87F2 = 04 03 02 00 | 24 05 24 00 | 08 07 06 00, followed by `GameTextOffsets` 00 00 27 27 46 … → WZC=7 gives WorldNumber 255/255/38 (H5 updated). Dump: 1-2 WZC 0→1→4 (rows 3546, 3721), 4-2 0→6 (row 7608). **To do:** (a) check in the dump (rows 7590–7724: ScrollLock $0723, WZC $06D6, enemy IDs $16–$1B, Player_Y) whether the WarpZoneObject can still fire after the text object in the 8-7-6 zone; (b) read `LoadAreaPointer`, `GetAreaDataAddrs`, `WorldAddrOffsets` (size 8?), `AreaAddrOffsets`, enemy jump table + Bowser-replacement table, warm boot in `Start`; (c) write `docs/warp-model.md`.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 

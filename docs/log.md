@@ -116,3 +116,15 @@ RTA-rules TAS has a 1-frame turnaround-room idea to check against the WR.
 **Next.** P0.6 (warps/area loading — Track B), P1.1 (fast core), then P2.1 on 1-1 with the FPG
 subpixel condition built into the objective. Still to mine: thread 1337 pp. 1–56/58/61, Maru's
 movie file, Sockfolder's FPG subpixel analysis.
+## 2026-08-21 — Session 2 (end): P0.6 checkpointed
+**Did.** Started P0.6 (warps/area loading). Read `ScrollLockObject_Warp`, `WarpZoneObject`, the
+pipe-entry world lookup, and the ROM bytes after `WarpZoneNumbers`. Recorded in H5: WZC = 7 would
+read `GameTextOffsets` and set WorldNumber 255/255/38 (left/middle/right pipe).
+
+**Next session.** Resume P0.6 from the STATUS checkpoint: (1) dump check — in 4-2 rows
+7590–7724 does `WarpZoneObject` (enemy slot) still exist when the text object sets WZC = 6, and
+what Y parity/scroll-lock ordering would make it increment afterwards; (2) read
+`LoadAreaPointer`/`GetAreaDataAddrs`, `WorldAddrOffsets` (OOB for world 38/255),
+`AreaAddrOffsets`, the enemy jump table + Bowser-replacement table, the warm-boot check
+($07FD/$07FF); (3) write `docs/warp-model.md`. Session ended at the user's request; all work
+committed.
