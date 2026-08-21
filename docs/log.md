@@ -128,3 +128,24 @@ what Y parity/scroll-lock ordering would make it increment afterwards; (2) read
 `AreaAddrOffsets`, the enemy jump table + Bowser-replacement table, the warm-boot check
 ($07FD/$07FF); (3) write `docs/warp-model.md`. Session ended at the user's request; all work
 committed.
+## 2026-08-21 — Session 3: P0.6 done — warp & area-loading model
+**Did.** Finished P0.6 from the checkpoint. Read `HandlePipeEntry`, `VerticalPipeEntry`,
+`ParseRow0e`, `LoadAreaPointer`/`GetAreaDataAddrs` + tables, `InitializeArea`/`InitializeMemory`,
+`PlayerLoseLife`/`ContinueGame`, `PlayerEndWorld`, `Start`, the enemy init/run jump tables,
+`BowserIdentities`, the area-object decoder/jump table and the loop command. Wrote
+`tools/warp_tables.py` (pattern-locates the ROM tables, prints every WZC×pipe lookup and bogus-world
+pointer), `tools/area_data.py` (decodes enemy + level data incl. the row-$0E area-change
+commands), `tools/ram_trace.py` (per-frame symbol trace of the full-RAM dump). Wrote
+`docs/warp-model.md`, `docs/experiments/P0.6-warp-model.md`; facts F38–F44; H5 refuted,
+H6/H13 refuted at table level, H7 sharpened, H15 annotated.
+
+**Learned.** WZC at a pipe is always one of {0,1,4,5,6} (code-level proof): world 8 is reachable
+only from 4-2's $2F zone (vine or the wrong warp the WR already uses). Pipe destinations are the
+last matching row-$0E command — all 58 tabulated; the Bowser-room page is written only by 8-4's
+water section. Completion = axe with WorldNumber ≥ 7. The Minus World ($01 Water2) is a closed
+loop at table level. 4-2's "wrong warp" is the page-5 pipe taken before the coin-room command is
+parsed. Nothing in the warp/area system beats the WR's structure; Track B gains must come from
+memory writes (H7 targets: $075F ≥ 7, $0750/$0751 = $65/16, $06D6 ∈ {2,6}).
+
+**Next.** P1.1 (fast core) is the top unblocked unit; P0.8 (prior tools survey) and P0.7 are the
+small Track C/B items. P3.1 now has a concrete target list.

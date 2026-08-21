@@ -1,6 +1,6 @@
 # STATUS — SMB1 TAS project
 
-Updated: 2026-08-21 (session 2 — P0.1, P0.3, P0.4, P0.5, P0.9 done; P0.6 in progress with checkpoint)
+Updated: 2026-08-21 (session 3 — P0.6 done; P0 remaining: P0.7, P0.8; next unit P1.1)
 Phase: **P0 — Ground truth**
 Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31) — last input on frame 17848 (0-based), then a 19-frame coast to the axe. A new movie must finish the game with an earlier last input.
 ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Linux box (gitignored) — re-verified 2026-08-21.
@@ -11,21 +11,21 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 (none)
 
 ## In progress
-- **P0.6** — Disassembly study #2: warps & area loading → `docs/warp-model.md` (every player-influenceable table index + OOB behavior). Started 2026-08-21. **Checkpoint (resume here):** read so far: `ScrollLockObject_Warp` (WZC = 4/5/6 by world/area type), `WarpZoneObject` (inc WZC when ScrollLock set and Mario Y even), pipe-entry lookup at smbdis.asm ~12288 (index (WZC&3)*4 + pipe by X thresholds $60/$A0; WorldNumber = byte−1; then WorldAddrOffsets/AreaAddrOffsets → AreaPointer). ROM: `WarpZoneNumbers` at $87F2 = 04 03 02 00 | 24 05 24 00 | 08 07 06 00, followed by `GameTextOffsets` 00 00 27 27 46 … → WZC=7 gives WorldNumber 255/255/38 (H5 updated). Dump: 1-2 WZC 0→1→4 (rows 3546, 3721), 4-2 0→6 (row 7608). **To do:** (a) check in the dump (rows 7590–7724: ScrollLock $0723, WZC $06D6, enemy IDs $16–$1B, Player_Y) whether the WarpZoneObject can still fire after the text object in the 8-7-6 zone; (b) read `LoadAreaPointer`, `GetAreaDataAddrs`, `WorldAddrOffsets` (size 8?), `AreaAddrOffsets`, enemy jump table + Bowser-replacement table, warm boot in `Start`; (c) write `docs/warp-model.md`.
+(none)
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| P0.6 | Disassembly study #2 — warps & area loading: WarpZoneControl + WarpZoneNumbers, pipe index from Mario X, AreaPointer / WorldAddrOffsets / AreaAddrOffsets, EntrancePage / AltEntranceControl, Minus World arithmetic, warm boot ($07FD/$07FF), Bowser-replacement table, object jump tables. Write `docs/warp-model.md` | B | M | — | Every player-influenceable table index is listed with its out-of-bounds behavior |
-| P1.1 | Stage-1 fast core: headless libretro QuickNES harness (C/C++ or Rust) with savestate + RAM hash + input injection; benchmark fps/core | A | M | P1.2 | Stage-2 core: static recompilation of the SMB1 ROM to C with cycle counting + minimal PPU timing (vblank, sprite-0) | A | L | P1.1 | Differential test vs Mesen on ≥ 10M random frames incl. lag; fps recorded |
+| P1.1 | Stage-1 fast core: headless libretro QuickNES harness (C/C++ or Rust) with savestate + RAM hash + input injection; benchmark fps/core | A | M | P0.3 | Replays the WR with identical RAM each frame vs the FCEUX dump; fps recorded |
+| P1.2 | Stage-2 core: static recompilation of the SMB1 ROM to C with cycle counting + minimal PPU timing (vblank, sprite-0) | A | L | P1.1 | Differential test vs Mesen on ≥ 10M random frames incl. lag; fps recorded |
 | P0.8 | Survey existing bots/tools (TASVideos thread, GitHub, speedrun.com resources): what exists, which state space each covered, source availability | C | S | — | `docs/prior-tools.md`; hypotheses ledger updated |
-| P0.7 | L+R / U+D semantics catalog from the code (all effects, not just the known decel); pause/Select effects on every timer | B | S | P1.2 | Stage-2 core: static recompilation of the SMB1 ROM to C with cycle counting + minimal PPU timing (vblank, sprite-0) | A | L | P1.1 | Differential test vs Mesen on ≥ 10M random frames incl. lag; fps recorded |
+| P0.7 | L+R / U+D semantics catalog from the code (all effects, not just the known decel); pause/Select effects on every timer | B | S | P0.5 | `docs/input-semantics.md` |
 | P2.1 | Search engine v1: frame-layered BFS, state hashing, threshold objective; run on 1-1 with the objective T_set ≤ WR − 1 (H21) | A | L | P1.1 | Ties the WR in 1-1; reports whether T_set − 1 is reachable |
 | P2.2 | 8-4 exhaustive search (frame-granular; Bowser RNG, L+R, ending-input trick) | A | L | P2.1 | Report: faster path (verified in two emulators) or proof record |
 | P2.3 | Threshold search for framerule N−1 in each flag/pipe level, in remaining-deficit order: 4-2 top route (2), 8-3 with FPG (7), 1-2 (8), 4-1 (9), 8-1 (18), 8-2 (19) | A | L | P2.1, P0.4 | Per-level report |
 | P2.4 | Cross-level DP over reachable entry states (RNG / framerule phase) | A | M | P2.2, P2.3 | Best-known full route + proof record |
-| P3.1 | Static audit tool: every indexed memory access in the disassembly whose index is player-influenceable; tabulate OOB behaviors | B | M | P0.6 | `docs/oob-audit.md` |
+| P3.1 | Static audit tool: every indexed memory access in the disassembly whose index is player-influenceable; tabulate OOB behaviors. Targets from P0.6 (H7): writes reaching $075F (WorldNumber ≥ 7), $0750/$0751 (AreaPointer/EntrancePage = $65/16), $06D6 (WZC ∈ {2,6} in 1-2) | B | M | P0.6 | `docs/oob-audit.md` |
 | P3.2 | RAM oracle: single-byte perturbation sweep per level on the fast core → jackpot map | B | M | P1.1 | `docs/experiments/P3.2-ram-oracle.md` |
 | P3.3 | Write-reachability: for each jackpot cell, can any in-game write hit it? | B | L | P3.1, P3.2 | Ledger entries with proof artifacts |
 | P3.4 | Fuzzing / Go-Explore novelty search for anomalous states | B | L | P1.2 | Anomalies triaged in the ledger |
@@ -33,6 +33,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | P4.1 | Assemble, verify in two emulators, draft submission text | ship | M | a result | User-reviewed before anything is submitted |
 
 ## Done
+- 2026-08-21 — **P0.6 done**: `docs/warp-model.md` — WZC ∈ {0,1,4,5,6} at any pipe (proof), world 8 only from 4-2's $2F zone, all 58 pipe-destination commands tabulated, completion = axe with WorldNumber ≥ 7, Minus World closed at table level; `tools/warp_tables.py`, `tools/area_data.py`, `tools/ram_trace.py`; facts F38–F44; H5 refuted, H6/H13 refuted at table level, H7 sharpened; `docs/experiments/P0.6-warp-model.md`.
 - 2026-08-21 — Research of the current record and community state; plan, process, and status scaffolding written (PLAN.md, PROCESS.md, this file, docs/*). Git initialized, initial commit. See docs/log.md.
 - 2026-08-21 — **P0.2 done**: WR movie fetched to `data/wr/`, 17,868 frames confirmed, ROM verified against TASVideos hashes and the movie's romChecksum; `tools/fm2_info.py`, `tools/verify_rom.py`. Facts F1/F15–F17.
 - 2026-08-21 — **P0.9 done**: `docs/community-claims.md` — 1-1 known as "1 frame short" since 2009 with no proof; 4-2 top route is 2 frames short (HappyLee); 8-3 FPG/242 = 3 frames; Maru's 8-4 idea; facts F35–F37, H25/H26. Still to mine: thread pp. 1–56/58/61, Maru's movie.
@@ -64,6 +65,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | Per-level slack/deficit (frames) | 1-1 20/**1**, 1-2 13/8, 4-1 12/9, 4-2 8/13 (top route: 2, S), 8-1 3/18, 8-2 2/19, 8-3 11/10 (FPG+242: 7, S), 8-4 unquantized | `tools/slack_table.py data/wr/fceux_wr.ram` (V) |
 | Per-level frames (load→next load) | 1-1 1902, 1-2 1870, 4-1 2228, 4-2 1729, 8-1 3042, 8-2 2143, 8-3 2101, 8-4 2810 (+43 boot/title) | `tools/slack_table.py` (V) |
 | Lag frames in WR (before the axe) | 24 (7 boot, 1 after Start, 16 area loads; none in-level) | `tools/check_sync.py`, `tools/slack_table.py` (V) |
+| Reachable warp destinations | 1-2 → {4,3,2} or {−1,5,−1}; 4-2 ceiling → 5; 4-2 $2F → {8,7,6}; WZC ∈ {0,1,4,5,6} | `tools/warp_tables.py` + `docs/warp-model.md` §5.4 (V) |
 | Ending-input coast length in WR | 19 frames: last A press on frame 17848, axe on 17867 | `tools/fm2_info.py`, `tools/check_sync.py` (V) |
 
 ## Spend
