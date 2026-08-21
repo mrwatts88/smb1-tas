@@ -41,6 +41,9 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 - 2026-08-21 — **P0.3 done**: WR syncs in FCEUX and BizHawk/NesHawk with identical per-frame state; axe on fm2 frame 17867 (0-based); 24 lag frames; level-entry frames; `tools/fm2_to_bk2.py`, `tools/check_sync.py`, `tools/compare_dumps.py`, `tools/lua/wr_dump_*.lua`; dumps in `data/wr/`; facts F23–F26; `docs/experiments/P0.3-wr-sync.md`.
 - 2026-08-21 — **P0.1 done**: FCEUX 2.6.6 (Lua), Mesen 2.1.1, BizHawk 2.11.1 (NesHawk) all run headless + scripted on the Linux box (toolbox container `smb1` for FCEUX/mono; no host sudo needed); wrappers `tools/*_run.sh`, reproduce with `tools/toolbox_setup.sh`; specs/versions/throughput in facts F18–F22; `docs/experiments/P0.1-tooling.md`.
 
+## Loose ends (small, unassigned)
+- Start-press row: `tools/fm2_info.py` reports the first Start on fm2 frame 41 (0-based), but the FCEUX dump's pad column shows Start on row 43 (= fm2 frame 42 under F25). One of the two counts the frame-0 reset line differently. Resolve when next touching `fm2_info.py`/`check_sync.py` (F16/F31 wording depends on it; nothing else does).
+
 ## Blocked / Needs user input
 - (optional, not blocking) **Native emulator install on the host** would let `tools/fceux_run.sh` skip the container: `sudo dnf install -y fceux xorg-x11-server-Xvfb mono-core mono-devel libgdiplus lsb_release cmake clang gdb strace` (RPM Fusion is already enabled on the host). Everything currently runs in the rootless toolbox container, so this is a convenience only.
 - **Cloud**: preferred provider and how to authenticate (a plain VM provider with
