@@ -88,3 +88,16 @@ had 1-2 at 1 frame — wrong phase; corrected the same session.)
 **Next.** P0.5 (timing model doc from the code paths — most of the numbers are now in hand),
 P0.9 (check whether the community already proved 1-1 optimal at its framerule), then the
 fast core (P1.1) and the 1-1 search (P2.1). Track B unit P0.6 stays in the top 5.
+## 2026-08-21 — Session 2 (cont.): P0.5 done — timing model
+**Did.** `docs/timing-model.md`: NMI/lag, timers, boot/Start, area loads (154+w law derived task
+by task from a load trace), game timer, flagpole levels (glitch condition Y ≥ $A2 via
+`FlagpoleRoutine`; T_set = grab + T + 159), pipes/sub-areas, 8-4/axe. Facts F31–F34; H19
+confirmed for this boot; H21 rewritten as a concrete search objective.
+
+**Learned.** The 1-1 control start (row 197) is locked by the boot ITC phase — Start rows 34–43
+are equivalent. The flag-level end sequence is constant except the grab frame and the clock T
+(countdown T+1, raise 32, walk 126 in 1-1/4-1/8-1). Pipes are always 48 frames; sub-area
+entrances are not framerule-bound.
+
+**Next.** P0.9 (community claims — is 1-1's missing frame known impossible?), P0.6 (warps/area
+loading, Track B), P1.1 (fast core).
