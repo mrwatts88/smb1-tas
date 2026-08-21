@@ -3,10 +3,13 @@
 # (mono is only installed there). See docs/experiments/P0.1-tooling.md.
 # Usage: tools/bizhawk_run.sh [VAR=VAL ...] [EmuHawk args...] ROM.nes
 #   e.g. tools/bizhawk_run.sh OUT=/tmp/x.csv --lua=script.lua --movie=movie.bk2 "roms/Super Mario Bros. (W) [!].nes"
+# Pass .bk2 movies only (convert .fm2 with tools/fm2_to_bk2.py): a .fm2 triggers the importer's
+# 'ROM required to populate hash' dialog, invisible under Xvfb.
 # Leading VAR=VAL args become environment variables for the Lua script (os.getenv) — toolbox
 # does not forward the caller's environment.
 # Requires ~/opt/bizhawk/BizHawk-2.11.1-linux-x64/config.ini with SoundOutputMethod=Dummy,
-# LastWrittenFrom=2.11.1 and PreferredCores NES=NesHawk (tools/toolbox_setup.sh writes it);
+# LastWrittenFrom=2.11.1, PreferredCores NES=NesHawk and Movies.MovieEndAction=Finish (else EmuHawk
+# pauses when a movie ends and a Lua frame loop blocks forever) — tools/toolbox_setup.sh writes it;
 # without it EmuHawk blocks on a modal dialog that is invisible under Xvfb.
 # Scripts end with client.exit(); exit status 0 on a clean exit, 124 on BIZHAWK_TIMEOUT (default 900 s).
 set -u

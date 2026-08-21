@@ -32,7 +32,8 @@ fi
   "SoundEnabled": false,
   "UpdateAutoCheckEnabled": false,
   "SkipSuperuserPrivsCheck": true,
-  "PreferredCores": { "NES": "NesHawk" }
+  "PreferredCores": { "NES": "NesHawk" },
+  "Movies": { "MovieEndAction": "Finish" }
 }
 JSON
 echo "toolbox setup done. Versions:"; toolbox run -c smb1 sh -c 'rpm -q fceux mono-core xorg-x11-server-Xvfb'

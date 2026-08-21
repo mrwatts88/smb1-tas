@@ -53,3 +53,20 @@ by emulator (F22) — P0.3 must pin it down.
 
 **Next.** P0.3: replay the WR .fm2 in FCEUX (`--playmov` + Lua), confirm the ending, record
 the axe frame; then the same via BizHawk (fm2→bk2 conversion) as the second emulator.
+
+## 2026-08-21 — Session 2 (cont.): P0.3 done — the WR syncs in FCEUX and BizHawk
+**Did.** Replayed #1715M in FCEUX with a Lua per-frame dump (full 2 KiB RAM + 23 key addresses +
+joypad byte) and in BizHawk/NesHawk (after writing `tools/fm2_to_bk2.py`, because BizHawk's
+on-the-fly fm2 import pops an invisible dialog). Wrote `tools/check_sync.py` (alignment from
+joypad bytes, transitions, lag rows) and `tools/compare_dumps.py` (cross-emulator diff).
+Fetched doppelganger's disassembly to `data/disasm/smbdis.asm`.
+
+**Learned.** Both emulators sync; their game state is identical frame-for-frame (F23). The axe is
+touched on fm2 frame 17867 (0-based) — the movie's last frame (F24). 24 lag frames before the axe,
+one per area/pipe load (F24). Index conventions: FCEUX row i ↔ fm2 frame i−1, BizHawk row i ↔ fm2
+frame i (F25). Level-entry frames recorded (F26). BizHawk pauses at movie end by default
+(`Movies.MovieEndAction`), which freezes Lua frame loops — fixed in config.
+
+**Next.** P0.4: slack table from `data/wr/fceux_wr.ram` (framerule phase at each flagpole/axe,
+frames lost to rounding per level, RNG at each entry). Then P0.5 (timing model from the
+disassembly, checked against the dump).

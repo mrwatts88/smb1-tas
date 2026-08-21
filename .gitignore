@@ -12,3 +12,4 @@ data/**/*.npy
 __pycache__/
 build/
 target/
+data/**/*.ram
