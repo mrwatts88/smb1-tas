@@ -70,3 +70,20 @@ frame i (F25). Level-entry frames recorded (F26). BizHawk pauses at movie end by
 **Next.** P0.4: slack table from `data/wr/fceux_wr.ram` (framerule phase at each flagpole/axe,
 frames lost to rounding per level, RNG at each entry). Then P0.5 (timing model from the
 disassembly, checked against the dump).
+
+## 2026-08-21 — Session 2 (cont.): P0.4 done — slack table
+**Did.** Derived the framerule mechanism from the disassembly (`DecTimers`, `RunStarFlagObj`,
+`DelayToAreaEnd`, `ScreenRoutines`/`ScreenTimer`, `VerticalPipeEntry`/`ChangeAreaTimer`) and
+verified it frame-exactly against the P0.3 RAM dump with `tools/slack_table.py`
+(`docs/experiments/P0.4-slack-table.md`). Facts F27–F30, hypotheses H21–H24, H2 parked, H4 confirmed.
+
+**Learned.** Flag levels: slack = post-frame ITC at the frame the star-flag interval timer is set
+(v), deficit = 21 − v; countdown = 1 frame per timer unit. Main-level loads start control at
+load + 147 + u (u = ITC at load) → pipe levels are quantized at the *next* load; sub-area loads
+(bonus rooms, 4-2 wrong warp, 8-4 rooms) are not quantized. **1-1 and 1-2 are each 1 frame from
+the next framerule**; then 4-2 (6), 4-1 (9), 8-3 (10), 8-1 (18), 8-2 (19). 8-4 unquantized. All
+24 lag frames are load/boot frames.
+
+**Next.** P0.5 (timing model doc from the code paths — most of the numbers are now in hand),
+P0.9 (check whether the community already proved 1-1/1-2 optimal at their framerule), then the
+fast core (P1.1) and the 1-1 search (P2.1). Track B unit P0.6 stays in the top 5.
