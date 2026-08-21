@@ -24,8 +24,8 @@ This file makes the project resumable by a fresh session with zero memory. Read 
 6. **Update STATUS.** Move the unit to Done (one line + pointer to its artifact), add follow-up
    units to "Next up", refresh "Key numbers", re-order "Next up" if priorities changed.
 7. **Commit — always the final step.** `git add -A` then `git commit` with a one-line message
-   naming the unit. Nothing is "done" until it is committed. Then give the user a short recap
-   and, if context budget remains, go back to step 2.
+   naming the unit, then `git push`. Nothing is "done" until it is committed and pushed. Then
+   give the user a short recap and, if context budget remains, go back to step 2.
 
 The end-of-unit order is fixed: **document → update STATUS → commit.** Never commit before
 STATUS is current; never end a session with uncommitted work.
@@ -71,10 +71,10 @@ Run this before the session ends, and whenever context is getting tight:
 - [ ] Commit — last. `git status` must be clean when the session ends.
 
 ## Version control
-- The repo is under git (initialized 2026-08-21). Commit at the end of every unit — always
-  after documenting and updating STATUS — with a one-line message naming the unit. Never
-  commit `roms/` or large `data/` (see `.gitignore`). No remote or pushing unless the user
-  sets one up.
+- The repo is under git (initialized 2026-08-21) with a private GitHub remote. Commit at the
+  end of every unit — always after documenting and updating STATUS — with a one-line message
+  naming the unit, then push. Never commit `roms/` or large `data/` (see `.gitignore`).
+  Pull at session start if the repo may have been touched from another machine.
 
 ## Conduct
 - Follow the non-negotiable rules in `CLAUDE.md` (no impossibility claims without proof, no

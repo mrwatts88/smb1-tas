@@ -106,7 +106,7 @@ claims, and a list of abandoned ideas (re-run them at scale). No posting.
 
 - **Emulators.** FCEUX (the WR is .fm2; FCEUX 2.2.3 era — keep a 2.2.x build for sync
   checks), BizHawk/NESHawk (submission format, console-accurate), Mesen2 (accuracy oracle).
-  Linux box = build/search host; Mac = authoring, replay, docs; cloud = search bursts.
+  Linux box = primary host (build, replay, search, docs); Mac = optional; cloud = search bursts.
 - **Fast core, staged.**
   - Stage 1: headless libretro QuickNES (or Mesen) harness with savestates + RAM hashing +
     input injection, ~5k fps/core. Enough for P0 and the first search runs.

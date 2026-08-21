@@ -4,7 +4,7 @@ Updated: 2026-08-21 (session 1 — planning only; no engineering yet)
 Phase: **P0 — Ground truth**
 Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31)
 Our best full movie: none yet
-Git: initialized 2026-08-21 — commit after every unit (document → STATUS → commit)
+Host: Linux box (primary). Git: private GitHub remote — commit after every unit, then push (document → STATUS → commit → push)
 
 ## Running jobs
 (none)
@@ -16,7 +16,7 @@ Git: initialized 2026-08-21 — commit after every unit (document → STATUS →
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| P0.1 | Tooling install on the Mac: FCEUX (scriptable/Lua), BizHawk or Mesen2; record versions | infra | S | — | Each launches headless/scripted; versions in docs/facts.md |
+| P0.1 | Tooling install on the Linux box: FCEUX (SDL build with Lua), BizHawk (EmuHawkMono) and/or Mesen2; record versions and machine specs (CPU cores, RAM, distro) in docs/facts.md | infra | S | — | Each launches headless/scripted; versions + specs in docs/facts.md |
 | P0.2 | Fetch the #1715M movie file (.fm2) from https://tasvideos.org/1715M into `data/wr/`; parse the header (ROM checksum, frame count, emulator) with `tools/fm2_info.py` | A/C | S | — | Frame count == 17,868; ROM hash recorded in docs/facts.md |
 | P0.3 | Sync the WR: replay the .fm2 in FCEUX (and BizHawk via conversion) with the user-supplied ROM; confirm the 8-4 axe/ending is reached | A | S | P0.1, P0.2, ROM | Movie reaches the ending; any desync documented |
 | P0.4 | Per-frame RAM dump of the WR (Lua) → `data/wr/` + CSV of key addresses; build the **slack table**: per-level frames, framerule phase at flagpole/axe, frames-to-previous-framerule, lag frames, RNG state at each level entry, ending-input coast length | A | M | P0.3 | `tools/slack_table.py` prints the table; numbers land in docs/facts.md and Key numbers |
@@ -42,12 +42,12 @@ Git: initialized 2026-08-21 — commit after every unit (document → STATUS →
 - 2026-08-21 — Research of the current record and community state; plan, process, and status scaffolding written (PLAN.md, PROCESS.md, this file, docs/*). Git initialized, initial commit. See docs/log.md.
 
 ## Blocked / Needs user input
-- **ROM**: place `Super Mario Bros. (W) [!].nes` in `roms/`. Expected MD5
+- **ROM**: place `Super Mario Bros. (W) [!].nes` in `roms/` on the Linux box — see
+  `docs/rom.md` for the exact version and legitimate ways to obtain it. Expected MD5
   `811b027eaf99c2def7b933c5208636de` (unverified recollection — P0.2 confirms it from the
   movie header). Blocks P0.3 and everything after it; P0.1, P0.2, P0.5–P0.9 can proceed now.
-- **Linux machine**: hostname / SSH access and specs (cores, RAM). Not blocking P0.
-- **Cloud**: preferred provider and how to authenticate. The Railway MCP that is available is
-  not a good fit for CPU-burst search; a plain VM provider (spot/preemptible) is. Needed by P2.
+- **Cloud**: preferred provider and how to authenticate (a plain VM provider with
+  spot/preemptible instances fits CPU-burst search; Railway does not). Needed by P2.
 
 ## Key numbers (each must be reproducible by a script in tools/)
 | Quantity | Value | Source / script |

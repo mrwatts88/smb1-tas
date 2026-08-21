@@ -12,7 +12,8 @@ RTA-rules TAS. ACE exists on NES only via cartridge swap; on FDS via the Minus W
 public full-state exhaustive search exists (to verify in P0.8). Community bots were narrow.
 
 Matt fixed the end-of-unit order: document → update STATUS → commit (last). Git initialized
-and the scaffold committed.
+and the scaffold committed. Then: pushed to a private GitHub repo; the Linux box becomes the
+primary host (Matt will run sessions there); `docs/rom.md` added.
 
 **Next.** P0.1 (tooling), P0.2 (fetch the .fm2, verify 17,868 frames + ROM hash), P0.5/P0.6
 (disassembly models) can all proceed without the ROM. P0.3+ need the ROM in `roms/`.

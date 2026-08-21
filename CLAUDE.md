@@ -36,7 +36,10 @@ than 17,868 frames — beating HappyLee's 2011 "warps" TAS (TASVideos #1715M).
 - Do not download ROMs; the user supplies them in `roms/` (gitignored).
 
 ## Environment
-- This Mac (darwin, zsh). A Linux machine is available (access details: STATUS "Needs user input").
+- Primary host: Matt's Linux machine — sessions run there (record its specs in docs/facts.md
+  during P0.1). A Mac exists too, but emulator/TAS tooling is Linux-first, so build, replay,
+  and search on Linux.
 - Cloud machines are allowed for search bursts; small spend is OK (cap in PROCESS.md).
-- Follow `~/.claude/CLAUDE.md` for Bash phrasing (prefer dedicated tools; no shell loops,
-  command substitution, or cd chained with redirects).
+- Remote: private GitHub repo (`git remote -v`). Commit after every unit, then push.
+- If `~/.claude/CLAUDE.md` exists, follow it for Bash phrasing (prefer dedicated tools; no shell
+  loops, command substitution, or cd chained with redirects).
