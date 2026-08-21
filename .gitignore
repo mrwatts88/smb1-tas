@@ -1,0 +1,14 @@
+# user-supplied ROMs — never commit
+roms/
+# long-job output
+runs/
+# large regenerable data
+data/**/*.bin
+data/**/*.state
+data/**/*.zip
+data/**/*.npy
+*.log
+.DS_Store
+__pycache__/
+build/
+target/
