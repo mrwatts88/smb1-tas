@@ -1,5 +1,5 @@
 -- FCEUX smoke test: run 300 frames, log FrameCounter/OperMode every 60 frames to a file, exit
-local out = io.open(os.getenv("HOME") .. "/opt/fceux_smoke_out.txt", "w")
+local out = io.open("/home/mattwatts/Documents/smb1-tas/runs/smoke_fceux.txt", "w")
 out:write("script loaded, emu.framecount=" .. tostring(emu.framecount()) .. "\n"); out:flush()
 for i = 1, 300 do
   emu.frameadvance()

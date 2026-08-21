@@ -5,7 +5,7 @@
 -- Stops 400 frames after OperMode first becomes 2, or at MAXF frames.
 -- Env: OUT (base path), MAXF (default 19000). Run via tools/fceux_run.sh OUT=... --playmov ... --loadlua this.lua ROM
 emu.speedmode("nothrottle")
-local OUT  = os.getenv("OUT") or (os.getenv("HOME") .. "/opt/wr_dump")
+local OUT  = os.getenv("OUT") or ("/home/mattwatts/Documents/smb1-tas/runs/wr_dump")
 local MAXF = tonumber(os.getenv("MAXF") or "19000")
 local ram = io.open(OUT .. ".ram", "wb")
 local csv = io.open(OUT .. ".csv", "w")

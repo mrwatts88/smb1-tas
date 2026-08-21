@@ -1,7 +1,7 @@
 -- BizHawk: replay a movie (use with --movie=) and dump key addresses per frame to <OUT>.csv
 -- (same columns as wr_dump_fceux.lua, minus the full-RAM file) plus <OUT>.summary.
 -- Env: OUT, MAXF (default 19000). Run via tools/bizhawk_run.sh OUT=... --movie=... --lua=this.lua ROM
-local OUT  = os.getenv("OUT") or (os.getenv("HOME") .. "/opt/wr_dump_bizhawk")
+local OUT  = os.getenv("OUT") or ("/home/mattwatts/Documents/smb1-tas/runs/wr_dump_bizhawk")
 local MAXF = tonumber(os.getenv("MAXF") or "19000")
 client.speedmode(6400); client.unpause()
 local csv = io.open(OUT .. ".csv", "w")

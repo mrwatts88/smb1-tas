@@ -1,5 +1,5 @@
 -- Mesen2 smoke test: run 300 frames, log FrameCounter/OperMode every 60 frames to a file, exit 0
-local out = io.open(os.getenv("HOME") .. "/opt/mesen2/smoke_out.txt", "w")
+local out = io.open("/home/mattwatts/Documents/smb1-tas/runs/smoke_mesen2.txt", "w")
 local n = 0
 local function onFrame()
   n = n + 1
