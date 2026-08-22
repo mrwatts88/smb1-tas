@@ -234,3 +234,21 @@ room from frame 1045 with deadline 1284 — the first single search from the fix
 At session end the exact-model whole-room probe from frame 1045 is running under a memory cap (×1.19/layer
 at frame 1070); the exact-model root-1229 run was stopped at frame 1277 (182M states) — the relaxed model's
 run is the proof.
+## 2026-08-21 — Session 4 (cont.): P2.1b-m2 — goombas modelled; pole mechanics; whole-room search sized
+**Did.** Added the goomba pair to the model (`room_enemies`), a relaxed case + held-A switch for proofs,
+`trace11room`, `bfs11 --goombas`, `--check-path`; validated with the difftest from the first control frame
+(three bugs found by it: collision parity, goomba position law, and the trace parser dropping L+R-facing
+rows) → 0 differences on 97k frames incl. 119 deaths and 35 glitch grabs. Ran search controls: 15 steps
+before the WR's grab → none; 16 → 2,256 grabs incl. the WR's. Read the WR's real pole finish from the trace
+(land beside the base block from above, L+R jump, grab rising at Y 164) and why nothing simpler works (F60).
+Whole-room searches (exact and relaxed+goombas) died at the memory cap at frame ~1092 with 25–27M states
+per layer (F61). Docs: F56 updated, F58/F59 corrected, F60/F61, H28; P1.2-lite closed.
+
+**Learned.** The differential tester is the most valuable tool in the repo: every model bug so far was found
+by it in minutes. The WR is on the exact x-frontier at the staircase top and optimal from there; the only
+remaining 1-1 lever in the room is the handoff state at the stairs (fractions/timers), which the whole-room
+enumeration covers but at ~10⁸ states per layer — an engine problem (compact per-layer frontier, ~10
+core-hours) or a memory problem (64 GB box), not a physics problem any more.
+
+**Next.** P2.1b-m3: compact per-layer engine (or the cloud box), relaxed model + goombas from the entry with
+deadline 238; then exact-model candidates replayed on the core. Track B unit P0.7 still waits.

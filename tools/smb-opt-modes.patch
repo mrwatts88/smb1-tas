@@ -1,5 +1,5 @@
 diff --git a/src/case/w11.rs b/src/case/w11.rs
-index e0e1804..db5424b 100644
+index e0e1804..a7f4def 100644
 --- a/src/case/w11.rs
 +++ b/src/case/w11.rs
 @@ -29,6 +29,7 @@ fn w11_start<O: Options>() -> State {
@@ -49,7 +49,53 @@ index e0e1804..db5424b 100644
  
    type BlockBuffer = BB11;
  
-@@ -351,6 +354,7 @@ impl super::SmbSearchCase for W11Flag {
+@@ -304,6 +307,45 @@ impl SearchGoal for W11PipeSpeedup {
+   }
+ }
+ 
++/// Relaxed variant of W11PipeSpeedup for proofs: no running timer (B held == timer active), used with
++/// emu::JUMP_NEEDS_FRESH_A = false. Its trajectory set is a superset of the real game's (P2.1b-pole-search.md).
++#[allow(dead_code)]
++pub struct W11PipeRelaxed {
++  h: XPosHeuristic,
++}
++impl Options for W11PipeRelaxed {
++  type CoinHandler = IgnoreCoins;
++  type Platform = NTSC;
++  type PlayerSize = Small;
++  type Swim = NotSwimming;
++  type PowerupHandler = NoPowerups;
++  type RunningTimer = NoRunningTimer;
++  type ScrollPos = NoScrollPos;
++  type Parity = NoParity;
++  type VerticalPipeHandler = IgnoreVerticalPipes;
++  type YPosFractionalBehavior = KeepYPosFractionals;
++}
++impl super::SmbSearchCase for W11PipeRelaxed {
++  type SearchGoal = Self;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 10]>, Dist>;
++
++  type BlockBuffer = BB11;
++
++  fn start_states() -> Vec<State> {
++    vec![w11_pipe_start::<Self>()]
++  }
++  const SEARCH_SPACE_SIZE_HINT: usize = 266;
++}
++impl SearchGoal for W11PipeRelaxed {
++  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()) }; }
++  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
++    Some(self.h.get_steps_until_x_pos_at_least(s, 0xbc110))
++  }
++  fn is_goal_state(&self, s: &State, _: &EmuResult) -> bool {
++    s.x_pos >= 0xbc110
++  }
++}
++
+ /// Stairs to half flag pole glitch
+ /// Input sequence: [3x B|R, 1x A, 42x R, 2x L, 3x NIL, 2x R, 1x L, 1x NIL, 1x R, 1x A|L, 1x NIL, 1x R] (len: 59)
+ #[allow(dead_code)]
+@@ -351,6 +393,7 @@ impl super::SmbSearchCase for W11Flag {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
@@ -57,7 +103,7 @@ index e0e1804..db5424b 100644
      };
      // let s = Self::Emu::run_steps_nr(s, &[B|R; 12]);
      vec![s]
-@@ -417,6 +421,7 @@ impl super::SmbSearchCase for W11Flag2 {
+@@ -417,6 +460,7 @@ impl super::SmbSearchCase for W11Flag2 {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
@@ -454,10 +500,22 @@ index 3f1c53b..50a9c28 100644
      vec![s]
    }
 diff --git a/src/emu.rs b/src/emu.rs
-index 947eef3..9d851a3 100644
+index 947eef3..063748f 100644
 --- a/src/emu.rs
 +++ b/src/emu.rs
-@@ -120,6 +120,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -3,6 +3,11 @@ use blockbuffer::util::*;
+ use state::{Dir,PlayerState,State};
+ use std::marker::PhantomData;
+ use options::*;
++use std::sync::atomic::{AtomicBool, Ordering};
++
++/// Exact game: a jump needs A released on the previous frame (PreviousA_B_Buttons). Set to false for the
++/// relaxed model (jump on a held A; a_held is then kept at false so it does not split states).
++pub static JUMP_NEEDS_FRESH_A: AtomicBool = AtomicBool::new(true);
+ 
+ 
+ bitflags! {
+@@ -120,6 +125,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn run_step(mut self) -> (State, EmuResult) {
      self.started_on_ground = self.s.is_on_ground();
@@ -465,20 +523,20 @@ index 947eef3..9d851a3 100644
      if O::RunningTimer::USE_RUNNING_TIMER && self.s.running_timer > 0 { self.s.running_timer -= 1; }
  
      let result = self.player_ctrl_routine();
-@@ -136,6 +137,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -136,6 +142,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        return (self.s, EmuResult::InvalidStateFallingWithClearedYposFractionals);
      }
      self.s.parity = (self.s.parity + 1) % O::Parity::PARITY;
-+    self.s.a_held = raw_a_pressed;
++    self.s.a_held = raw_a_pressed && JUMP_NEEDS_FRESH_A.load(Ordering::Relaxed);
  
      (self.s, result)
    }
-@@ -194,7 +196,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -194,7 +201,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn player_physics_sub(&mut self) -> () {
      // handle starting jumps
 -    if self.joypad.contains(Input::A) && (self.s.is_on_ground() || (O::Swim::IS_SWIMMING && (self.s.jump_swim_timer != 0 || self.s.y_spd >= 0))) {
-+    if self.joypad.contains(Input::A) && !self.s.a_held && (self.s.is_on_ground() || (O::Swim::IS_SWIMMING && (self.s.jump_swim_timer != 0 || self.s.y_spd >= 0))) {
++    if self.joypad.contains(Input::A) && !(self.s.a_held && JUMP_NEEDS_FRESH_A.load(Ordering::Relaxed)) && (self.s.is_on_ground() || (O::Swim::IS_SWIMMING && (self.s.jump_swim_timer != 0 || self.s.y_spd >= 0))) {
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
@@ -504,7 +562,7 @@ index c9bbf89..5e02f84 100644
      let max_dists = self.max_distance.get(s).unwrap();
      let len = max_dists.len();
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..1f11109 100644
+index 350d469..8d073da 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -515,28 +573,20 @@ index 350d469..1f11109 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,179 @@ mod state;
+@@ -22,6 +23,78 @@ mod state;
  mod store;
  
  fn main() {
 +  let args: Vec<String> = ::std::env::args().collect();
-+  if args.len() >= 6 && args[1] == "bfs11" {
-+    // bfs11 INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [STEP:yspd=V]... [--root-frame F] [--any-y] [--out FILE]
++  if args.len() >= 6 && (args[1] == "bfs11" || args[1] == "bfs11r") {
++    // bfs11[r] INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [STEP:yspd=V]... [--root-frame F] [--any-y] [--goombas] [--out FILE]
 +    // Replays PREFIX_STEPS NES-order input records (from FIRST_RECORD) through the 1-1 third-room model
-+    // (w11_pipe_start, optional y-speed overrides as in trace11pipe), then runs a layered BFS of at most
-+    // MAX_STEPS steps over the 16 A/B/L/R inputs with global dedup on the compressed 10-byte player state
-+    // (the model has no frame counter, so a state seen earlier dominates the same state seen later) and
-+    // MrWint's Bounds heuristic (x >= 0xc5600 i.e. X >= 3158 and, unless --any-y, y >= 0x1a200 i.e.
-+    // Y >= 162 = the flagpole glitch) as the deadline bound. Every flagpole grab (EmuResult::StateChangeFlag)
-+    // is recorded with its step, x, y. Memory: ~10 B key + ~5 B parent/input per visited state, plus the
-+    // full states of the current and next layer only.
-+    use case::SmbSearchCase;
-+    use emu::{Emu, EmuResult};
-+    use heuristics::BoundsHeuristic;
-+    use state::{CompressedState, StateCompressor};
-+    use std::collections::{HashMap, HashSet};
-+    type BCase = case::w11::W11PipeSpeedup;
-+    type Key = CompressedState<BCase, [u8; 11]>;
++    // (w11_pipe_start, optional y-speed overrides), then a layered BFS of at most MAX_STEPS steps over the
++    // 16 A/B/L/R inputs with dedup on the compressed player state (+ goomba state and, while a goomba is
++    // still ahead/alive, the frame) and MrWint's Bounds heuristic (x >= 0xc5600 i.e. X >= 3158 and, unless
++    // --any-y, y >= 0x1a200 i.e. Y >= 162 = the flagpole glitch, F55) as the deadline bound. Every flagpole
++    // grab is recorded with its step, x, y. bfs11 = exact model (WithRunningTimer, fresh-A jumps, F56);
++    // bfs11r = relaxed model (no running timer, jumps on a held A): a superset of the real game, for proofs.
 +    let data = ::std::fs::read(&args[2]).unwrap();
 +    let first: usize = args[3].parse().unwrap();
 +    let prefix: usize = args[4].parse().unwrap();
@@ -544,132 +594,39 @@ index 350d469..1f11109 100644
 +    let mut overrides: Vec<(usize, i16)> = Vec::new();
 +    let mut root_frame: i64 = -1;
 +    let mut any_y = false;
++    let mut goombas = false;
 +    let mut out: Option<String> = None;
++    let mut check_path: usize = 0;
 +    let mut i = 6;
 +    while i < args.len() {
 +      if args[i] == "--root-frame" { root_frame = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--any-y" { any_y = true; i += 1; }
++      else if args[i] == "--goombas" { goombas = true; i += 1; }
 +      else if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
++      else if args[i] == "--check-path" { check_path = args[i + 1].parse().unwrap(); i += 2; }
 +      else { let parts: Vec<&str> = args[i].split(":yspd=").collect(); overrides.push((parts[0].parse().unwrap(), parts[1].parse().unwrap())); i += 1; }
 +    }
-+    let mut s = case::w11::w11_pipe_start::<BCase>();
-+    for st in 0..prefix {
-+      let b = data[first + st];
-+      let mut v: u8 = 0;
-+      for bit in 0..8 { if b & (1 << bit) != 0 { v |= 0x80 >> bit; } }
-+      for &(ost, ys) in &overrides { if ost == st { s.y_spd = ys; s.player_state = state::PlayerState::JUMPING; } }
-+      let (ns, res) = <BCase as SmbSearchCase>::Emu::run_step(s, emu::Input::from_bits_truncate(v));
-+      assert!(res == EmuResult::Success, "prefix step {} gave {:?}", st, res);
-+      s = ns;
++    if root_frame < 0 { root_frame = ROOM_FIRST_FRAME - 1 + prefix as i64; }
++    if args[1] == "bfs11r" {
++      emu::JUMP_NEEDS_FRESH_A.store(false, ::std::sync::atomic::Ordering::Relaxed);
++      println!("relaxed model (no running timer, held-A jumps)");
++      bfs11_run::<case::w11::W11PipeRelaxed, [u8; 10]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, check_path);
++    } else {
++      bfs11_run::<case::w11::W11PipeSpeedup, [u8; 11]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, check_path);
 +    }
-+    println!("root after {} prefix steps (frame {}): {}", prefix, root_frame, s);
-+    let t0 = time::precise_time_ns();
-+    let h = BoundsHeuristic::new::<BCase>(&vec![s.clone()]);
-+    let target_x: i32 = 0xc5600;
-+    let target_y: i32 = 0x1a200;
-+    let hval = |st: &State| -> usize { if any_y { h.get_steps_until_x_pos_at_least(st, target_x) as usize } else { h.get_steps_until_bounds_at_least(st, target_x, target_y) as usize } };
-+    println!("heuristic built in {:.1}s; at root: {} steps (deadline {} steps, any_y {})", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&s), max_steps, any_y);
-+    // model input bits: A 0x80, B 0x40, L 0x02, R 0x01
-+    let inputs: Vec<u8> = (0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect();
-+    let mut visited: HashSet<Key> = HashSet::new();
-+    visited.insert(Key::from_state(&s));
-+    let mut frontier: Vec<State> = vec![s.clone()];
-+    let mut parents: Vec<Vec<u32>> = vec![vec![0]];
-+    let mut pinputs: Vec<Vec<u8>> = vec![vec![0]];
-+    // grabs: (step, x_pos, y_pos, fpg) -> count; grab_paths: first (parent index, input, state) per (step, fpg)
-+    let mut grabs: HashMap<(usize, i32, i32, bool), u32> = HashMap::new();
-+    let mut grab_paths: HashMap<(usize, bool), (u32, u8, State)> = HashMap::new();
-+    let mut step = 0;
-+    while step < max_steps {
-+      let t1 = time::precise_time_ns();
-+      let mut next: Vec<State> = Vec::new();
-+      let mut npar: Vec<u32> = Vec::new();
-+      let mut ninp: Vec<u8> = Vec::new();
-+      let (mut dup, mut pruned, mut dead, mut other, mut grab_n) = (0u64, 0u64, 0u64, 0u64, 0u64);
-+      let mut max_x: i32 = 0;
-+      for (pi, ps) in frontier.iter().enumerate() {
-+        for &ib in &inputs {
-+          let (ns, res) = <BCase as SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+          match res {
-+            EmuResult::StateChangeFlag(cx, cy) => {
-+              grab_n += 1;
-+              let fpg = ns.y_pos >= target_y;
-+              *grabs.entry((step + 1, ns.x_pos, ns.y_pos, fpg)).or_insert(0) += 1;
-+              if cx != 0xc6 { println!("note: flag collision at column {} row {} (x {:#x} y {:#x})", cx, cy, ns.x_pos, ns.y_pos); }
-+              grab_paths.entry((step + 1, fpg)).or_insert((pi as u32, ib, ns.clone()));
-+            }
-+            EmuResult::Success => {
-+              if ns.y_pos >= 0x1d000 { dead += 1; continue; }
-+              let hh = hval(&ns);
-+              if step + 1 + hh > max_steps { pruned += 1; continue; }
-+              if !visited.insert(Key::from_state(&ns)) { dup += 1; continue; }
-+              if ns.x_pos > max_x { max_x = ns.x_pos; }
-+              next.push(ns); npar.push(pi as u32); ninp.push(ib);
-+            }
-+            _ => { other += 1; }
-+          }
-+        }
-+      }
-+      println!("layer {} (after frame {}): parents {} -> unique {}, dup {}, pruned {}, dead {}, other {}, grabs {}; visited {}; max x {:#x}; {:.1}s",
-+        step + 1, root_frame + step as i64 + 1, frontier.len(), next.len(), dup, pruned, dead, other, grab_n, visited.len(), max_x, (time::precise_time_ns() - t1) as f64 / 1e9);
-+      if next.is_empty() { println!("no live states left after layer {}", step + 1); break; }
-+      frontier = next;
-+      parents.push(npar);
-+      pinputs.push(ninp);
-+      step += 1;
-+    }
-+    println!("total {:.1}s, {} states visited", (time::precise_time_ns() - t0) as f64 / 1e9, visited.len());
-+    let mut gl: Vec<(&(usize, i32, i32, bool), &u32)> = grabs.iter().collect();
-+    gl.sort();
-+    println!("grabs (step frame x_pos y_pos fpg count):");
-+    for (k, c) in gl { println!("  {} {} {:#x} {:#x} {} {}", k.0, root_frame + k.0 as i64, k.1, k.2, k.3, c); }
-+    let mut best: Option<(usize, bool)> = None;
-+    for fpg in &[true, false] {
-+      let mut keys: Vec<&(usize, bool)> = grab_paths.keys().filter(|k| k.1 == *fpg).collect();
-+      keys.sort();
-+      if let Some(k) = keys.first() { best = Some(**k); break; }
-+    }
-+    if let Some((bstep, bfpg)) = best {
-+      let &(ppi, pib, ref gs) = grab_paths.get(&(bstep, bfpg)).unwrap();
-+      println!("earliest {} grab: step {} (frame {}), state {}", if bfpg { "FPG" } else { "non-FPG" }, bstep, root_frame + bstep as i64, gs);
-+      let mut seq: Vec<u8> = vec![pib];
-+      let mut pi = ppi as usize;
-+      let mut l = bstep - 1;
-+      while l > 0 { seq.push(pinputs[l][pi]); pi = parents[l][pi] as usize; l -= 1; }
-+      seq.reverse();
-+      emu::print_rle(seq.iter().map(|&b| emu::Input::from_bits_truncate(b)));
-+      if let Some(path) = out {
-+        let nes: Vec<u8> = seq.iter().map(|&b| { let mut v = 0u8; for bit in 0..8 { if b & (1 << bit) != 0 { v |= 0x80 >> bit; } } v }).collect();
-+        ::std::fs::write(&path, &nes).unwrap();
-+        println!("wrote {} NES-order input bytes to {}", nes.len(), path);
-+      }
-+    } else { println!("no grab found within {} steps", max_steps); }
 +    return;
 +  }
-+  if args.len() >= 4 && args[1] == "trace11pipe" {
-+    // trace11pipe INPUTS.bin FIRST_RECORD N : run the 1-1 third-room model from w11_pipe_start with
-+    // NES-order input bytes (A=$01 B=$02 Sel=$04 Start=$08 U=$10 D=$20 L=$40 R=$80) records FIRST_RECORD..
-+    use case::SmbSearchCase;
-+    use emu::Emu;
++  if args.len() >= 4 && (args[1] == "trace11pipe" || args[1] == "trace11room") {
++    // trace11pipe INPUTS.bin FIRST_RECORD N [STEP:yspd=VALUE]... : run the 1-1 third-room model from
++    // w11_pipe_start with NES-order input bytes (A=$01 B=$02 Sel=$04 Start=$08 U=$10 D=$20 L=$40 R=$80),
++    // records FIRST_RECORD.. (record 1048 = QuickNES frame 1046), printing x/y/speeds/state per step.
++    // trace11room: the same with the two goombas (F58/F59) — stomps (" STOMPi") and deaths (" DEATH").
 +    let data = ::std::fs::read(&args[2]).unwrap();
 +    let first: usize = args[3].parse().unwrap();
 +    let n: usize = args[4].parse().unwrap();
-+    // optional overrides: "STEP:yspd=VALUE" (applied before running the step's input), e.g. 65:yspd=-1024
 +    let mut overrides: Vec<(usize, i16)> = Vec::new();
 +    for a in args.iter().skip(5) { let parts: Vec<&str> = a.split(":yspd=").collect(); overrides.push((parts[0].parse().unwrap(), parts[1].parse().unwrap())); }
-+    let mut s = case::w11::w11_pipe_start::<case::w11::W11PipeSpeedup>();
-+    println!("step x_pos y_pos x_spd y_spd state facing moving input result");
-+    for i in 0..n {
-+      let b = data[first + i];
-+      let mut v: u8 = 0;
-+      for bit in 0..8 { if b & (1 << bit) != 0 { v |= 0x80 >> bit; } }
-+      let input = emu::Input::from_bits_truncate(v);
-+      for &(st, ys) in &overrides { if st == i { s.y_spd = ys; s.player_state = state::PlayerState::JUMPING; } }
-+      let (ns, res) = <case::w11::W11PipeSpeedup as SmbSearchCase>::Emu::run_step(s, input);
-+      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res);
-+      s = ns;
-+      if res != emu::EmuResult::Success { println!("stopped: {:?}", res); break; }
-+    }
++    replay11::<case::w11::W11PipeSpeedup>(&data, first, n, &overrides, args[1] == "trace11room", true);
 +    return;
 +  }
 +  if args.len() >= 3 && args[1] == "xpos-dump" {
@@ -695,6 +652,213 @@ index 350d469..1f11109 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
+@@ -46,4 +119,204 @@ fn calc_prng() {
+   print!("Cycle: ");
+   for b in result { print!("{:02x}", b) }
+   println!();
+-}
+\ No newline at end of file
++}
++// ===== 1-1 third room: replay, goombas (F58/F59) and the layered BFS (P2.1b-m / P2.1b-m2) =====
++const ROOM_FIRST_FRAME: i64 = 1046; // first control frame (QuickNES numbering); w11_pipe_start = state after frame 1045
++const GOOMBA_Y: i32 = 184;
++
++/// goomba i's X after frame f's enemy movement (model frames, = harness 0-based rows): 2767 (+24) at frame 1046,
++/// 1 px left on every even frame; verified against the core in tools/model_difftest.py --goombas (F58)
++fn goomba_x(i: usize, f: i64) -> i32 { 2768 + 24 * (i as i32) - ((f - 1044) / 2) as i32 }
++
++#[derive(Clone, Copy, PartialEq, Eq, Debug)]
++pub enum RoomEvent { Nothing, Stomp(u8), Death }
++
++/// PlayerEnemyCollision for the goomba pair in frame f, applied to the player state after its step (F59).
++/// g bits: 0/1 = goomba 0/1 stomped (state 4, harmless), 2/3 = its Enemy_CollisionBits d0.
++/// Assumptions: a goomba that overlaps Mario is on screen (no offscreen-bit masking) and boxes do not wrap.
++fn room_enemies(f: i64, s: &mut State, g: &mut u8) -> RoomEvent {
++  if f % 2 == 0 { return RoomEvent::Nothing; }                       // FrameCounter = f - 925 (harness dump) must be even: odd model frames only
++  if (s.y_pos >> 16) != 1 || ((s.y_pos >> 8) & 0xff) >= 0xd0 { return RoomEvent::Nothing; } // CheckPlayerVertical
++  let px = s.x_pos >> 8;
++  let py = (s.y_pos >> 8) & 0xff;
++  let (pl, pr, pt, pb) = (px + 3, px + 13, py + 20, py + 32);        // BoundBoxCtrlData[1], small Mario
++  let mut stomp_timer = 0u8;                                          // frame timer, 0 at frame start
++  let mut ev = RoomEvent::Nothing;
++  for i in 0..2usize {
++    if *g & (1 << i) != 0 { continue; }
++    let gx = goomba_x(i, f - 1);                                      // the enemy moves after the collision check
++    let (gl, gr, gt, gb) = (gx + 3, gx + 13, GOOMBA_Y + 14, GOOMBA_Y + 20); // BoundBoxCtrlData[9]
++    let overlap = pl <= gr && gl <= pr && pt <= gb && gt <= pb;       // CollisionCoreLoop, inclusive edges
++    if !overlap { *g &= !(4 << i); continue; }
++    if *g & (4 << i) != 0 { continue; }                               // d0 already set: HandlePECollisions leaves
++    *g |= 4 << i;
++    if (s.y_spd >> 8) > 0 || stomp_timer != 0 {                       // moving down, or StompTimer set this frame
++      *g |= 1 << i;
++      stomp_timer += 1;
++      s.y_spd = (-4i16 << 8) | (s.y_spd & 0xff);                      // HandleStompedShellE: Player_Y_Speed = $fc
++      ev = RoomEvent::Stomp(i as u8);
++    } else {
++      return RoomEvent::Death;                                        // small Mario: KillPlayer
++    }
++  }
++  ev
++}
++
++fn nes_to_model(b: u8) -> emu::Input { let mut v = 0u8; for bit in 0..8 { if b & (1 << bit) != 0 { v |= 0x80 >> bit; } } emu::Input::from_bits_truncate(v) }
++fn model_to_nes(v: u8) -> u8 { let mut b = 0u8; for bit in 0..8 { if v & (1 << bit) != 0 { b |= 0x80 >> bit; } } b }
++
++/// Replays `prefix` NES-order records (data[first..]) from w11_pipe_start; returns (state, goomba bits, alive).
++fn replay11<C: case::SmbSearchCase>(data: &[u8], first: usize, prefix: usize, overrides: &[(usize, i16)], goombas: bool, trace: bool) -> (State, u8, bool) {
++  use emu::{Emu, EmuResult};
++  let mut s = case::w11::w11_pipe_start::<C>();
++  let mut g = 0u8;
++  if trace { println!("step x_pos y_pos x_spd y_spd state facing moving input result"); }
++  for i in 0..prefix {
++    let input = nes_to_model(data[first + i]);
++    for &(st, ys) in overrides { if st == i { s.y_spd = ys; s.player_state = state::PlayerState::JUMPING; } }
++    let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(s, input);
++    let f = ROOM_FIRST_FRAME + i as i64;
++    let mut ev = RoomEvent::Nothing;
++    if goombas && res == EmuResult::Success { ev = room_enemies(f, &mut ns, &mut g); }
++    if trace {
++      let evs = match ev { RoomEvent::Nothing => String::new(), RoomEvent::Stomp(k) => format!(" STOMP{}", k), RoomEvent::Death => " DEATH".to_string() };
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}{}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res, evs);
++    }
++    s = ns;
++    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, g, false); }
++    if ev == RoomEvent::Death { if trace { println!("stopped: death"); } return (s, g, false); }
++  }
++  (s, g, true)
++}
++
++fn bfs11_run<C: case::SmbSearchCase, A: state::StateArray>(data: &[u8], first: usize, prefix: usize, max_steps: usize, overrides: &[(usize, i16)], root_frame: i64, any_y: bool, goombas: bool, out: Option<String>, check_path: usize) {
++  use emu::{Emu, EmuResult};
++  use heuristics::BoundsHeuristic;
++  use state::{CompressedState, StateCompressor};
++  use std::collections::{HashMap, HashSet};
++  type Key<C, A> = CompressedState<C, A>;
++  let (s, g0, alive) = replay11::<C>(data, first, prefix, overrides, goombas, false);
++  assert!(alive, "prefix replay ended early");
++  println!("root after {} prefix steps (frame {}): {}", prefix, root_frame, s);
++  println!("goombas {} (root g {:#x}); goomba x at root: {} {}", goombas, g0, goomba_x(0, root_frame), goomba_x(1, root_frame));
++  let t0 = time::precise_time_ns();
++  let h = BoundsHeuristic::new::<C>(&vec![s.clone()]);
++  let target_x: i32 = 0xc5600;
++  let target_y: i32 = 0x1a200;
++  let hval = |st: &State| -> usize { if any_y { h.get_steps_until_x_pos_at_least(st, target_x) as usize } else { h.get_steps_until_bounds_at_least(st, target_x, target_y) as usize } };
++  println!("heuristic built in {:.1}s; at root: {} steps (deadline {} steps, any_y {})", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&s), max_steps, any_y);
++  // --check-path N: replay N more records of the input file as a reference path (e.g. the WR's own
++  // continuation) and report at every layer whether its state is in the frontier, else why not.
++  let mut refpath: Vec<(State, u8)> = Vec::new();
++  if check_path > 0 {
++    let (mut rs, mut rg) = (s.clone(), g0);
++    for k in 0..check_path {
++      let input = nes_to_model(data[first + prefix + k]);
++      let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs, input);
++      let f = root_frame + k as i64 + 1;
++      if res != EmuResult::Success { println!("reference path: step {} (frame {}) result {:?}, x {:#x} y {:#x}", k + 1, f, res, ns.x_pos, ns.y_pos); break; }
++      if goombas { let ev = room_enemies(f, &mut ns, &mut rg); if ev != RoomEvent::Nothing { println!("reference path: step {} event {:?}", k + 1, ev); } }
++      println!("reference path: step {} (frame {}) x {:#x} y {:#x} xspd {:#x} yspd {:#x} {:?} h {}", k + 1, f, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hval(&ns));
++      refpath.push((ns.clone(), rg));
++      rs = ns;
++    }
++  }
++  // model input bits: A 0x80, B 0x40, L 0x02, R 0x01
++  let inputs: Vec<u8> = (0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect();
++  // dedup key: compressed player state, goomba bits, and the frame while a live goomba is still ahead (< 48 px behind Mario)
++  let relevant = |st: &State, g: u8, f: i64| -> u32 {
++    if !goombas { return 0; }
++    let px = st.x_pos >> 8;
++    for i in 0..2usize { if g & (1 << i) == 0 && px < goomba_x(i, f) + 48 { return f as u32; } }
++    0
++  };
++  let mut visited: HashSet<(Key<C, A>, u8, u32)> = HashSet::new();
++  visited.insert((Key::<C, A>::from_state(&s), g0, relevant(&s, g0, root_frame)));
++  let mut frontier: Vec<(State, u8)> = vec![(s.clone(), g0)];
++  let mut parents: Vec<Vec<u32>> = vec![vec![0]];
++  let mut pinputs: Vec<Vec<u8>> = vec![vec![0]];
++  let mut grabs: HashMap<(usize, i32, i32, bool), u32> = HashMap::new();
++  let mut grab_paths: HashMap<(usize, bool), (u32, u8, State)> = HashMap::new();
++  let mut step = 0;
++  while step < max_steps {
++    let t1 = time::precise_time_ns();
++    let f = root_frame + step as i64 + 1;
++    let mut next: Vec<(State, u8)> = Vec::new();
++    let mut npar: Vec<u32> = Vec::new();
++    let mut ninp: Vec<u8> = Vec::new();
++    let (mut dup, mut pruned, mut dead, mut other, mut grab_n, mut stomps) = (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
++    let mut max_x: i32 = 0;
++    for (pi, &(ref ps, pg)) in frontier.iter().enumerate() {
++      for &ib in &inputs {
++        let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++        match res {
++          EmuResult::StateChangeFlag(cx, cy) => {
++            grab_n += 1;
++            let fpg = ns.y_pos >= target_y;
++            *grabs.entry((step + 1, ns.x_pos, ns.y_pos, fpg)).or_insert(0) += 1;
++            if cx != 0xc6 { println!("note: flag collision at column {} row {} (x {:#x} y {:#x})", cx, cy, ns.x_pos, ns.y_pos); }
++            grab_paths.entry((step + 1, fpg)).or_insert((pi as u32, ib, ns.clone()));
++          }
++          EmuResult::Success => {
++            if ns.y_pos >= 0x1d000 { dead += 1; continue; }
++            let mut ng = pg;
++            if goombas {
++              match room_enemies(f, &mut ns, &mut ng) {
++                RoomEvent::Death => { dead += 1; continue; }
++                RoomEvent::Stomp(_) => { stomps += 1; }
++                RoomEvent::Nothing => {}
++              }
++            }
++            let hh = hval(&ns);
++            if step + 1 + hh > max_steps { pruned += 1; continue; }
++            if !visited.insert((Key::<C, A>::from_state(&ns), ng, relevant(&ns, ng, f))) { dup += 1; continue; }
++            if ns.x_pos > max_x { max_x = ns.x_pos; }
++            next.push((ns, ng)); npar.push(pi as u32); ninp.push(ib);
++          }
++          _ => { other += 1; }
++        }
++      }
++    }
++    println!("layer {} (after frame {}): parents {} -> unique {}, dup {}, pruned {}, dead {}, other {}, stomps {}, grabs {}; visited {}; max x {:#x}; {:.1}s",
++      step + 1, f, frontier.len(), next.len(), dup, pruned, dead, other, stomps, grab_n, visited.len(), max_x, (time::precise_time_ns() - t1) as f64 / 1e9);
++    if step < refpath.len() {
++      let (ref rs, rg) = refpath[step];
++      let key = (Key::<C, A>::from_state(rs), rg, relevant(rs, rg, f));
++      let in_frontier = next.iter().any(|&(ref st, sg)| sg == rg && Key::<C, A>::from_state(st) == key.0);
++      let hh = hval(rs);
++      println!("  check-path step {}: {} (h {}, {}{})", step + 1, if in_frontier { "in frontier" } else { "MISSING" }, hh,
++        if step + 1 + hh > max_steps { "would be PRUNED; " } else { "" }, if visited.contains(&key) { "key visited" } else { "key not visited" });
++    }
++    if next.is_empty() { println!("no live states left after layer {}", step + 1); break; }
++    frontier = next;
++    parents.push(npar);
++    pinputs.push(ninp);
++    step += 1;
++  }
++  println!("total {:.1}s, {} states visited", (time::precise_time_ns() - t0) as f64 / 1e9, visited.len());
++  let mut gl: Vec<(&(usize, i32, i32, bool), &u32)> = grabs.iter().collect();
++  gl.sort();
++  println!("grabs (step frame x_pos y_pos fpg count):");
++  for (k, c) in gl { println!("  {} {} {:#x} {:#x} {} {}", k.0, root_frame + k.0 as i64, k.1, k.2, k.3, c); }
++  let mut best: Option<(usize, bool)> = None;
++  for fpg in &[true, false] {
++    let mut keys: Vec<&(usize, bool)> = grab_paths.keys().filter(|k| k.1 == *fpg).collect();
++    keys.sort();
++    if let Some(k) = keys.first() { best = Some(**k); break; }
++  }
++  if let Some((bstep, bfpg)) = best {
++    let &(ppi, pib, ref gs) = grab_paths.get(&(bstep, bfpg)).unwrap();
++    println!("earliest {} grab: step {} (frame {}), state {}", if bfpg { "FPG" } else { "non-FPG" }, bstep, root_frame + bstep as i64, gs);
++    let mut seq: Vec<u8> = vec![pib];
++    let mut pi = ppi as usize;
++    let mut l = bstep - 1;
++    while l > 0 { seq.push(pinputs[l][pi]); pi = parents[l][pi] as usize; l -= 1; }
++    seq.reverse();
++    emu::print_rle(seq.iter().map(|&b| emu::Input::from_bits_truncate(b)));
++    if let Some(path) = out {
++      let nes: Vec<u8> = seq.iter().map(|&b| model_to_nes(b)).collect();
++      ::std::fs::write(&path, &nes).unwrap();
++      println!("wrote {} NES-order input bytes to {}", nes.len(), path);
++    }
++  } else { println!("no grab found within {} steps", max_steps); }
++}
 diff --git a/src/state.rs b/src/state.rs
 index e8c4d09..768a310 100644
 --- a/src/state.rs

@@ -16,6 +16,7 @@ Usage: tools/model_difftest.py [--n 100] [--len 120] [--seed 1] [--root-record 1
   --len L           random frames per trial; --n N trials; --seed S
   --wr              single trial with the WR's own records (sanity check: must match everywhere)
   --mutate K        trials = the WR's records from the root with K random frames replaced (FPG-dense)
+  --goombas         model = trace11room (goomba pair simulated, no injected bounce); deaths must match GES 11
   --pr PR --pl PL --pa PA --pb PB   per-frame button probabilities (default .75 .15 .25 .6)
 """
 import os, random, re, subprocess, sys, tempfile
@@ -34,7 +35,7 @@ SYM = dict(X=0x86, PAGE=0x6D, XSUB=0x0400, XSPD=0x57, XFRAC=0x0705, Y=0xCE, YHI=
            YFRAC=0x0433, STATE=0x1D, GES=0x0E)
 STATES = {"STANDING": 0, "JUMPING": 1, "FALLING": 2, "CLIMBING": 3}
 ROW_RE = re.compile(r"^(\d+) (0x[0-9a-f]+) (0x[0-9a-f]+) (0x[0-9a-f]+) (0x[0-9a-f]+) (\w+) "
-                    r"(LEFT \| RIGHT|LEFT|RIGHT|\(empty\)) (LEFT \| RIGHT|LEFT|RIGHT|\(empty\)) (\S+) (.*)$")
+                    r"(LEFT \| RIGHT \| LR|LEFT \| RIGHT|LEFT|RIGHT|\(empty\)) (LEFT \| RIGHT \| LR|LEFT \| RIGHT|LEFT|RIGHT|\(empty\)) (.+?) (Success.*|StateChange.*|HitVine.*|Invalid.*)$")
 
 def s16(v):
     return v - 0x10000 if v >= 0x8000 else v
@@ -55,13 +56,16 @@ def core_row(data, f):
                 YSPD=(g(SYM["YSPD"]) - 256 if g(SYM["YSPD"]) >= 128 else g(SYM["YSPD"])), YFRAC=g(SYM["YFRAC"]),
                 STATE=g(SYM["STATE"]), GES=g(SYM["GES"]))
 
-def run_model(inputs_path, steps):
-    out = subprocess.run([SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE],
-                         check=True, capture_output=True, text=True).stdout
+def run_model(inputs_path, steps, goombas=False):
+    cmd = [SMBOPT, "trace11room", inputs_path, str(MODEL_FIRST), str(steps)] if goombas else \
+          [SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE]
+    out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
     rows = {}
     for line in out.splitlines():
         m = ROW_RE.match(line)
         if not m:
+            if line and line[0].isdigit():
+                raise SystemExit(f"unparsed model row: {line!r}")
             continue
         step = int(m.group(1))
         x_pos, y_pos, x_spd, y_spd = (int(m.group(k), 16) for k in (2, 3, 4, 5))
@@ -91,8 +95,14 @@ def compare(core, model, first_step, last_step, verbose):
                     mism.append((f, k, mr[k], cr[k]))
             n += 1
             break
-        if cr["GES"] != 8:
-            grab = dict(model_frame=None, core_frame=f, core_ges=cr["GES"], core_y=cr["YP"] & 0xff, model_y=None)
+        if "DEATH" in mr["RESULT"] or cr["GES"] not in (7, 8):   # GES 7 on the first two control frames
+            # model death (goomba contact, trace11room) must coincide with the core's GES 11 (KillPlayer)
+            grab = dict(model_frame=None, core_frame=f, core_ges=cr["GES"], core_y=cr["YP"] & 0xff, model_y=None,
+                        death=("DEATH" in mr["RESULT"], cr["GES"] == 11))
+            n += 1
+            for k in ("XP", "YP"):   # KillPlayer rewrites the speeds/state on the death frame; positions must agree
+                if mr[k] != cr[k]:
+                    mism.append((f, k, mr[k], cr[k]))
             break
         n += 1
         for k in ("XP", "XSUB", "XSPD", "XFRAC", "YP", "YSPD", "YFRAC", "STATE"):
@@ -104,7 +114,7 @@ def compare(core, model, first_step, last_step, verbose):
 
 def main():
     args = sys.argv[1:]
-    opt = dict(n=100, len=120, seed=1, root=1232, wr=False, keep=None, pr=.75, pl=.15, pa=.25, pb=.6, verbose=False, mutate=0)
+    opt = dict(n=100, len=120, seed=1, root=1232, wr=False, keep=None, pr=.75, pl=.15, pa=.25, pb=.6, verbose=False, mutate=0, goombas=False)
     i = 0
     while i < len(args):
         a = args[i]
@@ -116,6 +126,7 @@ def main():
         elif a in ("--pr", "--pl", "--pa", "--pb"): opt[a[2:]] = float(args[i + 1]); i += 2
         elif a == "--wr": opt["wr"] = True; i += 1
         elif a == "--mutate": opt["mutate"] = int(args[i + 1]); i += 2
+        elif a == "--goombas": opt["goombas"] = True; i += 1
         elif a == "--verbose": opt["verbose"] = True; i += 1
         else: raise SystemExit(f"unknown option {a}")
     wr = open(WR, "rb").read()
@@ -139,11 +150,12 @@ def main():
     frames = MODEL_FRAME0 + last_step + 1
     tot_frames, bad, grabs, grab_match = 0, 0, 0, 0
     fpg_n = [0]
+    deaths = [0]
     for name, inputs in trials:
         ip = os.path.join(tmp, name + ".bin")
         open(ip, "wb").write(inputs)
         core = run_core(ip, frames, os.path.join(tmp, name + ".ram"))
-        model = run_model(ip, last_step + 1)
+        model = run_model(ip, last_step + 1, opt["goombas"])
         n, mism, grab = compare(core, model, first_step, last_step, opt["verbose"])
         tot_frames += n
         status = "ok"
@@ -162,14 +174,17 @@ def main():
                 gtxt = (f" grab model f{grab['model_frame']} Y{grab['model_y']} fpg={fpg_model} core GES{grab['core_ges']} "
                         f"Y{grab['core_y']} fpg={fpg_core} {'ok' if ok else 'DIFF'}")
                 if not ok: bad += 0 if mism else 1
+            elif grab.get("death") and grab["death"][0] == grab["death"][1]:
+                deaths[0] += 1
+                gtxt = f" death f{grab['core_frame']} ok"
             else:
-                gtxt = f" core left GES 8 at f{grab['core_frame']} (GES {grab['core_ges']}) without a model grab"
+                gtxt = f" core left GES 8 at f{grab['core_frame']} (GES {grab['core_ges']}) vs model death={grab.get('death', (False,))[0]}"
                 bad += 0 if mism else 1
         print(f"{name}: {n} frames {status}{gtxt}")
         if not opt["keep"]:
             os.remove(ip); os.remove(os.path.join(tmp, name + ".ram"))
     print(f"summary: {len(trials)} trials, {tot_frames} frames compared, {bad} trials with a difference, "
-          f"{grabs} grabs ({grab_match} identical frame+Y+FPG; {fpg_n[0]} FPG on the core)")
+          f"{grabs} grabs ({grab_match} identical frame+Y+FPG; {fpg_n[0]} FPG on the core), {deaths[0]} matching deaths")
     if not opt["keep"]:
         os.rmdir(tmp)
 
