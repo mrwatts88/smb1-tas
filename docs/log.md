@@ -266,3 +266,11 @@ grab: write `bfs11c-path`, rebuild, reconstruct, replay on the core (`build/harn
 machinery). If "no grab": H28 refuted in the relaxed model → 1-1's third room cannot gain the frame; record
 the proof and move to rooms 1–2 of 1-1 (entry frame of the third room) or to 8-4/4-2 per PLAN. If it died:
 memory engineering or the cloud decision. Track B unit P0.7 still waits.
+## 2026-08-21 — Session 4 (cont.): P0.7 done — input semantics catalog (while the whole-room run computes)
+**Did.** Read `ReadJoypads`, `PlayerCtrlRoutine`, `OnGroundStateSub`/`JumpSwimSub`/`ClimbingSub`,
+`X_Physics`, `ImposeFriction`, `PauseRoutine` and the NMI timer gate; wrote `docs/input-semantics.md`; F62;
+H3 annotated. **Learned.** L+R/U+D are never masked; L+R = facing 3 (doubled friction, no run cap on the
+ground, Right wins); a pause costs ≥ 44 frames, freezes every timer and the frame counter and all logic
+but still steps the RNG — a pure RNG lever (8-4 Bowser / Hammer Bros), useless for framerules. The 16
+A/B/L/R inputs are complete for small Mario on land (Down = release L/R; Up only on vines).
+**Next.** Check the P2.1b-m3 run (STATUS Running jobs).
