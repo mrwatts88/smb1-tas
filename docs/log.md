@@ -165,3 +165,21 @@ the Start-row loose end), QuickNES needs `--input-skip 2`. Speed (F46): 15.0k fp
 
 **Next.** P2.1: search engine v1 on 1-1 (in-process core, savestates, RAM-hash dedup, threshold
 objective from H21). Small units P0.8/P0.7 remain; P1.1b/P1.2 when the search is CPU-bound.
+## 2026-08-21 — Session 3 (cont.): P2.1a — BFS engine v1, 1-1 third-room probe
+**Did.** Wrote `src/search/bfs.c` (in-process QuickNES, per-layer RAM-hash dedup, 16 A/B/L/R inputs,
+terminal evaluation to T_set, deadline pruning with a sound ≤2/frame speed bound and an aggressive
+greedy-ground bound). Verified the evaluator on the WR (grab 1285, T_set 1814). Measured the
+explosion from the third-room load; analysed the WR's acceleration profile and the pole approach
+from the dump; read the horizontal physics (`X_Physics`, `ImposeFriction`, `MoveObjectHorizontally`,
+`HandleClimbing`, `BlockBufferCollision`). `docs/experiments/P2.1a-bfs-engine.md`; F47–F49; H21
+restructured; H27 added.
+
+**Learned.** Full-state BFS is hopeless at 12.8 KB/state: ×5 per layer, >245k states 6 frames into
+control, and the sound bound prunes nothing (its frontier reaches the pole 8 frames before the WR;
+the WR is 18.7 px inside it). Pure ground running cannot reach the pole by frame 1284 — the WR's
+L+R-facing jump start (doubled adder in the air to 24, Left-tap doubled $E4 to 40) is essential.
+The third room is a fixed puzzle (X 2616, speed 0 at entry); the WR stops 5 frames at the pole
+base for the FPG. Next leverage: a flat-world frontier (sound relaxation) and the exact FPG
+trigger condition (cheap, on this core), and a physics-level core (P1.2) for room-scale search.
+
+**Next.** P2.1b (flat-world frontier + FPG condition), then P1.2 / P0.8 / P0.7 per STATUS.
