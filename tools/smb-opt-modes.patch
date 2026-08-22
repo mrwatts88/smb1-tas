@@ -1,0 +1,92 @@
+diff --git a/src/case/w11.rs b/src/case/w11.rs
+index e0e1804..d4c27c7 100644
+--- a/src/case/w11.rs
++++ b/src/case/w11.rs
+@@ -58,7 +58,7 @@ fn w11_sub_start<O: Options>() -> State {
+   })
+ }
+ 
+-fn w11_pipe_start<O: Options>() -> State {
++pub fn w11_pipe_start<O: Options>() -> State {
+   State {
+     x_pos: 0xa3800,
+     y_pos: 0x19000,
+diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
+index c9bbf89..5e02f84 100644
+--- a/src/heuristics/xpos.rs
++++ b/src/heuristics/xpos.rs
+@@ -117,6 +117,16 @@ impl XPosHeuristic {
+   pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
+     s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
+   }
++  /// Dump the max-distance table: one line per class
++  /// "x_spd x_spd_abs moving facing on_ground running_speed max_x_distance len d1 d2 ..." (decimal)
++  pub fn dump(&self, path: &str) -> () {
++    let mut f = ::std::fs::File::create(path).unwrap();
++    for (s, v) in self.max_distance.iter() {
++      write!(f, "{} {} {} {} {} {} {} {}", s.x_spd, s.x_spd_abs, s.moving_dir.bits(), s.facing_dir.bits(), s.is_on_ground as u8, s.running_speed as u8, self.max_x_distance, v.len()).unwrap();
++      for d in v { write!(f, " {}", d).unwrap(); }
++      writeln!(f).unwrap();
++    }
++  }
+   fn get_max_distance(&self, s: &XPosState, steps: usize) -> i32 {
+     let max_dists = self.max_distance.get(s).unwrap();
+     let len = max_dists.len();
+diff --git a/src/main.rs b/src/main.rs
+index 350d469..067db3f 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -22,6 +22,53 @@ mod state;
+ mod store;
+ 
+ fn main() {
++  let args: Vec<String> = ::std::env::args().collect();
++  if args.len() >= 4 && args[1] == "trace11pipe" {
++    // trace11pipe INPUTS.bin FIRST_RECORD N : run the 1-1 third-room model from w11_pipe_start with
++    // NES-order input bytes (A=$01 B=$02 Sel=$04 Start=$08 U=$10 D=$20 L=$40 R=$80) records FIRST_RECORD..
++    use case::SmbSearchCase;
++    use emu::Emu;
++    let data = ::std::fs::read(&args[2]).unwrap();
++    let first: usize = args[3].parse().unwrap();
++    let n: usize = args[4].parse().unwrap();
++    // optional overrides: "STEP:yspd=VALUE" (applied before running the step's input), e.g. 65:yspd=-1024
++    let mut overrides: Vec<(usize, i16)> = Vec::new();
++    for a in args.iter().skip(5) { let parts: Vec<&str> = a.split(":yspd=").collect(); overrides.push((parts[0].parse().unwrap(), parts[1].parse().unwrap())); }
++    let mut s = case::w11::w11_pipe_start::<case::w11::W11PipeSpeedup>();
++    println!("step x_pos y_pos x_spd y_spd state facing moving input result");
++    for i in 0..n {
++      let b = data[first + i];
++      let mut v: u8 = 0;
++      for bit in 0..8 { if b & (1 << bit) != 0 { v |= 0x80 >> bit; } }
++      let input = emu::Input::from_bits_truncate(v);
++      for &(st, ys) in &overrides { if st == i { s.y_spd = ys; s.player_state = state::PlayerState::JUMPING; } }
++      let (ns, res) = <case::w11::W11PipeSpeedup as SmbSearchCase>::Emu::run_step(s, input);
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res);
++      s = ns;
++      if res != emu::EmuResult::Success { println!("stopped: {:?}", res); break; }
++    }
++    return;
++  }
++  if args.len() >= 3 && args[1] == "xpos-dump" {
++    use case::SmbSearchCase;
++    let h = heuristics::xpos::XPosHeuristic::new::<case::w11::W11PipeSpeedup>(&<case::w11::W11PipeSpeedup as SmbSearchCase>::start_states());
++    h.dump(&args[2]);
++    println!("dumped");
++    return;
++  }
++  if args.len() >= 3 && args[1] == "case" {
++    match args[2].as_str() {
++      "W11Speedup" => case::w11::W11Speedup::run(),
++      "W11PipeSpeedup" => case::w11::W11PipeSpeedup::run(),
++      "W11Flag" => case::w11::W11Flag::run(),
++      "W11Flag2" => case::w11::W11Flag2::run(),
++      "W11VertPipeEntry" => case::w11::W11VertPipeEntry::run(),
++      "W11SubSpeedup" => case::w11::W11SubSpeedup::run(),
++      "W84Part4Speedup" => case::w84::W84Part4Speedup::run(),
++      other => println!("unknown case {}", other),
++    }
++    return;
++  }
+   // calc_prng();
+   case::w84::W84Part4Speedup::run();
+   // case::w21::W21ScreenScrollBlock3PipeClip::run();
