@@ -403,7 +403,7 @@ index e254ce8..9d401fc 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..e8d5d0e
+index 0000000..1e33765
 --- /dev/null
 +++ b/src/case/w42.rs
 @@ -0,0 +1,181 @@
@@ -518,7 +518,7 @@ index 0000000..e8d5d0e
 +  type Swim = NotSwimming;
 +  type PowerupHandler = NoPowerups;
 +  type RunningTimer = WithRunningTimer;
-+  type ScrollPos = NoScrollPos;
++  type ScrollPos = WithScrollPos;
 +  type Parity = NoParity;
 +  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U84, ::typenum::U8>;
 +  type YPosFractionalBehavior = KeepYPosFractionals;
@@ -526,7 +526,7 @@ index 0000000..e8d5d0e
 +}
 +impl super::SmbSearchCase for W42Main {
 +  type SearchGoal = Self;
-+  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 12]>, Dist>;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 13]>, Dist>;
 +
 +  type BlockBuffer = BB42;
 +
@@ -741,7 +741,7 @@ index 3f1c53b..be05133 100644
      vec![s]
    }
 diff --git a/src/emu.rs b/src/emu.rs
-index 947eef3..b2efd78 100644
+index 947eef3..453ad57 100644
 --- a/src/emu.rs
 +++ b/src/emu.rs
 @@ -3,6 +3,11 @@ use blockbuffer::util::*;
@@ -756,7 +756,23 @@ index 947eef3..b2efd78 100644
  
  
  bitflags! {
-@@ -120,7 +125,9 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -96,6 +101,7 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
+   started_jump: bool,
+   started_on_ground: bool,
+   x_scroll: i8, // only for scroll
++  x_before: i32, // x_pos before this frame's horizontal movement (Player_Pos_ForScroll is last frame's relative x), only for scroll
+   side_collision: bool, // only for scroll
+   options: PhantomData<O>,
+   block_buffer: PhantomData<B>,
+@@ -113,6 +119,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+       started_jump: false,
+       started_on_ground: false,
+       x_scroll: 0,
++      x_before: 0,
+       side_collision: false,
+       options: PhantomData,
+       block_buffer: PhantomData,
+@@ -120,7 +127,9 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn run_step(mut self) -> (State, EmuResult) {
      self.started_on_ground = self.s.is_on_ground();
@@ -766,7 +782,7 @@ index 947eef3..b2efd78 100644
  
      let result = self.player_ctrl_routine();
  
-@@ -136,11 +143,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -136,11 +145,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        return (self.s, EmuResult::InvalidStateFallingWithClearedYposFractionals);
      }
      self.s.parity = (self.s.parity + 1) % O::Parity::PARITY;
@@ -780,7 +796,7 @@ index 947eef3..b2efd78 100644
      self.joypad_lr = Dir::from_bits_truncate(self.joypad.bits());
      self.joypad_ud = self.joypad & (inputs::U | inputs::D);
      if self.joypad.contains(Input::DOWN) && self.s.is_on_ground() && !self.joypad_lr.is_empty() {
-@@ -194,7 +202,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -194,7 +204,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn player_physics_sub(&mut self) -> () {
      // handle starting jumps
@@ -789,7 +805,26 @@ index 947eef3..b2efd78 100644
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
-@@ -326,13 +334,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -283,6 +293,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+     self.s.x_pos = self.s.x_pos + ((self.s.x_spd as i32 >> 8) << 4);
+     if O::ScrollPos::TRACK_SCROLL_POS {
+       self.x_scroll = ((self.s.x_pos >> 8) - (old_x_pos >> 8)) as i8;
++      self.x_before = old_x_pos;
+     }
+   }
+   fn move_vertically(&mut self) -> () {
+@@ -292,7 +303,9 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+   }
+   fn scroll_handler(&mut self) -> () {
+     if O::ScrollPos::TRACK_SCROLL_POS {
+-      let rel_x_pos = ((self.s.x_pos >> 8) - self.s.left_screen_edge_pos as i32) & 0xff;
++      // ScrollHandler tests Player_Pos_ForScroll = the relative x computed at the end of the previous frame
++      // (x before this frame's movement, screen left before this frame's scroll), F77.
++      let rel_x_pos = ((self.x_before >> 8) - self.s.left_screen_edge_pos as i32) & 0xff;
+       if rel_x_pos < 0x50 || self.s.side_collision_timer > 0 || self.x_scroll <= 0 { return; }
+       if rel_x_pos < 0x70 && self.x_scroll >= 2 { self.x_scroll -= 1; }
+       self.s.left_screen_edge_pos = self.s.left_screen_edge_pos.wrapping_add(self.x_scroll as u8);
+@@ -326,13 +339,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
            O::CoinHandler::collect_coin(&mut self.s, cx, cy);
            return EmuResult::Success; // exit (no feet or side checks)
          } else if self.s.y_spd < 0 && (self.s.y_pos & 0x0f00) >= 0x400 {
@@ -949,7 +984,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..87c813b 100644
+index 350d469..371c414 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -960,7 +995,7 @@ index 350d469..87c813b 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,206 @@ mod state;
+@@ -22,6 +23,210 @@ mod state;
  mod store;
  
  fn main() {
@@ -972,8 +1007,10 @@ index 350d469..87c813b 100644
 +    let data = ::std::fs::read(&args[3]).unwrap();
 +    let first: usize = args[4].parse().unwrap();
 +    let n: usize = args[5].parse().unwrap();
++    let lift = args.len() > 6 && args[6] == "--lift"; // W42Main only: the 4-2 lift hook; optional AreaParserTaskNum at the root (default 0)
++    let aptn0: u16 = if args.len() > 7 { args[7].parse().unwrap() } else { 0 };
 +    match args[2].as_str() {
-+      "W42Main" => { replayc::<case::w42::W42Main>(&data, first, n, true); }
++      "W42Main" => { replayce::<case::w42::W42Main>(&data, first, n, true, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0); }
 +      "W42Warp" => { replayc::<case::w42::W42Warp>(&data, first, n, true); }
 +      "W11VertPipeEntry" => { replayc::<case::w11::W11VertPipeEntry>(&data, first, n, true); }
 +      other => panic!("unknown case {}", other),
@@ -994,17 +1031,19 @@ index 350d469..87c813b 100644
 +    let mut out: Option<String> = None;
 +    let mut check_path: usize = 0;
 +    let mut threads: usize = 2;
++    let mut lift = false; let mut aptn0: u16 = 0;
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--check-path" { check_path = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--lift" { lift = true; aptn0 = args[i + 1].parse().unwrap(); i += 2; } // W42Main: the 4-2 lift hook, AreaParserTaskNum at the case start (0 for record 6584)
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    match args[2].as_str() {
-+      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads),
-+      "W42Warp" => bfsc_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads),
-+      "W11VertPipeEntry" => bfsc_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads),
++      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 13]>(&data, first, prefix, max_steps, out, check_path, threads, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0),
++      "W42Warp" => bfsc_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0),
++      "W11VertPipeEntry" => bfsc_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1167,7 +1206,7 @@ index 350d469..87c813b 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +247,661 @@ fn calc_prng() {
+@@ -46,4 +251,737 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1382,30 +1421,102 @@ index 350d469..87c813b 100644
 +  } else { println!("no grab found within {} steps", max_steps); }
 +}
 +
++// ---- P2.3b: the 4-2 lift (E_UndergroundArea2 page 3 col 10 row 5, id $27 LargeLiftDown; F73/F77/F78) ----
++// ext (u16, part of the search key): 0x100 | AreaParserTaskNum while not spawned; k = frames since the spawn frame
++// (0..=0xff) while alive; 0x200 once erased.
++const LIFT_X: i32 = 940;          // Enemy_X_Position (page 3, $AC) as in the dump
++const LIFT_W: i32 = 0x30;         // BoundBoxCtrlData[6]: x..x+$30, y..y+$0d (non-castle large platform)
++const LIFT_H: i32 = 0x0d;
++const LIFT_Y0: i32 = 80;          // spawn y (row 5 << 4)
++const LIFT_SPAWN_SL: i32 = 625;   // spawns on the first frame with ScreenLeft >= 625 (x 928 <= (ScreenRight+48)&~15) unless AreaParserTaskNum&7 == 7
++const LIFT_ERASE_SL: i32 = 1013;  // OffscreenBoundsCheck: erased once x < ScreenLeft - 72
++#[derive(PartialEq, Debug, Clone, Copy)]
++enum LiftEvent { Nothing, Spawn, Land, Bonk, SideL, SideR, Erase }
++/// Lift y after k frames since the spawn frame (no move on the spawn frame; then Y_MoveForce $f0 per frame: 15 px per 16 frames).
++fn lift_y_after(k: u16) -> i32 { if k == 0 { LIFT_Y0 } else { let m = k as i32 - 1; LIFT_Y0 + m - m / 16 } }
++fn screen_left16(s: &State) -> i32 { let x = s.x_pos >> 8; let sl = s.left_screen_edge_pos as i32; let page = if sl <= (x & 0xff) { x >> 8 } else { (x >> 8) - 1 }; (page << 8) | sl }
++fn w42_lift(pre: &State, s: &mut State, ext: &mut u16) -> LiftEvent {
++  use state::{Dir, PlayerState};
++  if *ext == 0x200 { return LiftEvent::Nothing; }
++  let sl_prev = screen_left16(pre);
++  let sl = screen_left16(s);
++  if *ext & 0x100 != 0 {
++    // AreaParserTaskNum (post-frame value): a burst of 8 tasks starts (value 7 after this frame) when
++    // ScrollThirtyTwo = ScreenLeft mod 32 wraps while no burst is running; the enemy loader skips frames with value 7 (F78).
++    let mut aptn = (*ext & 0xf) as i32;
++    if aptn > 0 { aptn -= 1; } else if (sl >> 5) > (sl_prev >> 5) { aptn = 7; }
++    if sl >= LIFT_SPAWN_SL && (aptn & 7) != 7 { *ext = 0; return LiftEvent::Spawn; }
++    *ext = 0x100 | aptn as u16;
++    return LiftEvent::Nothing;
++  }
++  let k = *ext + 1;
++  *ext = k;
++  let y_pre = lift_y_after(k - 1);
++  let y_post = lift_y_after(k);
++  let mut ev = LiftEvent::Nothing;
++  // LargePlatformCollision with Mario's box after this frame's movement (CheckPlayerVertical: skipped below Y $D0 / off the page)
++  if s.y_pos >= 0x10000 && s.y_pos < 0x1d000 {
++    let my = (s.y_pos >> 8) & 0xff;
++    let mx = s.x_pos >> 8;
++    // screen-relative box: GetXOffscreenBits marks the platform fully offscreen (no collision) when it is entirely
++    // right of the screen or entirely left of it; partially offscreen edges are clamped (CheckRight/LeftScreenBBox)
++    let rel = LIFT_X - sl;
++    let onscreen = rel < 256 && rel + LIFT_W >= 0;
++    let pl = if rel < 0 { 0 } else { rel };
++    let pr = if rel + LIFT_W > 255 { 255 } else { rel + LIFT_W };
++    let pt = y_pre & 0xff;
++    let pb = (y_pre + LIFT_H) & 0xff;
++    let ul = (mx - sl + 3) & 0xff; let ur = (mx - sl + 13) & 0xff; // small Mario: BoundBoxCtrlData[1] = x+3..x+13, y+$14..y+$20
++    let ut = (my + 0x14) & 0xff; let ub = (my + 0x20) & 0xff;
++    if onscreen && pl <= ur && ul <= pr && pt <= ub && ut <= pb {
++      if ((pb - ut) & 0xff) < 4 && s.y_spd < 0 { s.y_spd = 0x100 | (s.y_spd & 0xff); ev = LiftEvent::Bonk; } // head under the platform
++      if ((ub - pt) & 0xff) < 6 && s.y_spd >= 0 {
++        s.player_state = PlayerState::STANDING; ev = LiftEvent::Land; // SetCollisionFlag; PositionPlayerOnVPlat after the move
++      } else if ((ur - pl) & 0xff) < 8 {
++        if s.x_spd >= 0 { s.x_spd &= 0xff; s.x_pos -= 0x100; s.side_collision_timer = 0xf; s.collision_bits -= Dir::RIGHT; } // ImpedePlayerMove, left side of the platform
++        ev = LiftEvent::SideL;
++      } else if ((pr - ul - 1) & 0xff) < 9 {
++        if s.x_spd < 0x100 { s.x_spd &= 0xff; s.x_pos += 0x100; s.side_collision_timer = 0xf; s.collision_bits -= Dir::LEFT; } // right side
++        ev = LiftEvent::SideR;
++      }
++    }
++  }
++  if ev == LiftEvent::Land { s.y_pos = (s.y_pos & 0xff) | 0x10000 | ((y_post - 32) << 8); s.y_spd = 0; } // PositionPlayerOnVPlat: Y = lift Y - 32, Player_Y_Speed = Player_Y_MoveForce = 0; Player_YMF_Dummy (the y_pos fraction here) is NOT cleared
++  if sl >= LIFT_ERASE_SL { *ext = 0x200; if ev == LiftEvent::Nothing { ev = LiftEvent::Erase; } }
++  ev
++}
++type Hook = fn(&State, &mut State, &mut u16) -> LiftEvent;
++
 +/// Generic replay (P2.3a): run a case's model from start_states()[0] through `n` NES-order records starting at
 +/// `first`, optionally tracing each step in the trace11pipe row format. Returns (state, alive).
-+fn replayc<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool) -> (State, bool) {
++fn replayc<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool) -> (State, bool) { let (s, _, a) = replayce::<C>(data, first, n, trace, None, 0); (s, a) }
++/// replayc with an optional per-frame object hook (e.g. the 4-2 lift) carrying `ext`; returns (state, ext, alive).
++fn replayce<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool, hook: Option<Hook>, ext0: u16) -> (State, u16, bool) {
 +  use emu::{Emu, EmuResult};
 +  use case::SmbSearchCase;
 +  let mut s = C::start_states()[0].clone();
++  let mut ext = ext0;
 +  if trace { println!("step x_pos y_pos x_spd y_spd state facing moving input result"); }
 +  for i in 0..n {
 +    let input = nes_to_model(data[first + i]);
-+    let (ns, res) = <C as SmbSearchCase>::Emu::run_step(s, input);
++    let (mut ns, res) = <C as SmbSearchCase>::Emu::run_step(s.clone(), input);
++    let mut evs = String::new();
++    if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&s, &mut ns, &mut ext); if ev != LiftEvent::Nothing || ext < 0x100 { evs = format!(" lift {:?} k {} y {}", ev, ext, if ext < 0x100 { lift_y_after(ext) } else { -1 }); } } }
 +    if trace {
-+      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res);
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}{}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res, evs);
++      if <<C as options::Options>::ScrollPos as options::ScrollPos>::TRACK_SCROLL_POS { println!("scroll: {} sct {}", ns.left_screen_edge_pos, ns.side_collision_timer); }
 +    }
 +    s = ns;
-+    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, false); }
++    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, ext, false); }
 +  }
-+  (s, true)
++  (s, ext, true)
 +}
 +
 +/// Generic per-layer exhaustive BFS (P2.3a, see the `bfsc` mode): in-memory frontier, global visited set of
 +/// compressed keys, parents/inputs kept per layer for path reconstruction, expansion over `threads` threads.
 +/// The case's SearchGoal supplies the deadline heuristic (a lower bound on the steps still needed, so pruning
 +/// `step + h > max_steps` is exact) and the goal test.
-+fn bfsc_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize)
++fn bfsc_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16)
 +    where C::SearchGoal: Send + Sync {
 +  use emu::{Emu, EmuResult};
 +  use heuristics::SearchGoal;
@@ -1413,33 +1524,35 @@ index 350d469..87c813b 100644
 +  use std::collections::HashSet;
 +  use std::sync::Arc;
 +  type Key<C, A> = CompressedState<C, A>;
-+  let (s, alive) = replayc::<C>(data, first, prefix, false);
++  let (s, e0, alive) = replayce::<C>(data, first, prefix, false, hook, ext0);
 +  assert!(alive, "prefix replay ended early");
 +  println!("root after {} prefix steps (record {}): {}", prefix, first + prefix, s);
++  println!("object hook {} (root ext {:#x})", hook.is_some(), e0);
 +  let t0 = time::precise_time_ns();
 +  let goal = Arc::new(C::SearchGoal::new());
 +  let hval = |g: &C::SearchGoal, st: &State, step: usize| -> Option<usize> { let mut c = st.clone(); g.distance_to_goal_heuristic(&mut c, step as state::Dist).map(|d| d as usize) };
 +  println!("heuristic built in {:.1}s; at root: {:?} steps (deadline {} steps); threads {}", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&goal, &s, 0), max_steps, threads);
 +  // --check-path N: replay N more records of the input file as a reference path (e.g. the WR's own
 +  // continuation) and report at every layer whether its state is in the frontier, else why not.
-+  let mut refpath: Vec<State> = Vec::new();
++  let mut refpath: Vec<(State, u16)> = Vec::new();
 +  if check_path > 0 {
-+    let mut rs = s.clone();
++    let (mut rs, mut re) = (s.clone(), e0);
 +    for k in 0..check_path {
 +      let input = nes_to_model(data[first + prefix + k]);
-+      let (ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs, input);
++      let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs.clone(), input);
++      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&rs, &mut ns, &mut re); if ev != LiftEvent::Nothing { println!("reference path: step {} object event {:?} ext {:#x}", k + 1, ev, re); } } }
 +      let g = goal.is_goal_state(&ns, &res);
 +      println!("reference path: step {} x {:#x} y {:#x} xspd {:#x} yspd {:#x} {:?} h {:?} result {:?}{}", k + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hval(&goal, &ns, k + 1), res, if g { " GOAL" } else { "" });
 +      if res != EmuResult::Success { break; }
-+      refpath.push(ns.clone());
++      refpath.push((ns.clone(), re));
 +      rs = ns;
 +    }
 +  }
 +  // model input bits: A 0x80, B 0x40, L 0x02, R 0x01
 +  let inputs: Arc<Vec<u8>> = Arc::new((0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect());
-+  let mut visited: HashSet<Key<C, A>> = HashSet::new();
-+  visited.insert(Key::<C, A>::from_state(&s));
-+  let mut frontier: Arc<Vec<State>> = Arc::new(vec![s.clone()]);
++  let mut visited: HashSet<(Key<C, A>, u16)> = HashSet::new();
++  visited.insert((Key::<C, A>::from_state(&s), e0));
++  let mut frontier: Arc<Vec<(State, u16)>> = Arc::new(vec![(s.clone(), e0)]);
 +  let mut parents: Vec<Vec<u32>> = vec![vec![0]];
 +  let mut pinputs: Vec<Vec<u8>> = vec![vec![0]];
 +  let mut step = 0;
@@ -1457,17 +1570,19 @@ index 350d469..87c813b 100644
 +      let inputs = inputs.clone();
 +      let goal = goal.clone();
 +      handles.push(::std::thread::spawn(move || {
-+        let mut outv: Vec<(State, u32, u8)> = Vec::new();
++        let mut outv: Vec<(State, u16, u32, u8)> = Vec::new();
 +        let mut goals: Vec<(u32, u8, State)> = Vec::new();
 +        let (mut pruned, mut dead, mut other) = (0u64, 0u64, 0u64);
 +        let mut max_x: i32 = 0;
 +        for pi in lo..hi {
-+          let ps = &frontier[pi];
++          let (ref ps, pe) = frontier[pi];
 +          for &ib in inputs.iter() {
-+            let (ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
 +            if goal.is_goal_state(&ns, &res) { goals.push((pi as u32, ib, ns)); continue; }
 +            match res {
 +              EmuResult::Success => {
++                let mut ne = pe;
++                if let Some(h) = hook { h(ps, &mut ns, &mut ne); }
 +                if ns.y_pos >= 0x1d000 { dead += 1; continue; }
 +                let mut c = ns.clone();
 +                match goal.distance_to_goal_heuristic(&mut c, (step + 1) as state::Dist) {
@@ -1475,7 +1590,7 @@ index 350d469..87c813b 100644
 +                  Some(hh) => { if step + 1 + hh as usize > max_steps { pruned += 1; continue; } }
 +                }
 +                if ns.x_pos > max_x { max_x = ns.x_pos; }
-+                outv.push((ns, pi as u32, ib));
++                outv.push((ns, ne, pi as u32, ib));
 +              }
 +              _ => { other += 1; }
 +            }
@@ -1484,7 +1599,7 @@ index 350d469..87c813b 100644
 +        (outv, goals, pruned, dead, other, max_x)
 +      }));
 +    }
-+    let mut next: Vec<State> = Vec::new();
++    let mut next: Vec<(State, u16)> = Vec::new();
 +    let mut npar: Vec<u32> = Vec::new();
 +    let mut ninp: Vec<u8> = Vec::new();
 +    let (mut dup, mut pruned, mut dead, mut other, mut goal_n) = (0u64, 0u64, 0u64, 0u64, 0u64);
@@ -1497,18 +1612,18 @@ index 350d469..87c813b 100644
 +        goal_n += 1;
 +        if found.is_none() { found = Some((step + 1, pi, ib, gs)); }
 +      }
-+      for (ns, pi, ib) in outv {
-+        if !visited.insert(Key::<C, A>::from_state(&ns)) { dup += 1; continue; }
-+        next.push(ns); npar.push(pi); ninp.push(ib);
++      for (ns, ne, pi, ib) in outv {
++        if !visited.insert((Key::<C, A>::from_state(&ns), ne)) { dup += 1; continue; }
++        next.push((ns, ne)); npar.push(pi); ninp.push(ib);
 +      }
 +    }
 +    println!("layer {}: parents {} -> unique {}, dup {}, pruned {}, dead {}, other {}, goals {}; visited {}; max x {:#x}; {:.1}s",
 +      step + 1, n, next.len(), dup, pruned, dead, other, goal_n, visited.len(), max_x, (time::precise_time_ns() - t1) as f64 / 1e9);
 +    ::std::io::Write::flush(&mut ::std::io::stdout()).ok();
 +    if step < refpath.len() {
-+      let rs = &refpath[step];
-+      let key = Key::<C, A>::from_state(rs);
-+      let in_frontier = next.iter().any(|st| Key::<C, A>::from_state(st) == key);
++      let (ref rs, re) = refpath[step];
++      let key = (Key::<C, A>::from_state(rs), re);
++      let in_frontier = next.iter().any(|&(ref st, se)| se == re && Key::<C, A>::from_state(st) == key.0);
 +      let hh = hval(&goal, rs, step + 1);
 +      println!("  check-path step {}: {} (h {:?}, {}{})", step + 1, if in_frontier { "in frontier" } else { "MISSING" }, hh,
 +        match hh { Some(h) if step + 1 + h > max_steps => "would be PRUNED; ", None => "h None (PRUNED); ", _ => "" }, if visited.contains(&key) { "key visited" } else { "key not visited" });

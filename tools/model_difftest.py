@@ -61,10 +61,11 @@ def core_row(data, f):
                 STATE=g(SYM["STATE"]), GES=g(SYM["GES"]))
 
 CASE = None                 # --case NAME: generic tracec mode (MODEL_FIRST/MODEL_FRAME0 set from --first)
+LIFT = None                 # --lift APTN0: W42Main with the 4-2 lift hook (tracec ... --lift APTN0)
 
 def run_model(inputs_path, steps, goombas=False):
     if CASE:
-        cmd = [SMBOPT, "tracec", CASE, inputs_path, str(MODEL_FIRST), str(steps)]
+        cmd = [SMBOPT, "tracec", CASE, inputs_path, str(MODEL_FIRST), str(steps)] + (["--lift", str(LIFT)] if LIFT is not None else [])
     else:
         cmd = [SMBOPT, "trace11room", inputs_path, str(MODEL_FIRST), str(steps)] if goombas else \
               [SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE]
@@ -154,8 +155,10 @@ def main():
         elif a == "--verbose": opt["verbose"] = True; i += 1
         elif a == "--case": opt["case"] = args[i + 1]; i += 2
         elif a == "--first": opt["first"] = int(args[i + 1]); i += 2
+        elif a == "--lift": opt["lift"] = int(args[i + 1]); i += 2
         else: raise SystemExit(f"unknown option {a}")
-    global CASE, MODEL_FIRST, MODEL_FRAME0
+    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT
+    if opt.get("lift") is not None: LIFT = opt["lift"]
     if opt.get("case"):
         CASE = opt["case"]
         MODEL_FIRST = opt["first"]

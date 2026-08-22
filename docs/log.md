@@ -356,3 +356,14 @@ coins, above-screen jumps, the lift). Run-4-safe extension pattern: associated-t
 patterns must not appear in the calling shell's own command line (killed my own shell twice).
 **Next.** P2.3b: lift + scroll in `W42Main`, difftest to 0; search strategy for the slack problem (external-memory `bfsc`,
 or a y-aware admissible bound, or chokepoint segmentation); read the IDA warp result.
+## 2026-08-22 — Session 6 (cont.): P2.3b — the 4-2 lift modeled; two more laws fixed; a 1-frame pipe gain verified on the core
+**Did.** Lift hook (spawn from the parser law, descent, bbox collision → land/bonk/side push, rider placement, erase) in
+`tracec`/`bfsc`/difftest; `W42Main` tracks the scroll; fixed MrWint's scroll timing (F77), derived the AreaParserTaskNum law
+(F78). Main area now exact on all 587 WR frames incl. the ride; 120 near-lift mutated trials clean except enemy deaths and
+bumped-block states. Found and verified on the core that HappyLee's 4-2 pipe entry is 1 frame late (F79; `tools/pipe_entry_scan.py`
+checks all 7 WR pipe entries). Understood the bottom route: a floor-level walk inside the brick block via the side-check early
+return (F80). Block states ($23/$c4) are the last main-area model gap (P2.3b-2). Search control: plumbing OK, frontier explodes
+(P2.3c).
+**Learned.** Validate with WR-mutated trials near the mechanic (every trial touched the lift), not uniform random ones. Two
+lift bugs (kept y fraction; offscreen box) only showed up that way. `pkill -f` self-kill: isolate the kill in its own call.
+**Next.** P2.3b-2 (block states) or P2.3c (search slack) — P2.3c first: without it no 4-2 bound can be computed at all.
