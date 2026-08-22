@@ -279,3 +279,9 @@ A/B/L/R inputs are complete for small Mario on land (Down = release L/R; Up only
 all equal (F63); bonus room therefore proven optimal; H29 (bounce-assisted room 1) recorded. Built
 `bfs11c-path`; run 3 of the whole-room search launched with an RSS watchdog. **Next.** Run 3's verdict
 (STATUS Running jobs); then H29 needs the room-1 enemy model (goombas + green koopa).
+## 2026-08-22 — Session 4 (late): P3.1 done — static OOB audit
+**Did.** `tools/oob_audit.py` + `docs/oob-audit.md`. **Learned.** No indexed/pointer store reaches the H7
+cells; every JumpEngine index is engine state or a ROM-bounded enemy ID — except `EnemyFrenzyBuffer`, which
+the block-buffer wrap write (objects above the status bar, y → $E0/$F0) can reach from an odd page at column
+11 — and the vine writes $26 there as it grows (H30). Track B has a concrete code-execution-candidate to test
+on the core (P3.3). **Next.** P2.1b-m3 run verdict; then P3.3/H30 or H29 depending on it.
