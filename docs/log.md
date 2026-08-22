@@ -324,3 +324,12 @@ existing bound) queued ahead of the room-1 enemy port; H29's prior noted as low 
 running room is exactly the five levels nobody searched (4-1, 4-2, 8-1, 8-2, 8-3). 8-4's unquantized frames
 cannot come from running.
 **Next.** Run 4's verdict (tomorrow morning); then P2.3a.
+## 2026-08-22 — Session 5 (end): P2.3a checkpoint — 4-2 timeline and exact block maps from the dump
+**Did.** WR's 4-2 segmented (main area 588 on the bottom route, warp zone 476 over the screen top); wrote
+`tools/blockmap_from_dump.py` (level metatile map from the two block buffers as the renderer passes; columns valid
+from the entrance page to the renderer position, read on parser-idle frames) and validated it cell-for-cell on
+MrWint's BB11/BB12; extracted 4-2's main area and warp zone (`data/blockmaps/`); decoded 4-2's enemies; wrote the
+step-3 plan (cases, goal coordinates, generalized search mode, difftest alignment) into STATUS.
+**Learned.** The dump is a complete, exact source for level geometry — no area-object renderer needed; a mid-level
+entrance leaves stale zeros in the unrendered buffer half, so validity must start at the entrance page.
+**Next.** Run 4's verdict; P2.3a step 3 (cases + enemy-free optima for 4-2's two segments).
