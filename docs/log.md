@@ -212,3 +212,25 @@ deadline cut late. The model+core hybrid works: model for bounds, core for truth
 **Next session.** (1) Read `runs/P2.1b-root1229-v4/stdout.log` (see STATUS Running jobs). (2) Depending
 on the outcome: full third room from root 1040 (P2.1b), or widen roots; consider the cloud box for
 memory. (3) Decide P1.2-lite's enemy question. User asked to end the session here; no new units taken.
+## 2026-08-21 — Session 4: P2.1b-m — the model answers the pole-approach question; model validated
+**Did.** Checked the core job v4 (killed by the OOM killer at layer 18 together with a model run of mine —
+the crash the user saw). Wrote `smb-opt bfs11` (model-side layered BFS with global dedup + MrWint's
+bounds; compact storage after the OOM: 2.2 GB for 55M states). Read `FlagpoleRoutine`/`FlagpoleSlide`/
+`ProcClimb`: only a Y ≥ 162 grab is fast (F55). Wrote `tools/model_difftest.py` (core vs model on random /
+WR-mutated inputs): the model as cloned diverged on 53/200 trials — `NoRunningTimer` and jumps on a held A;
+fixed both (`WithRunningTimer`, new `a_held` state bit) → 0 differences on 82,524 frames, 596 grabs, 71
+core-confirmed FPG grabs (F56). Searched the pole approach from the WR's frame-1229 state: no glitch grab
+≤ 1284 (F57, H27 refuted there). Decoded the third room's enemies (goomba pair on fixed trajectories, F58)
+and the collision/stomp rules (F59). Exact x-bound from the room entry: frame 1278 (WR 1280).
+
+**Learned.** The player model + a BFS keyed on the 11-byte player state is ~1000× cheaper than the core
+search (38.7k vs 667k states at the same layer, seconds vs minutes per layer) and exact where validated;
+the core is the oracle, the model is the search engine. Relaxations are worth stating: the as-cloned model
+is a superset of the real game under input remapping, so its "no grab" was already a proof. Memory is the
+binding constraint on the 15 GB box — one search at a time, under `ulimit -v`.
+
+**Next.** P2.1b-m2: goombas in the model (F59), validate from the first control frame, then the whole third
+room from frame 1045 with deadline 1284 — the first single search from the fixed entry.
+At session end the exact-model whole-room probe from frame 1045 is running under a memory cap (×1.19/layer
+at frame 1070); the exact-model root-1229 run was stopped at frame 1277 (182M states) — the relaxed model's
+run is the proof.
