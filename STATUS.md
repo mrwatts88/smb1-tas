@@ -28,7 +28,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | P2.3 | Threshold search for framerule N−1 in each flag/pipe level, in remaining-deficit order: 4-2 top route (2), 8-3 with FPG (7), 1-2 (8), 4-1 (9), 8-1 (18), 8-2 (19) | A | L | P2.1, P0.4 | Per-level report |
 | P2.4 | Cross-level DP over reachable entry states (RNG / framerule phase) | A | M | P2.2, P2.3 | Best-known full route + proof record |
 | P3.2 | RAM oracle: single-byte perturbation sweep per level on the fast core → jackpot map | B | M | P1.1 | `docs/experiments/P3.2-ram-oracle.md` |
-| P3.3 | Write-reachability: first target H30 — the block-buffer wrap write ($06B0–$06CF) via a vine at an odd-page column 11/12 (`EnemyFrenzyBuffer` → out-of-range `JumpEngine`; `SecondaryHardMode`): find vine columns per level (`tools/area_data.py`), reproduce on the core, trace the jump target; then the other jackpot cells from P3.2 | B | L | P3.1 | Ledger entries with proof artifacts |
+| P3.3 | Write-reachability: H30 (block-buffer wrap write, $06B0–$06CF) is refuted for vines by the level data; remaining question = any other writer above Y $20 at an odd-page column 11/12 (enemy block bumps, coin erases); then the jackpot cells from P3.2 | B | L | P3.1 | Ledger entries with proof artifacts |
 | P3.4 | Fuzzing / Go-Explore novelty search for anomalous states | B | L | P1.2 | Anomalies triaged in the ledger |
 | P3.5 | NES Minus World re-examination with oracle + audit (WorldNumber = 36 OOB reads) | B | M | P3.1, P3.2 | Ledger entry with proof artifact |
 | P4.1 | Assemble, verify in two emulators, draft submission text | ship | M | a result | User-reviewed before anything is submitted |

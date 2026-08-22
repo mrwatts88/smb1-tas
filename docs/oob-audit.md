@@ -59,3 +59,11 @@ constants (`Setup_Vine` $2F, `PowerUpObject` $2E, flag/fireworks/Bowser identiti
 - Not covered here: stack overflow/underflow paths, non-indexed writes (by design), VRAM-buffer overflows
   (`VRAM_Buffer` writes indexed by `VRAM_Buffer1_Offset` — a classic corruption vector in other games; the
   offsets here are bounded by the parser's row counts, not audited line by line).
+
+## 5. Vine positions (H30 check)
+`tools/area_data.py L_*`: brick-vine objects at GroundArea4 page 5 col 1, GroundArea5 page 8 col 3,
+GroundArea9 page 5 col 3, GroundArea18 page 5 col 5, UndergroundArea2 page 4 col 0. Odd pages (Block_Buffer_2)
+with columns 1/3/5 → the wrapped vine writes land at $06B1/$06C1, $06B3/$06C3, $06B5/$06C5 (no named RAM);
+even pages → inside Block_Buffer_2. So no vine reaches `EnemyFrenzyBuffer` ($06CB) or `SecondaryHardMode`
+($06CC): H30's vine variant is refuted by the level data. The mechanism remains the only OOB write in the
+game; a different writer above Y $20 at an odd-page column 11/12 would be needed.
