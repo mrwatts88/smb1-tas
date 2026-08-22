@@ -10,6 +10,9 @@
  * process merges the arenas into the next layer with an open-addressing hash table. Terminals (GES 4/5)
  * are evaluated in the worker (run input-free to StarFlagTaskControl = 4) and reported.
  * Output: DIR/terminals.txt, DIR/best_inputs.bin, per-layer lines on stdout.
+ * v3: layer storage is compact — each state stores only the bytes at the addresses that differ from the root
+ * RAM in any state seen so far (a growing list, at most LMAX entries; P2.1b measured 70 such addresses
+ * after 7 layers). Workers still exchange full 2 KiB RAM images through the arenas.
  */
 #include <dlfcn.h>
 #include <stdint.h>
@@ -62,12 +65,33 @@ static uint64_t hash_ram(const uint8_t *r) {
     for (int i = 0x300; i < 0x800; i++) { h ^= r[i]; h *= 1099511628211ULL; }
     return h;
 }
+#define LMAX 384
+static uint8_t tmpl_ram[RAMSZ]; static uint16_t vaddr[LMAX]; static uint16_t pos_of[RAMSZ]; static int nv = 0;
+typedef struct layer_s layer_t;
+static layer_t *g_layers[2];
+static void fill_new_slot(int i);
+static int encode_state(const uint8_t *full, uint8_t *dst) {   /* returns 0 on overflow of the address list */
+    for (int k = 0; k < nv; k++) dst[k] = full[vaddr[k]];
+    const uint64_t *a = (const uint64_t *)full, *b = (const uint64_t *)tmpl_ram;
+    for (int w = 0; w < RAMSZ / 8; w++) if (a[w] != b[w])
+        for (int i = w * 8; i < w * 8 + 8; i++) if (full[i] != tmpl_ram[i] && !pos_of[i]) {
+            if (nv >= LMAX) return 0;
+            fill_new_slot(i);                  /* existing records equal the template there */
+            pos_of[i] = nv + 1; vaddr[nv] = i; dst[nv] = full[i]; nv++;
+        }
+    return 1;
+}
+static void decode_state(const uint8_t *rec, uint8_t *out) { memcpy(out, tmpl_ram, RAMSZ); for (int k = 0; k < nv; k++) out[vaddr[k]] = rec[k]; }
 typedef struct { uint32_t parent; uint8_t input; } link_t;
 typedef struct { uint64_t hash; uint32_t parent; uint8_t input; uint8_t pad[3]; uint8_t ram[RAMSZ]; } rec_t;
 typedef struct { long layer, grab, tset; int T; uint8_t ges, y, x, input; uint32_t parent; } term_t;
-typedef struct { uint32_t n, cap; uint8_t *blobs; uint64_t *hashes; uint32_t *table; uint32_t tcap; link_t *links; } layer_t;
+struct layer_s { uint32_t n, cap; uint8_t *blobs; uint64_t *hashes; uint32_t *table; uint32_t tcap; link_t *links; };
+static void fill_new_slot(int i) {
+    for (int l = 0; l < 2; l++) { layer_t *L = g_layers[l]; if (!L) continue;
+        for (uint32_t q = 0; q < L->n; q++) L->blobs[(size_t)q * LMAX + nv] = tmpl_ram[i]; }
+}
 static void layer_init(layer_t *L, uint32_t cap) {
-    L->n = 0; L->cap = cap; L->blobs = malloc((size_t)cap * RAMSZ); L->hashes = malloc(cap * sizeof(uint64_t));
+    L->n = 0; L->cap = cap; L->blobs = malloc((size_t)cap * LMAX); L->hashes = malloc(cap * sizeof(uint64_t));
     L->tcap = 1; while (L->tcap < cap * 2) L->tcap <<= 1; L->table = calloc(L->tcap, sizeof(uint32_t)); L->links = malloc(cap * sizeof(link_t));
     if (!L->blobs || !L->hashes || !L->table || !L->links) { fprintf(stderr, "out of memory\n"); exit(1); }
 }
@@ -76,7 +100,8 @@ static long layer_insert(layer_t *L, uint64_t hsh, const uint8_t *blob, uint32_t
     uint32_t mask = L->tcap - 1, i = (uint32_t)(hsh ^ (hsh >> 32)) & mask;
     while (L->table[i]) { uint32_t j = L->table[i] - 1; if (L->hashes[j] == hsh) return -1; i = (i + 1) & mask; }
     if (L->n >= L->cap) return -2;
-    uint32_t j = L->n++; L->table[i] = j + 1; L->hashes[j] = hsh; memcpy(L->blobs + (size_t)j * RAMSZ, blob, RAMSZ);
+    if (!encode_state(blob, L->blobs + (size_t)L->n * LMAX)) { fprintf(stderr, "varying-address list overflow (LMAX %d)\n", LMAX); exit(3); }
+    uint32_t j = L->n++; L->table[i] = j + 1; L->hashes[j] = hsh;
     L->links[j].parent = parent; L->links[j].input = input; return j;
 }
 static const uint8_t INPUTS[16] = { 0x00, 0x01, 0x02, 0x03, 0x40, 0x41, 0x42, 0x43, 0x80, 0x81, 0x82, 0x83, 0xc0, 0xc1, 0xc2, 0xc3 };
@@ -84,7 +109,7 @@ static const uint8_t INPUTS[16] = { 0x00, 0x01, 0x02, 0x03, 0x40, 0x41, 0x42, 0x
 int main(int argc, char **argv) {
     if (argc < 4) { fprintf(stderr, "usage: see header\n"); return 2; }
     const char *core = argv[1], *rom = argv[2], *inputs = argv[3], *outdir = "runs/bfs";
-    long root = -1, layers = 400, mem_mb = 4000, input_skip = 0, workers = 8, deadline = -1, target_x = -1, max_speed = 40, accel = 2, margin = 0; int quiet_t = 0;
+    long root = -1, layers = 400, mem_mb = 4000, input_skip = 0, workers = 8, deadline = -1, target_x = -1, max_speed = 40, accel = 2, margin = 0, dump_layer = -1; int quiet_t = 0; const char *dump_file = NULL;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--root")) root = atol(argv[++i]); else if (!strcmp(argv[i], "--layers")) layers = atol(argv[++i]);
         else if (!strcmp(argv[i], "--mem-mb")) mem_mb = atol(argv[++i]); else if (!strcmp(argv[i], "--input-skip")) input_skip = atol(argv[++i]);
@@ -92,6 +117,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--deadline")) deadline = atol(argv[++i]); else if (!strcmp(argv[i], "--target-x")) target_x = atol(argv[++i]);
         else if (!strcmp(argv[i], "--max-speed")) max_speed = atol(argv[++i]); else if (!strcmp(argv[i], "--accel")) accel = atol(argv[++i]);
         else if (!strcmp(argv[i], "--margin")) margin = atol(argv[++i]); else if (!strcmp(argv[i], "--quiet-terminals")) quiet_t = 1;
+        else if (!strcmp(argv[i], "--dump-layer")) { dump_layer = atol(argv[++i]); dump_file = argv[++i]; }
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 2; }
     }
     if (root < 0) { fprintf(stderr, "--root required\n"); return 2; }
@@ -122,8 +148,9 @@ int main(int argc, char **argv) {
            root, ram[0x0e], ram[0x86], ram[0x6d], ram[0xce], (int8_t)ram[0x57], ram[0x7f8], ram[0x7f9], ram[0x7fa], ssz, ram_off, workers);
     if (deadline >= 0 && layers > deadline - root) layers = deadline - root;
 
-    uint32_t cap = (uint32_t)(((size_t)mem_mb << 20) / 2 / (RAMSZ + 8 + sizeof(link_t) + 8));
-    layer_t A, B; layer_init(&A, cap); layer_init(&B, cap); layer_t *cur = &A, *nxt = &B;
+    memcpy(tmpl_ram, ram, RAMSZ); memset(pos_of, 0, sizeof pos_of);
+    uint32_t cap = (uint32_t)(((size_t)mem_mb << 20) / 2 / (LMAX + 8 + sizeof(link_t) + 8));
+    layer_t A, B; layer_init(&A, cap); layer_init(&B, cap); layer_t *cur = &A, *nxt = &B; g_layers[0] = &A; g_layers[1] = &B;
     layer_insert(cur, hash_ram(ram), ram, 0, 0);
     link_t **links = malloc((layers + 1) * sizeof(link_t *));
     const uint32_t PER_W = 2048;                       /* parents per worker per chunk */
@@ -151,9 +178,10 @@ int main(int argc, char **argv) {
                 if (pid == 0) {
                     uint32_t nrec = 0, nt = 0; long s_dup = 0, s_dead = 0, s_pruned = 0; (void)s_dup;
                     for (uint32_t p = p0; p < p1; p++) {
-                        const uint8_t *pr = cur->blobs + (size_t)p * RAMSZ;
+                        decode_state(cur->blobs + (size_t)p * LMAX, work + ram_off);
+                        uint8_t parent_ram[RAMSZ]; memcpy(parent_ram, work + ram_off, RAMSZ);
                         for (int k = 0; k < 16; k++) {
-                            memcpy(work + ram_off, pr, RAMSZ); c_unser(work, ssz); cur_pad = INPUTS[k]; c_run();
+                            memcpy(work + ram_off, parent_ram, RAMSZ); c_unser(work, ssz); cur_pad = INPUTS[k]; c_run();
                             uint8_t ges = ram[0x0e];
                             if (ges == 4 || ges == 5) {
                                 long fr = root + L + 1, grab = fr; uint8_t gy = ram[0xce], gx = ram[0x86];
@@ -186,12 +214,13 @@ int main(int argc, char **argv) {
             if (full) break;
         }
         links[L] = malloc((size_t)nxt->n * sizeof(link_t)); memcpy(links[L], nxt->links, (size_t)nxt->n * sizeof(link_t));
-        printf("layer %ld (after frame %ld): parents %u -> unique %u, dup %ld, dead %ld, pruned %ld, terminal %ld, full %ld; best T_set %ld; %.1fs (total %.0fs)\n",
-               L + 1, root + L + 1, cur->n, nxt->n, dup, dead, pruned, term, full, best_tset, now() - tl, now() - t0);
+        printf("layer %ld (after frame %ld): parents %u -> unique %u, dup %ld, dead %ld, pruned %ld, terminal %ld, full %ld; best T_set %ld; vaddrs %d; %.1fs (total %.0fs)\n",
+               L + 1, root + L + 1, cur->n, nxt->n, dup, dead, pruned, term, full, best_tset, nv, now() - tl, now() - t0);
         fflush(stdout); fflush(tf);
-        if (full) { printf("LAYER FULL (cap %u states) — stop; raise --mem-mb\n", cap); break; }
+        if (full) { printf("LAYER FULL (cap %u states of %d bytes) — stop; raise --mem-mb\n", cap, LMAX); break; }
         if (nxt->n == 0) { printf("no live states left\n"); break; }
         layer_t *t = cur; cur = nxt; nxt = t;
+        if (dump_layer == L + 1) { FILE *df = fopen(dump_file, "wb"); uint8_t fullr[RAMSZ]; for (uint32_t q = 0; q < cur->n; q++) { decode_state(cur->blobs + (size_t)q * LMAX, fullr); fwrite(fullr, RAMSZ, 1, df); } fclose(df); printf("dumped %u states of layer %ld to %s\n", cur->n, L + 1, dump_file); }
         if (best_tset >= 0 && L + 1 >= best_layer + 60) { printf("terminal found; stopping 60 layers after the best\n"); break; }
     }
     fclose(tf);
