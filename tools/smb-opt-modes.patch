@@ -541,9 +541,27 @@ index 947eef3..063748f 100644
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..5e02f84 100644
+index c9bbf89..90240c7 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
+@@ -60,7 +60,7 @@ impl XPosHeuristic {
+       if len == 0 { ((distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
+       else if max_dists[len-1] < distance { (len as i32 + (distance - max_dists[len-1] + self.max_x_distance - 1) / self.max_x_distance) as Dist }
+       else { max_dists.iter().position(|d| *d >= distance).unwrap() as Dist + 1 }
+-    } else { panic!("trying to determine XPos heuristic for unknown state {}", s); }
++    } else { 0 } // substate not in the precomputed table (e.g. reached through a goomba bounce): 0 is admissible
+   }
+   pub fn get_steps_until_x_pos_at_most(&self, s: &State, target_x_pos: i32) -> Dist {
+     if target_x_pos >= s.x_pos { return 0; }
+@@ -71,7 +71,7 @@ impl XPosHeuristic {
+       if len == 0 { ((-distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
+       else if min_dists[len-1] > distance { (len as i32 + (min_dists[len-1] - distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
+       else { min_dists.iter().position(|d| *d <= distance).unwrap() as Dist + 1 }
+-    } else { panic!("trying to determine XPos heuristic for unknown state {}", s); }
++    } else { 0 } // substate not in the precomputed table (e.g. reached through a goomba bounce): 0 is admissible
+   }
+   pub fn get_steps_until_x_pos_between(&self, s: &State, min_x_pos: i32, max_x_pos: i32) -> Dist {
+     if s.x_pos < min_x_pos { self.get_steps_until_x_pos_at_least(s, min_x_pos) }
 @@ -117,6 +117,16 @@ impl XPosHeuristic {
    pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
      s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
@@ -561,8 +579,30 @@ index c9bbf89..5e02f84 100644
    fn get_max_distance(&self, s: &XPosState, steps: usize) -> i32 {
      let max_dists = self.max_distance.get(s).unwrap();
      let len = max_dists.len();
+diff --git a/src/heuristics/ypos.rs b/src/heuristics/ypos.rs
+index 4de780d..28536fe 100644
+--- a/src/heuristics/ypos.rs
++++ b/src/heuristics/ypos.rs
+@@ -57,7 +57,7 @@ impl YPosHeuristic {
+       let len = max_dists.len();
+       if len == 0 || max_dists[len-1] < distance { len as Dist + 1 }
+       else { max_dists.iter().position(|d| *d >= distance).unwrap() as Dist + 1 }
+-    } else { panic!("trying to determine YPos heuristic for unknown state {}", s); }
++    } else { 0 } // substate not in the precomputed table (e.g. reached through a goomba bounce): 0 is admissible
+   }
+   pub fn get_steps_until_y_pos_at_most(&self, s: &State, target_y_pos: i32) -> Dist {
+     if target_y_pos >= s.y_pos { return 0; }
+@@ -68,7 +68,7 @@ impl YPosHeuristic {
+       let len = min_dists.len();
+       if len == 0 || min_dists[len-1] > distance { len as Dist + 1 }
+       else { min_dists.iter().position(|d| *d <= distance).unwrap() as Dist + 1 }
+-    } else { panic!("trying to determine YPos heuristic for unknown state {}", s); }
++    } else { 0 } // substate not in the precomputed table (e.g. reached through a goomba bounce): 0 is admissible
+   }
+   pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
+     if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..8d073da 100644
+index 350d469..489cf3d 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -573,11 +613,45 @@ index 350d469..8d073da 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,78 @@ mod state;
+@@ -22,6 +23,112 @@ mod state;
  mod store;
  
  fn main() {
 +  let args: Vec<String> = ::std::env::args().collect();
++  if args.len() >= 6 && (args[1] == "bfs11c" || args[1] == "bfs11cr") {
++    // bfs11c[r] INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [STEP:yspd=V]... [--root-frame F] [--any-y] [--goombas]
++    //   [--threads N] [--layer-dir DIR] [--out FILE] : compact per-layer parallel BFS (see bfs11c_run); r = relaxed model
++    let data = ::std::fs::read(&args[2]).unwrap();
++    let first: usize = args[3].parse().unwrap();
++    let prefix: usize = args[4].parse().unwrap();
++    let max_steps: usize = args[5].parse().unwrap();
++    let mut overrides: Vec<(usize, i16)> = Vec::new();
++    let mut root_frame: i64 = -1;
++    let mut any_y = false;
++    let mut goombas = false;
++    let mut out: Option<String> = None;
++    let mut threads: usize = 12;
++    let mut layer_dir: Option<String> = None;
++    let mut i = 6;
++    while i < args.len() {
++      if args[i] == "--root-frame" { root_frame = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--any-y" { any_y = true; i += 1; }
++      else if args[i] == "--goombas" { goombas = true; i += 1; }
++      else if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
++      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--layer-dir" { layer_dir = Some(args[i + 1].clone()); i += 2; }
++      else { let parts: Vec<&str> = args[i].split(":yspd=").collect(); overrides.push((parts[0].parse().unwrap(), parts[1].parse().unwrap())); i += 1; }
++    }
++    if root_frame < 0 { root_frame = ROOM_FIRST_FRAME - 1 + prefix as i64; }
++    if args[1] == "bfs11cr" {
++      emu::JUMP_NEEDS_FRESH_A.store(false, ::std::sync::atomic::Ordering::Relaxed);
++      println!("relaxed model (no running timer, held-A jumps)");
++      bfs11c_run::<case::w11::W11PipeRelaxed, [u8; 10]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, threads, layer_dir);
++    } else {
++      bfs11c_run::<case::w11::W11PipeSpeedup, [u8; 11]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, threads, layer_dir);
++    }
++    return;
++  }
 +  if args.len() >= 6 && (args[1] == "bfs11" || args[1] == "bfs11r") {
 +    // bfs11[r] INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [STEP:yspd=V]... [--root-frame F] [--any-y] [--goombas] [--out FILE]
 +    // Replays PREFIX_STEPS NES-order input records (from FIRST_RECORD) through the 1-1 third-room model
@@ -652,7 +726,7 @@ index 350d469..8d073da 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +119,204 @@ fn calc_prng() {
+@@ -46,4 +153,407 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -859,8 +933,227 @@ index 350d469..8d073da 100644
 +    }
 +  } else { println!("no grab found within {} steps", max_steps); }
 +}
++
++/// Compact per-layer BFS (P2.1b-m3): the frontier is a sorted, deduplicated Vec of 16-byte records
++/// (compressed player key || goomba bits || zero padding); children are generated in parallel from the
++/// decompressed parents, sorted and deduplicated per layer (no global visited set — a state seen in an earlier
++/// layer may reappear, which the deadline bound keeps finite). Each layer's records can be written to
++/// `layer_dir/layer_NNN.bin` so that a grab's input path can be reconstructed backwards (`bfs11c-path`).
++fn bfs11c_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, overrides: &[(usize, i16)], root_frame: i64, any_y: bool, goombas: bool, out: Option<String>, threads: usize, layer_dir: Option<String>) {
++  use emu::{Emu, EmuResult};
++  use heuristics::BoundsHeuristic;
++  use state::{CompressedState, StateCompressor};
++  use std::collections::HashMap;
++  use std::io::Write;
++  use std::sync::Arc;
++  type Key<C, A> = CompressedState<C, A>;
++  type Rec = [u8; 16];
++  let (s, g0, alive) = replay11::<C>(data, first, prefix, overrides, goombas, false);
++  assert!(alive, "prefix replay ended early");
++  let k0 = Key::<C, A>::from_state(&s);
++  let klen = k0.as_bytes().len();
++  assert!(klen + 1 <= 16);
++  {
++    let d = k0.decompress();
++    assert!(d == s || (Key::<C, A>::from_state(&d).as_bytes() == k0.as_bytes() && d.x_pos == s.x_pos && d.y_pos == s.y_pos && d.x_spd == s.x_spd && d.y_spd == s.y_spd && d.running_timer == s.running_timer), "decompress(compress(root)) != root:\n{}\nvs\n{}", d, s);
++  }
++  println!("root after {} prefix steps (frame {}): {}", prefix, root_frame, s);
++  println!("goombas {} (root g {:#x}); key {} bytes; threads {}; layer files {:?}", goombas, g0, klen, threads, layer_dir);
++  let t0 = time::precise_time_ns();
++  let h = Arc::new(BoundsHeuristic::new::<C>(&vec![s.clone()]));
++  let target_x: i32 = 0xc5600;
++  let target_y: i32 = 0x1a200;
++  let hval0 = if any_y { h.get_steps_until_x_pos_at_least(&s, target_x) } else { h.get_steps_until_bounds_at_least(&s, target_x, target_y) };
++  println!("heuristic built in {:.1}s; at root: {} steps (deadline {} steps, any_y {})", (time::precise_time_ns() - t0) as f64 / 1e9, hval0, max_steps, any_y);
++  let inputs: Vec<u8> = (0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect();
++  let mut r0: Rec = [0; 16];
++  r0[..klen].copy_from_slice(k0.as_bytes());
++  r0[klen] = g0;
++  let mut frontier: Vec<Rec> = vec![r0];
++  if let Some(ref d) = layer_dir { ::std::fs::create_dir_all(d).unwrap(); }
++  let mut grabs: HashMap<(usize, i32, i32, bool), u32> = HashMap::new();
++  // first grab per (step, fpg): (parent record, input, grab state)
++  let mut grab_paths: HashMap<(usize, bool), (Rec, u8, State)> = HashMap::new();
++  let mut step = 0;
++  while step < max_steps {
++    let t1 = time::precise_time_ns();
++    let f = root_frame + step as i64 + 1;
++    if let Some(ref d) = layer_dir {
++      let mut fh = ::std::fs::File::create(format!("{}/layer_{:03}.bin", d, step)).unwrap();
++      for r in &frontier { fh.write_all(&r[..]).unwrap(); }
++    }
++    let n = frontier.len();
++    let per = (n + threads - 1) / threads;
++    let fr: Arc<Vec<Rec>> = Arc::new(::std::mem::replace(&mut frontier, Vec::new()));
++    let mut handles = Vec::new();
++    for t in 0..threads {
++      let lo = t * per;
++      let hi = ::std::cmp::min(n, lo + per);
++      if lo >= hi { continue; }
++      let fr = fr.clone();
++      let h = h.clone();
++      let inputs = inputs.clone();
++      handles.push(::std::thread::spawn(move || {
++        const CHUNK: usize = 1 << 20;
++        let mut acc: Vec<Rec> = Vec::new();
++        let mut buf: Vec<Rec> = Vec::with_capacity(CHUNK * 16);
++        let mut acc_runs = 0usize;
++        let (mut gen, mut pruned, mut dead, mut other, mut stomps, mut grab_n) = (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
++        let mut max_x: i32 = 0;
++        let mut lgrabs: Vec<(i32, i32, bool, Rec, u8, State)> = Vec::new();
++        for idx in lo..hi {
++          let rec = fr[idx];
++          let key = Key::<C, A>::from_bytes(&rec[..klen]);
++          let pg = rec[klen];
++          let ps = key.decompress();
++          for &ib in &inputs {
++            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++            match res {
++              EmuResult::StateChangeFlag(cx, cy) => {
++                grab_n += 1;
++                let fpg = ns.y_pos >= target_y;
++                if cx != 0xc6 { println!("note: flag collision at column {} row {} (x {:#x} y {:#x})", cx, cy, ns.x_pos, ns.y_pos); }
++                lgrabs.push((ns.x_pos, ns.y_pos, fpg, rec, ib, ns));
++              }
++              EmuResult::Success => {
++                if ns.y_pos >= 0x1d000 { dead += 1; continue; }
++                let mut ng = pg;
++                if goombas {
++                  match room_enemies(f, &mut ns, &mut ng) {
++                    RoomEvent::Death => { dead += 1; continue; }
++                    RoomEvent::Stomp(_) => { stomps += 1; }
++                    RoomEvent::Nothing => {}
++                  }
++                }
++                let hh = if any_y { h.get_steps_until_x_pos_at_least(&ns, target_x) as usize } else { h.get_steps_until_bounds_at_least(&ns, target_x, target_y) as usize };
++                if step + 1 + hh > max_steps { pruned += 1; continue; }
++                if ns.x_pos > max_x { max_x = ns.x_pos; }
++                let k = Key::<C, A>::from_state(&ns);
++                let mut r: Rec = [0; 16];
++                r[..klen].copy_from_slice(k.as_bytes());
++                r[klen] = ng;
++                buf.push(r);
++                gen += 1;
++              }
++              _ => { other += 1; }
++            }
++          }
++          if buf.len() >= CHUNK * 16 {
++            buf.sort_unstable(); buf.dedup();
++            acc.append(&mut buf);
++            acc_runs += 1;
++            if acc_runs >= 4 { acc.sort_unstable(); acc.dedup(); acc_runs = 0; }
++          }
++        }
++        buf.sort_unstable(); buf.dedup();
++        acc.append(&mut buf);
++        acc.sort_unstable(); acc.dedup();
++        (acc, gen, pruned, dead, other, stomps, grab_n, max_x, lgrabs)
++      }));
++    }
++    let mut next: Vec<Rec> = Vec::new();
++    let (mut gen, mut pruned, mut dead, mut other, mut stomps, mut grab_n) = (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
++    let mut max_x: i32 = 0;
++    for hd in handles {
++      let (mut acc, g1, p1, d1, o1, s1, gr1, mx, lgrabs) = hd.join().unwrap();
++      gen += g1; pruned += p1; dead += d1; other += o1; stomps += s1; grab_n += gr1;
++      if mx > max_x { max_x = mx; }
++      next.append(&mut acc);
++      for (x, y, fpg, rec, ib, gs) in lgrabs {
++        *grabs.entry((step + 1, x, y, fpg)).or_insert(0) += 1;
++        grab_paths.entry((step + 1, fpg)).or_insert((rec, ib, gs));
++      }
++    }
++    drop(fr);
++    next.sort_unstable();
++    next.dedup();
++    let unique = next.len();
++    println!("layer {} (after frame {}): parents {} -> unique {}, generated {}, pruned {}, dead {}, other {}, stomps {}, grabs {}; max x {:#x}; {:.1}s",
++      step + 1, f, n, unique, gen, pruned, dead, other, stomps, grab_n, max_x, (time::precise_time_ns() - t1) as f64 / 1e9);
++    if unique == 0 { println!("no live states left after layer {}", step + 1); break; }
++    frontier = next;
++    step += 1;
++  }
++  println!("total {:.1}s", (time::precise_time_ns() - t0) as f64 / 1e9);
++  let mut gl: Vec<(&(usize, i32, i32, bool), &u32)> = grabs.iter().collect();
++  gl.sort();
++  println!("grabs (step frame x_pos y_pos fpg count):");
++  for (k, c) in gl { println!("  {} {} {:#x} {:#x} {} {}", k.0, root_frame + k.0 as i64, k.1, k.2, k.3, c); }
++  let mut best: Option<(usize, bool)> = None;
++  for fpg in &[true, false] {
++    let mut keys: Vec<&(usize, bool)> = grab_paths.keys().filter(|k| k.1 == *fpg).collect();
++    keys.sort();
++    if let Some(k) = keys.first() { best = Some(**k); break; }
++  }
++  if let Some((bstep, bfpg)) = best {
++    let &(prec, pib, ref gs) = grab_paths.get(&(bstep, bfpg)).unwrap();
++    println!("earliest {} grab: step {} (frame {}), state {}", if bfpg { "FPG" } else { "non-FPG" }, bstep, root_frame + bstep as i64, gs);
++    println!("grab parent record: {:?} input {:#x}", &prec[..klen + 1], pib);
++    if let Some(ref d) = layer_dir {
++      // backward reconstruction: at layer l (records in layer_l.bin, sorted by key, i.e. by x), find a parent of `target`
++      let mut seq: Vec<u8> = vec![pib];
++      let mut target: Rec = prec;
++      let mut l = bstep - 1; // target is a record of layer l
++      while l > 0 {
++        let bytes = ::std::fs::read(format!("{}/layer_{:03}.bin", d, l - 1)).unwrap();
++        let recs: &[Rec] = unsafe { ::std::slice::from_raw_parts(bytes.as_ptr() as *const Rec, bytes.len() / 16) };
++        let tx = (Key::<C, A>::from_bytes(&target[..klen]).decompress().x_pos >> 4) as i64;
++        let lo_x = (tx - 0x60).max(0) as u32; // parents lie within ±6 px
++        let lo = recs.binary_search_by(|r| { let rx = ((r[0] as u32) << 8 | r[1] as u32); if rx < lo_x { ::std::cmp::Ordering::Less } else { ::std::cmp::Ordering::Greater } }).unwrap_or_else(|i| i);
++        let fl = root_frame + l as i64; // the frame of the step parent(l-1) -> child(l)
++        let mut found: Option<(Rec, u8)> = None;
++        let mut i = lo;
++        while i < recs.len() {
++          let r = recs[i];
++          let rx = ((r[0] as u32) << 8 | r[1] as u32) as i64;
++          if rx > tx + 0x60 { break; }
++          let ps = Key::<C, A>::from_bytes(&r[..klen]).decompress();
++          let pg = r[klen];
++          for &ib in &inputs {
++            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++            if res != EmuResult::Success { continue; }
++            if ns.y_pos >= 0x1d000 { continue; }
++            let mut ng = pg;
++            if goombas { if let RoomEvent::Death = room_enemies(fl, &mut ns, &mut ng) { continue; } }
++            let k = Key::<C, A>::from_state(&ns);
++            if k.as_bytes() == &target[..klen] && ng == target[klen] { found = Some((r, ib)); break; }
++          }
++          if found.is_some() { break; }
++          i += 1;
++        }
++        match found {
++          Some((r, ib)) => { seq.push(ib); target = r; l -= 1; }
++          None => { println!("reconstruction failed at layer {}", l); break; }
++        }
++      }
++      seq.reverse();
++      emu::print_rle(seq.iter().map(|&b| emu::Input::from_bits_truncate(b)));
++      if let Some(path) = out {
++        let nes: Vec<u8> = seq.iter().map(|&b| model_to_nes(b)).collect();
++        ::std::fs::write(&path, &nes).unwrap();
++        println!("wrote {} NES-order input bytes to {}", nes.len(), path);
++      }
++    } else { println!("(no --layer-dir: path not reconstructed)"); }
++  } else { println!("no grab found within {} steps", max_steps); }
++}
+diff --git a/src/options.rs b/src/options.rs
+index fba80ad..c05592a 100644
+--- a/src/options.rs
++++ b/src/options.rs
+@@ -296,6 +296,11 @@ pub trait Platform {
+     }
+     0
+   }
++  fn v_force_from_index(i: u32) -> u8 {
++    match i { 0 => Self::V_FORCE_SWIM_TOO_HIGH, 1 => Self::V_FORCE_AREA_INIT, 2 => Self::V_FORCE_JUMP_STANDING, 3 => Self::V_FORCE_JUMP_WALKING,
++      4 => Self::V_FORCE_JUMP_RUNNING, 5 => Self::V_FORCE_JUMP_SWIMMING, 6 => Self::V_FORCE_FALL_STANDING, 7 => Self::V_FORCE_FALL_WALKING,
++      8 => Self::V_FORCE_FALL_RUNNING, 9 => Self::V_FORCE_FALL_SWIMMING, _ => panic!("bad v_force index {}", i) }
++  }
+   fn get_v_force_index(v_force: u8) -> u32 {
+     if v_force == Self::V_FORCE_SWIM_TOO_HIGH { 0 }
+     else if v_force == Self::V_FORCE_AREA_INIT { 1 }
 diff --git a/src/state.rs b/src/state.rs
-index e8c4d09..768a310 100644
+index e8c4d09..ee437ea 100644
 --- a/src/state.rs
 +++ b/src/state.rs
 @@ -55,6 +55,7 @@ pub struct State {
@@ -879,7 +1172,54 @@ index e8c4d09..768a310 100644
      write!(f, "}}")
    }
  }
-@@ -136,7 +138,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -129,6 +131,46 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
+     CompressedState { buf: A::new(), _options: PhantomData }
+   }
+ }
++impl<O: Options, A: StateArray> CompressedState<O, A> {
++  pub fn as_bytes(&self) -> &[u8] { self.buf.as_slice() }
++  pub fn from_bytes(b: &[u8]) -> Self { let mut buf = A::new(); buf.as_mut_slice().copy_from_slice(b); CompressedState { buf, _options: PhantomData } }
++  /// Exact inverse of from_state for the fields the key stores (the compression is lossless: x_pos low 4 bits
++  /// and x_spd low 2 bits are always 0 in the game); untracked fields come back as 0/false.
++  pub fn decompress(&self) -> State {
++    const Y_POS_OFFSET: u32 = 0xd000;
++    let mut bp = BitPack::<&[u8]>::new(self.buf.as_slice());
++    let x = bp.read(16).unwrap(); let y = bp.read(16).unwrap();
++    let xs = bp.read(13).unwrap(); let ys = bp.read(12).unwrap();
++    let ps = bp.read(2).unwrap(); let md = bp.read(2).unwrap(); let fd = bp.read(2).unwrap();
++    let vf = bp.read(4).unwrap(); let vfd = bp.read(4).unwrap(); let xa = bp.read(3).unwrap();
++    let rs = bp.read(1).unwrap(); let cb = bp.read(2).unwrap(); let ah = bp.read(1).unwrap();
++    let mut s = State {
++      x_pos: (x << 4) as i32,
++      y_pos: (y + Y_POS_OFFSET) as i32,
++      x_spd: { let v = (xs << 2) as i32; (if v & 0x4000 != 0 { v - 0x8000 } else { v }) as i16 },
++      y_spd: { let v = ys as i32; (if v & 0x800 != 0 { v - 0x1000 } else { v }) as i16 },
++      player_state: match ps { 0 => PlayerState::STANDING, 1 => PlayerState::JUMPING, 2 => PlayerState::FALLING, _ => PlayerState::CLIMBING },
++      moving_dir: Dir::from_bits_truncate(md as u8),
++      facing_dir: Dir::from_bits_truncate(fd as u8),
++      v_force: O::Platform::v_force_from_index(vf),
++      v_force_down: O::Platform::v_force_from_index(vfd),
++      x_spd_abs: O::Platform::X_SPD_ABS_CUTOFFS[xa as usize],
++      running_speed: rs != 0,
++      collision_bits: Dir::from_bits_truncate(cb as u8),
++      is_crouching: false, jump_swim_timer: 0, running_timer: 0, left_screen_edge_pos: 0, side_collision_timer: 0,
++      collected_coins: 0, powerup_block_hit: false, powerup_collected: false, parity: 0,
++      a_held: ah != 0,
++    };
++    if O::PlayerSize::CROUCH_BITS > 0 { s.is_crouching = bp.read(1).unwrap() != 0; }
++    if O::Swim::SWIMMING_BITS > 0 { s.jump_swim_timer = bp.read(5).unwrap() as u8; }
++    if O::RunningTimer::RUNNING_TIMER_BITS > 0 { s.running_timer = bp.read(4).unwrap() as u8; }
++    if O::ScrollPos::SCROLL_POS_BITS > 0 { s.left_screen_edge_pos = bp.read(8).unwrap() as u8; s.side_collision_timer = bp.read(4).unwrap() as u8; }
++    if O::Parity::PARITY_BITS > 0 { s.parity = bp.read(O::Parity::PARITY_BITS).unwrap() as u8; }
++    if O::CoinHandler::COIN_HANDLER_BITS > 0 { s.collected_coins = bp.read(O::CoinHandler::COIN_HANDLER_BITS).unwrap(); }
++    if O::PowerupHandler::POWERUP_HANDLER_BITS > 0 { s.powerup_block_hit = bp.read(1).unwrap() != 0; s.powerup_collected = bp.read(1).unwrap() != 0; }
++    s
++  }
++}
+ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+   fn from_state(s: &State) -> CompressedState<O, A> {
+     const Y_POS_OFFSET: u32 = 0xd000;
+@@ -136,7 +178,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
      let mut buf = A::new();
  
      let bytes_available = buf.as_slice().len();
@@ -888,7 +1228,7 @@ index e8c4d09..768a310 100644
          + O::PlayerSize::CROUCH_BITS + O::Swim::SWIMMING_BITS
          + O::RunningTimer::RUNNING_TIMER_BITS
          + O::ScrollPos::SCROLL_POS_BITS
-@@ -159,6 +161,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -159,6 +201,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        bitpack.write(O::Platform::get_x_spd_abs_cutoff(s.x_spd_abs) as u32, 3).unwrap();
        bitpack.write(if s.running_speed { 1 } else { 0 }, 1).unwrap();
        bitpack.write(s.collision_bits.bits() as u32, 2).unwrap();

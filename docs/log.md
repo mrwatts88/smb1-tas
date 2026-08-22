@@ -252,3 +252,17 @@ core-hours) or a memory problem (64 GB box), not a physics problem any more.
 
 **Next.** P2.1b-m3: compact per-layer engine (or the cloud box), relaxed model + goombas from the entry with
 deadline 238; then exact-model candidates replayed on the core. Track B unit P0.7 still waits.
+## 2026-08-21 — Session 4 (end): P2.1b-m3 checkpoint — compact engine built, whole-room run launched
+**Did.** Key decompressor (exact inverse of MrWint's bit packing), compact per-layer parallel engine
+(`bfs11c`/`bfs11cr`: sorted 16-byte records, chunked sort+dedup, 12 threads, layer files), controls passed
+(WR's grabs at step 16, none at 15). Slack-scaling probes: millions of states per layer even at 1 frame of
+x-slack (the variety is jump phase × speed fraction × x subpixel, not the y fraction, which every jump
+clears). Found and fixed a heuristic panic on goomba-bounce y-substates. Launched the whole-room run
+(relaxed + goombas, deadline 238) under a memory cap; it was at 14M states/layer (×1.36) at frame 1092 on the
+first try. Path reconstruction from the layer files still needs an offline mode (LSB-first bit order).
+
+**Next session.** Read `runs/P2.1b-model/room_compact_d238.log` (STATUS Running jobs). If it ended with a
+grab: write `bfs11c-path`, rebuild, reconstruct, replay on the core (`build/harness` + `tools/model_difftest.py`
+machinery). If "no grab": H28 refuted in the relaxed model → 1-1's third room cannot gain the frame; record
+the proof and move to rooms 1–2 of 1-1 (entry frame of the third room) or to 8-4/4-2 per PLAN. If it died:
+memory engineering or the cloud decision. Track B unit P0.7 still waits.
