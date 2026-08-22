@@ -333,3 +333,8 @@ step-3 plan (cases, goal coordinates, generalized search mode, difftest alignmen
 **Learned.** The dump is a complete, exact source for level geometry — no area-object renderer needed; a mid-level
 entrance leaves stale zeros in the unrendered buffer half, so validity must start at the entrance page.
 **Next.** Run 4's verdict; P2.3a step 3 (cases + enemy-free optima for 4-2's two segments).
+## 2026-08-22 — Session 5 (late): user Q&A → P1.3 queued, model-omissions table, H31
+**Did.** Answered the state-completeness and x-bound-soundness questions; queued P1.3 (audit the XPos table against
+the real core with random k-frame rollouts; cheap, spare-capacity job) ahead of the 4-2 search; added a standing
+"Model omissions" table to STATUS with the lift/platform gap flagged as the one mechanic that breaks the x-bound;
+H31 records the user's framing: cracks live in unmodeled mechanics.
