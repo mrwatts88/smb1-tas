@@ -285,3 +285,18 @@ cells; every JumpEngine index is engine state or a ROM-bounded enemy ID — exce
 the block-buffer wrap write (objects above the status bar, y → $E0/$F0) can reach from an odd page at column
 11 — and the vine writes $26 there as it grows (H30). Track B has a concrete code-execution-candidate to test
 on the core (P3.3). **Next.** P2.1b-m3 run verdict; then P3.3/H30 or H29 depending on it.
+## 2026-08-22 — Session 5: run 3 OOM post-mortem; external-memory engine; run 4 resumed from layer 85
+**Did.** Run 3 reached layer 85 (328M states, 741 s/layer, growth ×1.024 and flattening) and was killed by the kernel
+OOM killer at 11.1 GB RSS (the 10-s MemAvailable watchdog never fired; the pressure also crashed the Claude Code
+session). Root cause from the code: parents + 12 unbounded accumulators + merged `next` (with Vec doubling) all
+resident per layer ⇒ ≥ 15 GB at 328M states. Rewrote `bfs11c` as an external-memory engine (streamed parents,
+bounded accumulators spilled to sorted runs, k-way merge into the next layer file, `--resume`, `--stop-step`, FxHash
+heuristic maps); validated: 16-step control identical incl. path reconstruction, resume-from-layer-40 reproduces run
+3's layer counts 41–46 exactly at 1.8× speed, 649 MB peak. Run 4 resumed from `layer_085.bin` inside a systemd scope
+with `MemoryMax=10G` (verified the cap applies without sudo). Patch regenerated; launch scripts copied to `tools/`.
+**Learned.** Polling watchdogs cannot catch multi-GB allocation bursts; cgroup caps can, and keep the rest of the
+system (and the agent session) alive. Per-layer dedup is set-deterministic, so resumed runs are checkable against
+the old log to the last digit — the cheapest possible regression test for an engine rewrite. The cloud is not
+needed for this unit (fits in 10 GB, ~1 day); no provider credentials exist on the laptop.
+**Next.** Run 4's verdict (STATUS Running jobs): candidate → reconstruct + core replay; no grab → H28 refuted in the
+relaxed model, P2.1b done, then P2.5 (enemy-aware segment search; H29 room 1) and the Track B unit P3.3/H30.

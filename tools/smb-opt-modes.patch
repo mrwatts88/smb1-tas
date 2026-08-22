@@ -540,10 +540,62 @@ index 947eef3..063748f 100644
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
+diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
+index 39e4b06..d7dac02 100644
+--- a/src/heuristics/mod.rs
++++ b/src/heuristics/mod.rs
+@@ -7,6 +7,27 @@ use state::{Dist, State};
+ use std::cmp::{max, min};
+ use std::marker::PhantomData;
+ 
++/// Fast non-cryptographic hasher (FxHash, as in rustc) for the precomputed distance tables: the per-child
++/// lookups in bfs11c dominate the search time and SipHash is needlessly slow for these small keys.
++pub struct FxHasher { hash: u64 }
++const FX_SEED: u64 = 0x51_7c_c1_b7_27_22_0a_95;
++impl Default for FxHasher { fn default() -> FxHasher { FxHasher { hash: 0 } } }
++impl FxHasher { #[inline] fn add(&mut self, w: u64) { self.hash = (self.hash.rotate_left(5) ^ w).wrapping_mul(FX_SEED); } }
++impl ::std::hash::Hasher for FxHasher {
++  #[inline] fn write(&mut self, bytes: &[u8]) { for &b in bytes { self.add(b as u64); } }
++  #[inline] fn write_u8(&mut self, i: u8) { self.add(i as u64); }
++  #[inline] fn write_u16(&mut self, i: u16) { self.add(i as u64); }
++  #[inline] fn write_u32(&mut self, i: u32) { self.add(i as u64); }
++  #[inline] fn write_u64(&mut self, i: u64) { self.add(i); }
++  #[inline] fn write_usize(&mut self, i: usize) { self.add(i as u64); }
++  #[inline] fn write_i8(&mut self, i: i8) { self.add(i as u8 as u64); }
++  #[inline] fn write_i16(&mut self, i: i16) { self.add(i as u16 as u64); }
++  #[inline] fn write_i32(&mut self, i: i32) { self.add(i as u32 as u64); }
++  #[inline] fn write_i64(&mut self, i: i64) { self.add(i as u64); }
++  #[inline] fn finish(&self) -> u64 { self.hash }
++}
++pub type FxMap<K, V> = ::std::collections::HashMap<K, V, ::std::hash::BuildHasherDefault<FxHasher>>;
++
+ pub trait SearchGoal {
+   fn new() -> Self;
+   fn distance_to_goal_heuristic(&self, s: &mut State, steps_already_taken: Dist) -> Option<Dist>;
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..90240c7 100644
+index c9bbf89..6682b6e 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
+@@ -6,15 +6,15 @@ use std::io::Write;
+ use std::marker::PhantomData;
+ 
+ pub struct XPosHeuristic {
+-  max_distance: HashMap<XPosState, Vec<i32>>,
+-  min_distance: HashMap<XPosState, Vec<i32>>,
++  max_distance: ::heuristics::FxMap<XPosState, Vec<i32>>,
++  min_distance: ::heuristics::FxMap<XPosState, Vec<i32>>,
+   max_x_distance: i32,
+ }
+ impl XPosHeuristic {
+   pub fn new<O: Options>(initial_states: &Vec<State>) -> XPosHeuristic {
+     let mut h = XPosHeuristic {
+-      max_distance: HashMap::<XPosState, Vec<i32>>::new(),
+-      min_distance: HashMap::<XPosState, Vec<i32>>::new(),
++      max_distance: ::heuristics::FxMap::default(),
++      min_distance: ::heuristics::FxMap::default(),
+       max_x_distance: ((if O::Swim::IS_SWIMMING { O::Platform::MAX_X_SPD_WALK } else { O::Platform::MAX_X_SPD_RUN } >> 8) << 4) as i32,
+     };
+     let state_map = Self::build_state_map::<O>(initial_states.iter().map(|s| Self::to_x_pos_state(s)).collect());
 @@ -60,7 +60,7 @@ impl XPosHeuristic {
        if len == 0 { ((distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if max_dists[len-1] < distance { (len as i32 + (distance - max_dists[len-1] + self.max_x_distance - 1) / self.max_x_distance) as Dist }
@@ -580,9 +632,29 @@ index c9bbf89..90240c7 100644
      let max_dists = self.max_distance.get(s).unwrap();
      let len = max_dists.len();
 diff --git a/src/heuristics/ypos.rs b/src/heuristics/ypos.rs
-index 4de780d..28536fe 100644
+index 4de780d..9d8fcf7 100644
 --- a/src/heuristics/ypos.rs
 +++ b/src/heuristics/ypos.rs
+@@ -6,15 +6,15 @@ use std::io::Write;
+ use std::marker::PhantomData;
+ 
+ pub struct YPosHeuristic {
+-  max_distance: HashMap<YPosState, Vec<i32>>,
+-  min_distance: HashMap<YPosState, Vec<i32>>,
++  max_distance: ::heuristics::FxMap<YPosState, Vec<i32>>,
++  min_distance: ::heuristics::FxMap<YPosState, Vec<i32>>,
+ }
+ const MAX_Y_DIST: i32 = 0x10000;
+ impl YPosHeuristic {
+   pub fn new<O: Options>(initial_states: &Vec<State>) -> YPosHeuristic {
+     let mut h = YPosHeuristic {
+-      max_distance: HashMap::<YPosState, Vec<i32>>::new(),
+-      min_distance: HashMap::<YPosState, Vec<i32>>::new()
++      max_distance: ::heuristics::FxMap::default(),
++      min_distance: ::heuristics::FxMap::default()
+     };
+     let state_map = Self::build_state_map::<O>(initial_states.iter().map(|s| Self::to_y_pos_state(s)).collect());
+     println!("total number of YPosStates: {}; total size of state map: {}", state_map.len(), state_map.values().map(|v| v.len()).sum::<usize>());
 @@ -57,7 +57,7 @@ impl YPosHeuristic {
        let len = max_dists.len();
        if len == 0 || max_dists[len-1] < distance { len as Dist + 1 }
@@ -602,7 +674,7 @@ index 4de780d..28536fe 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..7aaa273 100644
+index 350d469..f67e0f7 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -613,7 +685,7 @@ index 350d469..7aaa273 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,138 @@ mod state;
+@@ -22,6 +23,145 @@ mod state;
  mod store;
  
  fn main() {
@@ -646,7 +718,8 @@ index 350d469..7aaa273 100644
 +  }
 +  if args.len() >= 6 && (args[1] == "bfs11c" || args[1] == "bfs11cr") {
 +    // bfs11c[r] INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [STEP:yspd=V]... [--root-frame F] [--any-y] [--goombas]
-+    //   [--threads N] [--layer-dir DIR] [--out FILE] : compact per-layer parallel BFS (see bfs11c_run); r = relaxed model
++    //   [--threads N] [--layer-dir DIR] [--resume N] [--acc-mb M] [--stop-step N] : compact per-layer parallel external-memory BFS
++    //   (see bfs11c_run); r = relaxed model
 +    let data = ::std::fs::read(&args[2]).unwrap();
 +    let first: usize = args[3].parse().unwrap();
 +    let prefix: usize = args[4].parse().unwrap();
@@ -658,6 +731,9 @@ index 350d469..7aaa273 100644
 +    let mut out: Option<String> = None;
 +    let mut threads: usize = 12;
 +    let mut layer_dir: Option<String> = None;
++    let mut resume: Option<usize> = None;
++    let mut acc_mb: usize = 256;
++    let mut stop_step: usize = ::std::usize::MAX;
 +    let mut i = 6;
 +    while i < args.len() {
 +      if args[i] == "--root-frame" { root_frame = args[i + 1].parse().unwrap(); i += 2; }
@@ -666,15 +742,18 @@ index 350d469..7aaa273 100644
 +      else if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--layer-dir" { layer_dir = Some(args[i + 1].clone()); i += 2; }
++      else if args[i] == "--resume" { resume = Some(args[i + 1].parse().unwrap()); i += 2; }
++      else if args[i] == "--acc-mb" { acc_mb = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--stop-step" { stop_step = args[i + 1].parse().unwrap(); i += 2; }
 +      else { let parts: Vec<&str> = args[i].split(":yspd=").collect(); overrides.push((parts[0].parse().unwrap(), parts[1].parse().unwrap())); i += 1; }
 +    }
 +    if root_frame < 0 { root_frame = ROOM_FIRST_FRAME - 1 + prefix as i64; }
 +    if args[1] == "bfs11cr" {
 +      emu::JUMP_NEEDS_FRESH_A.store(false, ::std::sync::atomic::Ordering::Relaxed);
 +      println!("relaxed model (no running timer, held-A jumps)");
-+      bfs11c_run::<case::w11::W11PipeRelaxed, [u8; 10]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, threads, layer_dir);
++      bfs11c_run::<case::w11::W11PipeRelaxed, [u8; 10]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, threads, layer_dir, resume, acc_mb, stop_step);
 +    } else {
-+      bfs11c_run::<case::w11::W11PipeSpeedup, [u8; 11]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, threads, layer_dir);
++      bfs11c_run::<case::w11::W11PipeSpeedup, [u8; 11]>(&data, first, prefix, max_steps, &overrides, root_frame, any_y, goombas, out, threads, layer_dir, resume, acc_mb, stop_step);
 +    }
 +    return;
 +  }
@@ -752,7 +831,7 @@ index 350d469..7aaa273 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +179,473 @@ fn calc_prng() {
+@@ -46,4 +186,499 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -960,20 +1039,37 @@ index 350d469..7aaa273 100644
 +  } else { println!("no grab found within {} steps", max_steps); }
 +}
 +
-+/// Compact per-layer BFS (P2.1b-m3): the frontier is a sorted, deduplicated Vec of 16-byte records
-+/// (compressed player key || goomba bits || zero padding); children are generated in parallel from the
-+/// decompressed parents, sorted and deduplicated per layer (no global visited set — a state seen in an earlier
-+/// layer may reappear, which the deadline bound keeps finite). Each layer's records can be written to
-+/// `layer_dir/layer_NNN.bin` so that a grab's input path can be reconstructed backwards (`bfs11c-path`).
-+fn bfs11c_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, overrides: &[(usize, i16)], root_frame: i64, any_y: bool, goombas: bool, out: Option<String>, threads: usize, layer_dir: Option<String>) {
++/// Compact per-layer BFS (P2.1b-m3), external-memory version: the frontier after `step` steps lives in
++/// `layer_dir/layer_NNN.bin` as sorted, deduplicated 16-byte records (compressed player key || goomba bits ||
++/// zero padding). Each layer: the parents are streamed from that file in blocks (never held in memory),
++/// expanded in parallel (`--threads`) into per-thread chunk buffers that are sorted+deduplicated into a bounded
++/// accumulator (`--acc-mb`, spilled to `layer_dir/tmp/run_*.bin` as sorted runs when full), and the runs are
++/// k-way merged (with dedup) straight into `layer_{NNN+1}.bin`. Memory ~ threads × (acc + chunks), independent of
++/// the frontier size. Dedup per layer only (no global visited set; the deadline bound keeps it finite).
++/// `--resume N` restarts at step N from an existing raw `layer_N.bin` (decompress `.xz` first). A grab's input
++/// path is reconstructed offline with `bfs11c-path` from the "grab parent record" line.
++fn bfs11c_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, overrides: &[(usize, i16)], root_frame: i64, any_y: bool, goombas: bool, out: Option<String>, threads: usize, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize) {
 +  use emu::{Emu, EmuResult};
 +  use heuristics::BoundsHeuristic;
 +  use state::{CompressedState, StateCompressor};
-+  use std::collections::HashMap;
-+  use std::io::Write;
++  use std::collections::{BinaryHeap, HashMap};
++  use std::cmp::Reverse;
++  use std::fs::File;
++  use std::io::{BufReader, BufWriter, Read, Write};
++  use std::os::unix::fs::FileExt;
 +  use std::sync::Arc;
 +  type Key<C, A> = CompressedState<C, A>;
 +  type Rec = [u8; 16];
++  fn rec_bytes(v: &[Rec]) -> &[u8] { unsafe { ::std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 16) } }
++  fn read_full_at(f: &File, buf: &mut [u8], mut off: u64) -> ::std::io::Result<()> {
++    let mut done = 0usize;
++    while done < buf.len() {
++      let k = f.read_at(&mut buf[done..], off)?;
++      if k == 0 { return Err(::std::io::Error::new(::std::io::ErrorKind::UnexpectedEof, "short read")); }
++      done += k; off += k as u64;
++    }
++    Ok(())
++  }
 +  let (s, g0, alive) = replay11::<C>(data, first, prefix, overrides, goombas, false);
 +  assert!(alive, "prefix replay ended early");
 +  let k0 = Key::<C, A>::from_state(&s);
@@ -983,8 +1079,11 @@ index 350d469..7aaa273 100644
 +    let d = k0.decompress();
 +    assert!(d == s || (Key::<C, A>::from_state(&d).as_bytes() == k0.as_bytes() && d.x_pos == s.x_pos && d.y_pos == s.y_pos && d.x_spd == s.x_spd && d.y_spd == s.y_spd && d.running_timer == s.running_timer), "decompress(compress(root)) != root:\n{}\nvs\n{}", d, s);
 +  }
++  let ldir = layer_dir.unwrap_or_else(|| "bfs11c_layers".to_string());
++  ::std::fs::create_dir_all(format!("{}/tmp", ldir)).unwrap();
++  let layer_path = |l: usize| format!("{}/layer_{:03}.bin", ldir, l);
 +  println!("root after {} prefix steps (frame {}): {}", prefix, root_frame, s);
-+  println!("goombas {} (root g {:#x}); key {} bytes; threads {}; layer files {:?}", goombas, g0, klen, threads, layer_dir);
++  println!("goombas {} (root g {:#x}); key {} bytes; threads {}; layer dir {}; acc {} MB/thread; resume {:?}", goombas, g0, klen, threads, ldir, acc_mb, resume);
 +  let t0 = time::precise_time_ns();
 +  let h = Arc::new(BoundsHeuristic::new::<C>(&vec![s.clone()]));
 +  let target_x: i32 = 0xc5600;
@@ -992,112 +1091,161 @@ index 350d469..7aaa273 100644
 +  let hval0 = if any_y { h.get_steps_until_x_pos_at_least(&s, target_x) } else { h.get_steps_until_bounds_at_least(&s, target_x, target_y) };
 +  println!("heuristic built in {:.1}s; at root: {} steps (deadline {} steps, any_y {})", (time::precise_time_ns() - t0) as f64 / 1e9, hval0, max_steps, any_y);
 +  let inputs: Vec<u8> = (0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect();
-+  let mut r0: Rec = [0; 16];
-+  r0[..klen].copy_from_slice(k0.as_bytes());
-+  r0[klen] = g0;
-+  let mut frontier: Vec<Rec> = vec![r0];
-+  if let Some(ref d) = layer_dir { ::std::fs::create_dir_all(d).unwrap(); }
++  let mut step = 0usize;
++  match resume {
++    Some(r) => {
++      let md = ::std::fs::metadata(layer_path(r)).expect("--resume: layer file missing (decompress the .xz first)");
++      assert!(md.len() % 16 == 0 && md.len() > 0, "--resume: bad layer file size");
++      step = r;
++      println!("resuming at step {} from {} ({} records)", r, layer_path(r), md.len() / 16);
++    }
++    None => {
++      let mut r0: Rec = [0; 16];
++      r0[..klen].copy_from_slice(k0.as_bytes());
++      r0[klen] = g0;
++      File::create(layer_path(0)).unwrap().write_all(&r0[..]).unwrap();
++    }
++  }
++  let acc_limit: usize = ::std::cmp::max(1, acc_mb * 1024 * 1024 / 16);
 +  let mut grabs: HashMap<(usize, i32, i32, bool), u32> = HashMap::new();
 +  // first grab per (step, fpg): (parent record, input, grab state)
 +  let mut grab_paths: HashMap<(usize, bool), (Rec, u8, State)> = HashMap::new();
-+  let mut step = 0;
 +  while step < max_steps {
++    if step >= stop_step { println!("stopping at step {} (--stop-step)", step); break; }
 +    let t1 = time::precise_time_ns();
 +    let f = root_frame + step as i64 + 1;
-+    if let Some(ref d) = layer_dir {
-+      let mut fh = ::std::fs::File::create(format!("{}/layer_{:03}.bin", d, step)).unwrap();
-+      for r in &frontier { fh.write_all(&r[..]).unwrap(); }
-+    }
-+    let n = frontier.len();
++    let ppath = layer_path(step);
++    let n = (::std::fs::metadata(&ppath).unwrap().len() / 16) as usize;
 +    let per = (n + threads - 1) / threads;
-+    let fr: Arc<Vec<Rec>> = Arc::new(::std::mem::replace(&mut frontier, Vec::new()));
 +    let mut handles = Vec::new();
 +    for t in 0..threads {
 +      let lo = t * per;
 +      let hi = ::std::cmp::min(n, lo + per);
 +      if lo >= hi { continue; }
-+      let fr = fr.clone();
 +      let h = h.clone();
 +      let inputs = inputs.clone();
++      let ppath = ppath.clone();
++      let run_prefix = format!("{}/tmp/run_{:03}_{:02}", ldir, step, t);
 +      handles.push(::std::thread::spawn(move || {
-+        const CHUNK: usize = 1 << 18;
++        const CHUNK: usize = 1 << 21; // records per chunk buffer (32 MB)
++        const BLOCK: usize = 1 << 16; // parent records per read
++        let file = File::open(&ppath).unwrap();
++        let mut rbuf: Vec<u8> = vec![0u8; BLOCK * 16];
 +        let mut acc: Vec<Rec> = Vec::new();
-+        let mut buf: Vec<Rec> = Vec::with_capacity(CHUNK * 16);
++        let mut buf: Vec<Rec> = Vec::with_capacity(CHUNK);
 +        let mut acc_runs = 0usize;
++        let mut runs: Vec<String> = Vec::new();
 +        let (mut gen, mut pruned, mut dead, mut other, mut stomps, mut grab_n) = (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
 +        let mut max_x: i32 = 0;
 +        let mut lgrabs: Vec<(i32, i32, bool, Rec, u8, State)> = Vec::new();
-+        for idx in lo..hi {
-+          let rec = fr[idx];
-+          let key = Key::<C, A>::from_bytes(&rec[..klen]);
-+          let pg = rec[klen];
-+          let ps = key.decompress();
-+          for &ib in &inputs {
-+            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+            match res {
-+              EmuResult::StateChangeFlag(cx, cy) => {
-+                grab_n += 1;
-+                let fpg = ns.y_pos >= target_y;
-+                if cx != 0xc6 { println!("note: flag collision at column {} row {} (x {:#x} y {:#x})", cx, cy, ns.x_pos, ns.y_pos); }
-+                lgrabs.push((ns.x_pos, ns.y_pos, fpg, rec, ib, ns));
-+              }
-+              EmuResult::Success => {
-+                if ns.y_pos >= 0x1d000 { dead += 1; continue; }
-+                let mut ng = pg;
-+                if goombas {
-+                  match room_enemies(f, &mut ns, &mut ng) {
-+                    RoomEvent::Death => { dead += 1; continue; }
-+                    RoomEvent::Stomp(_) => { stomps += 1; }
-+                    RoomEvent::Nothing => {}
-+                  }
++        let spill = |acc: &mut Vec<Rec>, runs: &mut Vec<String>| {
++          let path = format!("{}_{:03}.bin", run_prefix, runs.len());
++          let mut w = BufWriter::with_capacity(1 << 22, File::create(&path).unwrap());
++          w.write_all(rec_bytes(&acc[..])).unwrap();
++          w.flush().unwrap();
++          runs.push(path);
++          acc.clear();
++          acc.shrink_to_fit();
++        };
++        let mut pos = lo;
++        while pos < hi {
++          let cnt = ::std::cmp::min(BLOCK, hi - pos);
++          read_full_at(&file, &mut rbuf[..cnt * 16], (pos * 16) as u64).unwrap();
++          for i in 0..cnt {
++            let mut rec: Rec = [0; 16];
++            rec.copy_from_slice(&rbuf[i * 16..(i + 1) * 16]);
++            let key = Key::<C, A>::from_bytes(&rec[..klen]);
++            let pg = rec[klen];
++            let ps = key.decompress();
++            for &ib in &inputs {
++              let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++              match res {
++                EmuResult::StateChangeFlag(cx, cy) => {
++                  grab_n += 1;
++                  let fpg = ns.y_pos >= target_y;
++                  if cx != 0xc6 { println!("note: flag collision at column {} row {} (x {:#x} y {:#x})", cx, cy, ns.x_pos, ns.y_pos); }
++                  lgrabs.push((ns.x_pos, ns.y_pos, fpg, rec, ib, ns));
 +                }
-+                let hh = if any_y { h.get_steps_until_x_pos_at_least(&ns, target_x) as usize } else { h.get_steps_until_bounds_at_least(&ns, target_x, target_y) as usize };
-+                if step + 1 + hh > max_steps { pruned += 1; continue; }
-+                if ns.x_pos > max_x { max_x = ns.x_pos; }
-+                let k = Key::<C, A>::from_state(&ns);
-+                let mut r: Rec = [0; 16];
-+                r[..klen].copy_from_slice(k.as_bytes());
-+                r[klen] = ng;
-+                buf.push(r);
-+                gen += 1;
++                EmuResult::Success => {
++                  if ns.y_pos >= 0x1d000 { dead += 1; continue; }
++                  let mut ng = pg;
++                  if goombas {
++                    match room_enemies(f, &mut ns, &mut ng) {
++                      RoomEvent::Death => { dead += 1; continue; }
++                      RoomEvent::Stomp(_) => { stomps += 1; }
++                      RoomEvent::Nothing => {}
++                    }
++                  }
++                  let hh = if any_y { h.get_steps_until_x_pos_at_least(&ns, target_x) as usize } else { h.get_steps_until_bounds_at_least(&ns, target_x, target_y) as usize };
++                  if step + 1 + hh > max_steps { pruned += 1; continue; }
++                  if ns.x_pos > max_x { max_x = ns.x_pos; }
++                  let k = Key::<C, A>::from_state(&ns);
++                  let mut r: Rec = [0; 16];
++                  r[..klen].copy_from_slice(k.as_bytes());
++                  r[klen] = ng;
++                  buf.push(r);
++                  gen += 1;
++                }
++                _ => { other += 1; }
 +              }
-+              _ => { other += 1; }
++            }
++            if buf.len() >= CHUNK {
++              buf.sort_unstable(); buf.dedup();
++              acc.append(&mut buf);
++              acc_runs += 1;
++              if acc_runs >= 2 {
++                acc.sort_unstable(); acc.dedup(); acc_runs = 0;
++                if acc.len() >= acc_limit { spill(&mut acc, &mut runs); }
++              }
 +            }
 +          }
-+          if buf.len() >= CHUNK * 16 {
-+            buf.sort_unstable(); buf.dedup();
-+            acc.append(&mut buf);
-+            acc_runs += 1;
-+            if acc_runs >= 4 { acc.sort_unstable(); acc.dedup(); acc_runs = 0; }
-+          }
++          pos += cnt;
 +        }
 +        buf.sort_unstable(); buf.dedup();
 +        acc.append(&mut buf);
 +        acc.sort_unstable(); acc.dedup();
-+        (acc, gen, pruned, dead, other, stomps, grab_n, max_x, lgrabs)
++        if !acc.is_empty() { spill(&mut acc, &mut runs); }
++        (runs, gen, pruned, dead, other, stomps, grab_n, max_x, lgrabs)
 +      }));
 +    }
-+    let mut next: Vec<Rec> = Vec::new();
++    let mut runs: Vec<String> = Vec::new();
 +    let (mut gen, mut pruned, mut dead, mut other, mut stomps, mut grab_n) = (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
 +    let mut max_x: i32 = 0;
 +    for hd in handles {
-+      let (mut acc, g1, p1, d1, o1, s1, gr1, mx, lgrabs) = hd.join().unwrap();
++      let (mut r1, g1, p1, d1, o1, s1, gr1, mx, lgrabs) = hd.join().unwrap();
 +      gen += g1; pruned += p1; dead += d1; other += o1; stomps += s1; grab_n += gr1;
 +      if mx > max_x { max_x = mx; }
-+      next.append(&mut acc);
++      runs.append(&mut r1);
 +      for (x, y, fpg, rec, ib, gs) in lgrabs {
 +        *grabs.entry((step + 1, x, y, fpg)).or_insert(0) += 1;
 +        grab_paths.entry((step + 1, fpg)).or_insert((rec, ib, gs));
 +      }
 +    }
-+    drop(fr);
-+    next.sort_unstable();
-+    next.dedup();
-+    let unique = next.len();
-+    println!("layer {} (after frame {}): parents {} -> unique {}, generated {}, pruned {}, dead {}, other {}, stomps {}, grabs {}; max x {:#x}; {:.1}s",
-+      step + 1, f, n, unique, gen, pruned, dead, other, stomps, grab_n, max_x, (time::precise_time_ns() - t1) as f64 / 1e9);
++    let t2 = time::precise_time_ns();
++    // k-way merge of the sorted runs (dedup on output) into the next layer file
++    let mut readers: Vec<BufReader<File>> = runs.iter().map(|p| BufReader::with_capacity(1 << 22, File::open(p).unwrap())).collect();
++    let mut heap: BinaryHeap<Reverse<(Rec, usize)>> = BinaryHeap::new();
++    for (i, rd) in readers.iter_mut().enumerate() {
++      let mut r: Rec = [0; 16];
++      if rd.read_exact(&mut r).is_ok() { heap.push(Reverse((r, i))); }
++    }
++    let mut w = BufWriter::with_capacity(1 << 23, File::create(layer_path(step + 1)).unwrap());
++    let mut unique: u64 = 0;
++    let mut last: Option<Rec> = None;
++    while let Some(Reverse((r, i))) = heap.pop() {
++      if last.map_or(true, |l| l != r) { w.write_all(&r[..]).unwrap(); unique += 1; last = Some(r); }
++      let mut nr: Rec = [0; 16];
++      if readers[i].read_exact(&mut nr).is_ok() { heap.push(Reverse((nr, i))); }
++    }
++    w.flush().unwrap();
++    drop(w);
++    drop(readers);
++    for p in &runs { ::std::fs::remove_file(p).ok(); }
++    let t3 = time::precise_time_ns();
++    println!("layer {} (after frame {}): parents {} -> unique {}, generated {}, pruned {}, dead {}, other {}, stomps {}, grabs {}; max x {:#x}; {:.1}s (expand {:.1}s, merge {:.1}s of {} runs)",
++      step + 1, f, n, unique, gen, pruned, dead, other, stomps, grab_n, max_x, (t3 - t1) as f64 / 1e9, (t2 - t1) as f64 / 1e9, (t3 - t2) as f64 / 1e9, runs.len());
++    ::std::io::stdout().flush().ok();
 +    if unique == 0 { println!("no live states left after layer {}", step + 1); break; }
-+    frontier = next;
 +    step += 1;
 +  }
 +  println!("total {:.1}s", (time::precise_time_ns() - t0) as f64 / 1e9);
@@ -1115,51 +1263,8 @@ index 350d469..7aaa273 100644
 +    let &(prec, pib, ref gs) = grab_paths.get(&(bstep, bfpg)).unwrap();
 +    println!("earliest {} grab: step {} (frame {}), state {}", if bfpg { "FPG" } else { "non-FPG" }, bstep, root_frame + bstep as i64, gs);
 +    println!("grab parent record: {:?} input {:#x}", &prec[..klen + 1], pib);
-+    if let Some(ref d) = layer_dir {
-+      // backward reconstruction: at layer l (records in layer_l.bin, sorted by key, i.e. by x), find a parent of `target`
-+      let mut seq: Vec<u8> = vec![pib];
-+      let mut target: Rec = prec;
-+      let mut l = bstep - 1; // target is a record of layer l
-+      while l > 0 {
-+        let bytes = ::std::fs::read(format!("{}/layer_{:03}.bin", d, l - 1)).unwrap();
-+        let recs: &[Rec] = unsafe { ::std::slice::from_raw_parts(bytes.as_ptr() as *const Rec, bytes.len() / 16) };
-+        let tx = (Key::<C, A>::from_bytes(&target[..klen]).decompress().x_pos >> 4) as i64;
-+        let lo_x = (tx - 0x60).max(0) as u32; // parents lie within ±6 px
-+        let lo = recs.binary_search_by(|r| { let rx = ((r[0] as u32) << 8 | r[1] as u32); if rx < lo_x { ::std::cmp::Ordering::Less } else { ::std::cmp::Ordering::Greater } }).unwrap_or_else(|i| i);
-+        let fl = root_frame + l as i64; // the frame of the step parent(l-1) -> child(l)
-+        let mut found: Option<(Rec, u8)> = None;
-+        let mut i = lo;
-+        while i < recs.len() {
-+          let r = recs[i];
-+          let rx = ((r[0] as u32) << 8 | r[1] as u32) as i64;
-+          if rx > tx + 0x60 { break; }
-+          let ps = Key::<C, A>::from_bytes(&r[..klen]).decompress();
-+          let pg = r[klen];
-+          for &ib in &inputs {
-+            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+            if res != EmuResult::Success { continue; }
-+            if ns.y_pos >= 0x1d000 { continue; }
-+            let mut ng = pg;
-+            if goombas { if let RoomEvent::Death = room_enemies(fl, &mut ns, &mut ng) { continue; } }
-+            let k = Key::<C, A>::from_state(&ns);
-+            if k.as_bytes() == &target[..klen] && ng == target[klen] { found = Some((r, ib)); break; }
-+          }
-+          if found.is_some() { break; }
-+          i += 1;
-+        }
-+        match found {
-+          Some((r, ib)) => { seq.push(ib); target = r; l -= 1; }
-+          None => { println!("reconstruction failed at layer {}", l); break; }
-+        }
-+      }
-+      seq.reverse();
-+      emu::print_rle(seq.iter().map(|&b| emu::Input::from_bits_truncate(b)));
-+      if let Some(path) = out {
-+        let nes: Vec<u8> = seq.iter().map(|&b| model_to_nes(b)).collect();
-+        ::std::fs::write(&path, &nes).unwrap();
-+        println!("wrote {} NES-order input bytes to {}", nes.len(), path);
-+      }
-+    } else { println!("(no --layer-dir: path not reconstructed)"); }
++    println!("reconstruct with: smb-opt bfs11c-path {} {} \"{:?}\" {:#x} [--goombas] [--relaxed] --root-frame {} --out FILE", ldir, bstep - 1, &prec[..klen + 1], pib, root_frame);
++    if out.is_some() { println!("(--out: pass it to bfs11c-path to write the reconstructed inputs)"); }
 +  } else { println!("no grab found within {} steps", max_steps); }
 +}
 +
