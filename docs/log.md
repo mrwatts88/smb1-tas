@@ -314,3 +314,13 @@ ScreenRight at its spawn frame, and slot reuse carries the half-pixel phase — 
 bits per enemy plus the scroll. `AreaParserTaskNum` blocks spawns one frame in eight-ish (scroll-history dependent).
 **Next.** Port the rules into the smb-opt patch (room-1 case with `WithScrollPos`), difftest from row 197, then the
 deadline-367 search (P2.5b) once run 4 is done.
+## 2026-08-22 — Session 5 (cont.): P2.5 scan — the WR sits on every known segment optimum; 8-4 at the cap
+**Did.** Compared the WR's segment times with MrWint's solved cases on the route (1-2 opening, 8-4 speedups and both
+pipe clips): gap 0 everywhere (F66); profiled 8-4 frame by frame — speed 40 on every frame of all room middles
+(incl. the 445-frame loop section), water room at the swim cap for 667/696 frames, Bowser room 246/278 (F67).
+`docs/experiments/P2.5-segment-scan.md`; H23/H24 annotated; STATUS: P2.3a (4-2 top route, 2 frames short, no
+existing bound) queued ahead of the room-1 enemy port; H29's prior noted as low (bounce = fixed −4 y speed).
+**Learned.** HappyLee's 2011 inputs are player-optimal wherever an exhaustive bound exists; the unexplored
+running room is exactly the five levels nobody searched (4-1, 4-2, 8-1, 8-2, 8-3). 8-4's unquantized frames
+cannot come from running.
+**Next.** Run 4's verdict (tomorrow morning); then P2.3a.
