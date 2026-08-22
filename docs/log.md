@@ -300,3 +300,17 @@ the old log to the last digit — the cheapest possible regression test for an e
 needed for this unit (fits in 10 GB, ~1 day); no provider credentials exist on the laptop.
 **Next.** Run 4's verdict (STATUS Running jobs): candidate → reconstruct + core replay; no grab → H28 refuted in the
 relaxed model, P2.1b done, then P2.5 (enemy-aware segment search; H29 room 1) and the Track B unit P3.3/H30.
+## 2026-08-22 — Session 5 (cont.): P2.5a — 1-1 room-1 enemy rules read and validated (while run 4 computes)
+**Did.** Split P2.5 into P2.5a (room-1 enemy model) and P2.5b (searches); scanned the WR for every stomp (two in
+1-1 room 1 — rows 323 and 517 — one in room 3, the rest from 1-2 on); decoded room 1's enemy data (goombas A/B +
+a pair; the koopa is past the pipe); read the spawn law (`ProcessEnemyData`/`CheckRightBounds`: ScreenLeft + 303 ≥ x;
+groups placed at ScreenRight), the walk (`MoveObjectHorizontally`, stale move force), the pipe turnaround
+(`DoEnemySideCheck`), enemy–enemy turnaround (`EnemiesCollision`), the flattened-goomba lifetime (`ChkKillGoomba` at
+interval-timer 14), offscreen erase, and the scroll law; wrote `tools/room1_enemy_sim.py`, which reproduces the WR
+dump's enemy slots exactly on all 369 room-1 frames (0 mismatches, both stomps predicted) and fails correctly under
+perturbations. F64/F65 (F59 corrected: stomp keeps the X speed), H29 in-progress, experiment file.
+**Learned.** Room-1 enemies are not frame functions: spawn frames follow the scroll (Mario's path), the pair's x is
+ScreenRight at its spawn frame, and slot reuse carries the half-pixel phase — the search state must carry a few
+bits per enemy plus the scroll. `AreaParserTaskNum` blocks spawns one frame in eight-ish (scroll-history dependent).
+**Next.** Port the rules into the smb-opt patch (room-1 case with `WithScrollPos`), difftest from row 197, then the
+deadline-367 search (P2.5b) once run 4 is done.
