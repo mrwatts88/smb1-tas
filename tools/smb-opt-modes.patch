@@ -602,7 +602,7 @@ index 4de780d..28536fe 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..489cf3d 100644
+index 350d469..7aaa273 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -613,11 +613,37 @@ index 350d469..489cf3d 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,112 @@ mod state;
+@@ -22,6 +23,138 @@ mod state;
  mod store;
  
  fn main() {
 +  let args: Vec<String> = ::std::env::args().collect();
++  if args.len() >= 6 && args[1] == "bfs11c-path" {
++    // bfs11c-path LAYER_DIR STEP RECORD INPUT [--goombas] [--relaxed] [--root-frame F] [--threads N] [--out FILE]
++    // Offline backward reconstruction from bfs11c layer files: RECORD (decimal bytes "95,197,..." as printed by
++    // bfs11c's "grab parent record") is a record of layer STEP, INPUT (hex model bits) the grab input taken from it.
++    let layer_dir = args[2].clone();
++    let step: usize = args[3].parse().unwrap();
++    let rec_bytes: Vec<u8> = args[4].trim_matches(|c| c == '[' || c == ']').split(',').map(|t| t.trim().parse().unwrap()).collect();
++    let grab_input: u8 = u8::from_str_radix(args[5].trim_left_matches("0x"), 16).unwrap();
++    let mut goombas = false; let mut relaxed = false; let mut root_frame: i64 = ROOM_FIRST_FRAME - 1; let mut threads = 12usize; let mut out: Option<String> = None;
++    let mut i = 6;
++    while i < args.len() {
++      if args[i] == "--goombas" { goombas = true; i += 1; }
++      else if args[i] == "--relaxed" { relaxed = true; i += 1; }
++      else if args[i] == "--root-frame" { root_frame = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
++      else { panic!("unknown option {}", args[i]); }
++    }
++    if relaxed {
++      emu::JUMP_NEEDS_FRESH_A.store(false, ::std::sync::atomic::Ordering::Relaxed);
++      bfs11c_path::<case::w11::W11PipeRelaxed, [u8; 10]>(&layer_dir, step, &rec_bytes, grab_input, goombas, root_frame, threads, out);
++    } else {
++      bfs11c_path::<case::w11::W11PipeSpeedup, [u8; 11]>(&layer_dir, step, &rec_bytes, grab_input, goombas, root_frame, threads, out);
++    }
++    return;
++  }
 +  if args.len() >= 6 && (args[1] == "bfs11c" || args[1] == "bfs11cr") {
 +    // bfs11c[r] INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [STEP:yspd=V]... [--root-frame F] [--any-y] [--goombas]
 +    //   [--threads N] [--layer-dir DIR] [--out FILE] : compact per-layer parallel BFS (see bfs11c_run); r = relaxed model
@@ -726,7 +752,7 @@ index 350d469..489cf3d 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +153,407 @@ fn calc_prng() {
+@@ -46,4 +179,473 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -994,7 +1020,7 @@ index 350d469..489cf3d 100644
 +      let h = h.clone();
 +      let inputs = inputs.clone();
 +      handles.push(::std::thread::spawn(move || {
-+        const CHUNK: usize = 1 << 20;
++        const CHUNK: usize = 1 << 18;
 +        let mut acc: Vec<Rec> = Vec::new();
 +        let mut buf: Vec<Rec> = Vec::with_capacity(CHUNK * 16);
 +        let mut acc_runs = 0usize;
@@ -1135,6 +1161,72 @@ index 350d469..489cf3d 100644
 +      }
 +    } else { println!("(no --layer-dir: path not reconstructed)"); }
 +  } else { println!("no grab found within {} steps", max_steps); }
++}
++
++/// Backward path reconstruction from bfs11c layer files (full scan of each layer, threaded): for the target
++/// record of layer l, find any record of layer l-1 and input whose child (step + goombas at frame
++/// root_frame + l) equals it; repeat down to layer 0. Prints the input sequence (RLE) and writes NES-order bytes.
++fn bfs11c_path<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(layer_dir: &str, step: usize, rec_bytes: &[u8], grab_input: u8, goombas: bool, root_frame: i64, threads: usize, out: Option<String>) {
++  use emu::{Emu, EmuResult};
++  use state::{CompressedState, StateCompressor};
++  use std::sync::Arc;
++  type Key<C, A> = CompressedState<C, A>;
++  type Rec = [u8; 16];
++  let inputs: Vec<u8> = (0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect();
++  let mut target: Rec = [0; 16];
++  target[..rec_bytes.len()].copy_from_slice(rec_bytes);
++  let klen = Key::<C, A>::from_state(&case::w11::w11_pipe_start::<C>()).as_bytes().len();
++  assert!(rec_bytes.len() >= klen + 1, "record too short for this model ({} bytes, key {})", rec_bytes.len(), klen);
++  println!("target at layer {}: {:?} (x {:#x} y {:#x} g {:#x}); grab input {:#x}", step, &target[..klen + 1], Key::<C, A>::from_bytes(&target[..klen]).decompress().x_pos, Key::<C, A>::from_bytes(&target[..klen]).decompress().y_pos, target[klen], grab_input);
++  let mut seq: Vec<u8> = vec![grab_input];
++  let mut l = step;
++  while l > 0 {
++    let t1 = time::precise_time_ns();
++    let bytes = ::std::fs::read(format!("{}/layer_{:03}.bin", layer_dir, l - 1)).unwrap();
++    let n = bytes.len() / 16;
++    let recs: Arc<Vec<Rec>> = Arc::new((0..n).map(|i| { let mut r: Rec = [0; 16]; r.copy_from_slice(&bytes[i * 16..i * 16 + 16]); r }).collect());
++    drop(bytes);
++    let fl = root_frame + l as i64;
++    let per = (n + threads - 1) / threads;
++    let mut handles = Vec::new();
++    for t in 0..threads {
++      let lo = t * per; let hi = ::std::cmp::min(n, lo + per);
++      if lo >= hi { continue; }
++      let recs = recs.clone(); let inputs = inputs.clone(); let target = target;
++      handles.push(::std::thread::spawn(move || -> Option<(Rec, u8)> {
++        for idx in lo..hi {
++          let r = recs[idx];
++          let ps = Key::<C, A>::from_bytes(&r[..klen]).decompress();
++          let pg = r[klen];
++          for &ib in &inputs {
++            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++            if res != EmuResult::Success || ns.y_pos >= 0x1d000 { continue; }
++            let mut ng = pg;
++            if goombas { if let RoomEvent::Death = room_enemies(fl, &mut ns, &mut ng) { continue; } }
++            if ng != target[klen] { continue; }
++            if Key::<C, A>::from_state(&ns).as_bytes() == &target[..klen] { return Some((r, ib)); }
++          }
++        }
++        None
++      }));
++    }
++    let mut found: Option<(Rec, u8)> = None;
++    for hd in handles { if let Some(f) = hd.join().unwrap() { if found.is_none() { found = Some(f); } } }
++    match found {
++      Some((r, ib)) => {
++        println!("layer {}: parent found among {} records in {:.1}s (input {:#x})", l - 1, n, (time::precise_time_ns() - t1) as f64 / 1e9, ib);
++        seq.push(ib); target = r; l -= 1;
++      }
++      None => { println!("reconstruction FAILED at layer {} ({} records)", l - 1, n); break; }
++    }
++  }
++  seq.reverse();
++  emu::print_rle(seq.iter().map(|&b| emu::Input::from_bits_truncate(b)));
++  if let Some(path) = out {
++    let nes: Vec<u8> = seq.iter().map(|&b| model_to_nes(b)).collect();
++    ::std::fs::write(&path, &nes).unwrap();
++    println!("wrote {} NES-order input bytes to {}", nes.len(), path);
++  }
 +}
 diff --git a/src/options.rs b/src/options.rs
 index fba80ad..c05592a 100644
