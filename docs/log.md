@@ -342,3 +342,17 @@ H31 records the user's framing: cracks live in unmodeled mechanics.
 **Did.** `smb-opt trace11bound` (per-step max-gain vector from the search's own classifier) + `tools/heuristic_audit.py`
 (random core rollouts vs the bound): 1.9M checks, 0 violations, 0 unknown classes, bound tight; F68; patch regenerated.
 **Learned.** The pruning bound is not the crack. What remains unmodeled (lifts, shells, bumps, swimming) is.
+## 2026-08-22 — Session 6: P2.3a step 3 — 4-2 in the model, three MrWint-model bugs fixed, warp zone exact
+**Did.** Run 4 checked (layer 122, ~900 s/layer, ETA slipped to ~Aug 23 late / Aug 24). Added BB42/BB42Warp, `W42Main`/`W42Warp`
+cases, case-generic `tracec`/`bfsc` modes and `model_difftest.py --case`. The WR trace exposed the alignment law (row = record+2,
+F69) and three model bugs, each read from the disassembly and verified on the dump: the block-bounce timer on head bumps
+(F70), the water-only joypad-disable rule (F71), coins ending the collision routine (F72). Added `Options::BlockBounce`
+(default off — existing cases and run 4's layer keys unchanged) and coin-list handlers. Warp zone now frame-exact on the
+WR + 30k random/mutated frames; main area exact to the lift, which the WR actually rides and jumps off (F73 — the earlier
+`PlatformCollisionFlag` check was the wrong flag). Pipe-entry rule and X windows (F74). Full-input BFS explodes even with
+1 frame of slack while MrWint's reduced-input IDA* solves the 1-1 control in 22 s (F76); IDA* on the warp zone running.
+**Learned.** The WR is a better model test than random inputs: it visits the mechanics a fast route needs (brick bumps,
+coins, above-screen jumps, the lift). Run-4-safe extension pattern: associated-type defaults on `Options`. `pkill -f`
+patterns must not appear in the calling shell's own command line (killed my own shell twice).
+**Next.** P2.3b: lift + scroll in `W42Main`, difftest to 0; search strategy for the slack problem (external-memory `bfsc`,
+or a y-aware admissible bound, or chokepoint segmentation); read the IDA warp result.

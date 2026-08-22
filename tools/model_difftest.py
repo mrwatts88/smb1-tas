@@ -18,6 +18,10 @@ Usage: tools/model_difftest.py [--n 100] [--len 120] [--seed 1] [--root-record 1
   --mutate K        trials = the WR's records from the root with K random frames replaced (FPG-dense)
   --goombas         model = trace11room (goomba pair simulated, no injected bounce); deaths must match GES 11
   --pr PR --pl PL --pa PA --pb PB   per-frame button probabilities (default .75 .15 .25 .6)
+  --case NAME --first R  generic segment (P2.3a): model = `smb-opt tracec NAME` from the case's start state with
+                    records R.. (model step i == QuickNES frame R-2+i, same law as 1-1); the goal is the case's
+                    vertical pipe entry (model StateChangeVerticalPipe vs core GES 3). --root-record defaults to R.
+                    E.g. --case W42Warp --first 7247 --wr --len 480 ; --case W42Main --first 6584 --n 50 --len 300
 """
 import os, random, re, subprocess, sys, tempfile
 
@@ -56,9 +60,14 @@ def core_row(data, f):
                 YSPD=(g(SYM["YSPD"]) - 256 if g(SYM["YSPD"]) >= 128 else g(SYM["YSPD"])), YFRAC=g(SYM["YFRAC"]),
                 STATE=g(SYM["STATE"]), GES=g(SYM["GES"]))
 
+CASE = None                 # --case NAME: generic tracec mode (MODEL_FIRST/MODEL_FRAME0 set from --first)
+
 def run_model(inputs_path, steps, goombas=False):
-    cmd = [SMBOPT, "trace11room", inputs_path, str(MODEL_FIRST), str(steps)] if goombas else \
-          [SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE]
+    if CASE:
+        cmd = [SMBOPT, "tracec", CASE, inputs_path, str(MODEL_FIRST), str(steps)]
+    else:
+        cmd = [SMBOPT, "trace11room", inputs_path, str(MODEL_FIRST), str(steps)] if goombas else \
+              [SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE]
     out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
     rows = {}
     for line in out.splitlines():
@@ -85,6 +94,15 @@ def compare(core, model, first_step, last_step, verbose):
             break
         mr = model[step]
         cr = core_row(core, f)
+        if "StateChangeVerticalPipe" in mr["RESULT"]:
+            # vertical pipe entry: the core sets GES 3 on the same frame (HandlePipeEntry); positions comparable
+            grab = dict(model_frame=f, model_y=mr["YP"] & 0xff, core_ges=cr["GES"], core_y=cr["YP"] & 0xff,
+                        core_frame=f if cr["GES"] == 3 else None, pipe=True)
+            for k in ("XP", "YP"):
+                if mr[k] != cr[k]:
+                    mism.append((f, k, mr[k], cr[k]))
+            n += 1
+            break
         if "StateChangeFlag" in mr["RESULT"]:
             # the core sets GES 4 on the grab and, for a glitch grab (Y >= 162), GES 5 in the same frame
             grab = dict(model_frame=f, model_y=mr["YP"] & 0xff, core_ges=cr["GES"], core_y=cr["YP"] & 0xff,
@@ -103,6 +121,12 @@ def compare(core, model, first_step, last_step, verbose):
             for k in ("XP", "YP"):   # KillPlayer rewrites the speeds/state on the death frame; positions must agree
                 if mr[k] != cr[k]:
                     mism.append((f, k, mr[k], cr[k]))
+            break
+        if mr["YP"] >= 0x1d0 or cr["YP"] >= 0x1d0:
+            # below the screen bottom (fell into a pit): the game continues in the void until the pit death; not
+            # a modeled region (the searches prune y >= 0x1d000 as dead) -> stop here without a verdict
+            grab = dict(model_frame=None, core_frame=f, core_ges=cr["GES"], core_y=cr["YP"] & 0xff, model_y=None, pit=True)
+            n += 1
             break
         n += 1
         for k in ("XP", "XSUB", "XSPD", "XFRAC", "YP", "YSPD", "YFRAC", "STATE"):
@@ -128,7 +152,15 @@ def main():
         elif a == "--mutate": opt["mutate"] = int(args[i + 1]); i += 2
         elif a == "--goombas": opt["goombas"] = True; i += 1
         elif a == "--verbose": opt["verbose"] = True; i += 1
+        elif a == "--case": opt["case"] = args[i + 1]; i += 2
+        elif a == "--first": opt["first"] = int(args[i + 1]); i += 2
         else: raise SystemExit(f"unknown option {a}")
+    global CASE, MODEL_FIRST, MODEL_FRAME0
+    if opt.get("case"):
+        CASE = opt["case"]
+        MODEL_FIRST = opt["first"]
+        MODEL_FRAME0 = MODEL_FIRST - 2
+        if opt["root"] == 1232: opt["root"] = MODEL_FIRST
     wr = open(WR, "rb").read()
     rng = random.Random(opt["seed"])
     tmp = opt["keep"] or tempfile.mkdtemp(prefix="difftest_")
@@ -164,7 +196,13 @@ def main():
             status = "MISMATCH " + "; ".join(f"f{f} {k} model {m} core {c}" for f, k, m, c in mism[:6])
         gtxt = ""
         if grab:
-            if grab.get("model_frame") is not None:
+            if grab.get("pipe"):
+                grabs += 1
+                ok = grab["core_frame"] == grab["model_frame"] and grab["core_y"] == grab["model_y"]
+                grab_match += ok
+                gtxt = f" pipe entry model f{grab['model_frame']} Y{grab['model_y']} core GES{grab['core_ges']} Y{grab['core_y']} {'ok' if ok else 'DIFF'}"
+                if not ok: bad += 0 if mism else 1
+            elif grab.get("model_frame") is not None:
                 grabs += 1
                 fpg_model = grab["model_y"] >= 162
                 fpg_core = grab["core_ges"] == 5
@@ -174,6 +212,8 @@ def main():
                 gtxt = (f" grab model f{grab['model_frame']} Y{grab['model_y']} fpg={fpg_model} core GES{grab['core_ges']} "
                         f"Y{grab['core_y']} fpg={fpg_core} {'ok' if ok else 'DIFF'}")
                 if not ok: bad += 0 if mism else 1
+            elif grab.get("pit"):
+                gtxt = f" fell below the screen at f{grab['core_frame']} (stopped)"
             elif grab.get("death") and grab["death"][0] == grab["death"][1]:
                 deaths[0] += 1
                 gtxt = f" death f{grab['core_frame']} ok"

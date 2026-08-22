@@ -1,12 +1,66 @@
+diff --git a/src/blockbuffer/world4.rs b/src/blockbuffer/world4.rs
+index ac14ddd..ba5a544 100644
+--- a/src/blockbuffer/world4.rs
++++ b/src/blockbuffer/world4.rs
+@@ -11,3 +11,37 @@ blockbuf!(BB44, 12*16, [[0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,
+                         [0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x14,0x15,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ],
+                         [0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62],
+                         [0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62]]);
++
++// 4-2 main area (BB42) and the 4-2 warp zone (BB42Warp), extracted from the WR dump block buffers by
++// tools/blockmap_from_dump.py (data/blockmaps/w42_main.txt, w42_warp.txt; method validated cell-for-cell on BB11/BB12).
++blockbuf!(BB42, 98, [
++[0x52,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x5d,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0xc0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0x5b,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x12,0x13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x5f,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x5f,0,0x5f,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0x52,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x5a,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0xc0,0xc0,0,0,0xc0,0xc1,0xc0,0,0,0,0,0,0,0,0,0,0x5f,0,0,0,0,0,0,0,0,0,0x52,0x5d,0x14,0x15,0x52,0x5c,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x12,0x13,0,0,0,0,0x14,0x15,0,0,0,0,0x10,0x11,0,0,0,0x12,0x13,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0x14,0x15,0,0,0,0,0,0,0],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0x14,0x15,0,0,0,0,0,0,0],
++[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0,0,0x54,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
++[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0,0,0x54,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54]
++]);
++
++blockbuf!(BB42Warp, 72, [
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0,0,0,0xc2,0xc2,0xc2,0,0,0,0,0,0x19,0x1a,0x1a,0x1a,0x1b,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x19,0x1a,0x1b,0,0,0,0x19,0x1a,0x1b,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x19,0x1a,0x1b,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0x19,0x1a,0x1b,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x19,0x1a,0x1a,0x1a,0x1a,0x1a,0x1b,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0x10,0x11,0,0,0x10,0x11,0,0,0x10,0x11,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x19,0x1a,0x1b,0,0x19,0x1a,0x1a,0x1a,0x1b,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0x14,0x15,0,0,0x14,0x15,0,0,0x14,0x15,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0x14,0x15,0,0,0x14,0x15,0,0,0x14,0x15,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
++[0x54,0x54,0x54,0x54,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
++[0x54,0x54,0x54,0x54,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54]
++]);
+diff --git a/src/case/mod.rs b/src/case/mod.rs
+index b60525c..88713eb 100644
+--- a/src/case/mod.rs
++++ b/src/case/mod.rs
+@@ -16,6 +16,7 @@ pub mod w23;
+ pub mod w31;
+ pub mod w32;
+ pub mod w33;
++pub mod w42;
+ pub mod w44;
+ pub mod w62;
+ pub mod w71;
 diff --git a/src/case/w11.rs b/src/case/w11.rs
-index e0e1804..a7f4def 100644
+index e0e1804..7e823a4 100644
 --- a/src/case/w11.rs
 +++ b/src/case/w11.rs
 @@ -29,6 +29,7 @@ fn w11_start<O: Options>() -> State {
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false,
++    a_held: false, block_bounce_timer: 0,
    }
  }
  
@@ -14,7 +68,7 @@ index e0e1804..a7f4def 100644
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false,
++    a_held: false, block_bounce_timer: 0,
    })
  }
  
@@ -27,7 +81,7 @@ index e0e1804..a7f4def 100644
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false,
++    a_held: false, block_bounce_timer: 0,
    }
  }
  
@@ -99,7 +153,7 @@ index e0e1804..a7f4def 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // let s = Self::Emu::run_steps_nr(s, &[B|R; 12]);
      vec![s]
@@ -107,19 +161,19 @@ index e0e1804..a7f4def 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
        vec![s]
 diff --git a/src/case/w12.rs b/src/case/w12.rs
-index 32f4877..e8b00f9 100644
+index 32f4877..32d0d42 100644
 --- a/src/case/w12.rs
 +++ b/src/case/w12.rs
 @@ -29,6 +29,7 @@ fn w12_start<O: Options>() -> State {
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false,
++    a_held: false, block_bounce_timer: 0,
    })
  }
  
@@ -127,7 +181,7 @@ index 32f4877..e8b00f9 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      }]
    }
    const INITIAL_SEARCH_DISTANCE: Dist = 68;
@@ -135,19 +189,19 @@ index 32f4877..e8b00f9 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      let s = Self::Emu::run_steps_nr(s, &[L|R, A|R]);
      let s = Self::Emu::run_steps_nr(s, &[R; 19]);
 diff --git a/src/case/w13.rs b/src/case/w13.rs
-index 910f335..a0528d2 100644
+index 910f335..2772f10 100644
 --- a/src/case/w13.rs
 +++ b/src/case/w13.rs
 @@ -57,6 +57,7 @@ impl super::SmbSearchCase for W13PowerupSmall {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      }]
      // )), 10)
    }
@@ -155,7 +209,7 @@ index 910f335..a0528d2 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      println!("start state {}", s);
      // super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
@@ -163,7 +217,7 @@ index 910f335..a0528d2 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      let s = Self::Emu::run_steps_nr(s, &[A; 14]); // 15xA
      let s = Self::Emu::run_steps_nr(s, &[NIL]);
@@ -171,7 +225,7 @@ index 910f335..a0528d2 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -179,7 +233,7 @@ index 910f335..a0528d2 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      let s = Self::Emu::run_steps_nr(s, &[B|R; 120]);
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
@@ -187,19 +241,19 @@ index 910f335..a0528d2 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      let h = ::heuristics::xpos::XPosHeuristic::new::<Self>(&vec![s.clone()]);
  
 diff --git a/src/case/w14.rs b/src/case/w14.rs
-index aa7fae8..e1f5775 100644
+index aa7fae8..a048e83 100644
 --- a/src/case/w14.rs
 +++ b/src/case/w14.rs
 @@ -29,6 +29,7 @@ fn w14_start<O: Options>() -> State {
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false,
++    a_held: false, block_bounce_timer: 0,
    }
  }
  
@@ -207,19 +261,19 @@ index aa7fae8..e1f5775 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      println!("start state {}", s);
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
 diff --git a/src/case/w21.rs b/src/case/w21.rs
-index 019a53c..8c756c1 100644
+index 019a53c..05f7d73 100644
 --- a/src/case/w21.rs
 +++ b/src/case/w21.rs
 @@ -57,6 +57,7 @@ impl super::SmbSearchCase for W21ScreenScrollRightCollision {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -227,7 +281,7 @@ index 019a53c..8c756c1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -235,7 +289,7 @@ index 019a53c..8c756c1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -243,7 +297,7 @@ index 019a53c..8c756c1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -251,7 +305,7 @@ index 019a53c..8c756c1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      let s = Self::Emu::run_steps_nr(s, &[A; 11-5]);
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
@@ -259,7 +313,7 @@ index 019a53c..8c756c1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -267,31 +321,31 @@ index 019a53c..8c756c1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w22.rs b/src/case/w22.rs
-index 197995e..4ec1bae 100644
+index 197995e..61b2400 100644
 --- a/src/case/w22.rs
 +++ b/src/case/w22.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W22Speedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      vec![s]
    }
 diff --git a/src/case/w23.rs b/src/case/w23.rs
-index ca06051..3a0c97f 100644
+index ca06051..2822fd1 100644
 --- a/src/case/w23.rs
 +++ b/src/case/w23.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W23FloorClip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // State { // created by jump x 11
      //   x_pos: 0xcdd10,
@@ -299,43 +353,43 @@ index ca06051..3a0c97f 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w31.rs b/src/case/w31.rs
-index 9d6ce19..e0046b6 100644
+index 9d6ce19..eedc7c4 100644
 --- a/src/case/w31.rs
 +++ b/src/case/w31.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W31ScreenScrollBlock3PipeClip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      let s = Self::Emu::run_steps_nr(s, &[A; 1]);
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
 diff --git a/src/case/w32.rs b/src/case/w32.rs
-index 1318bee..193f60b 100644
+index 1318bee..6b3bc1b 100644
 --- a/src/case/w32.rs
 +++ b/src/case/w32.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W32FloorClipSpeedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(//super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w33.rs b/src/case/w33.rs
-index e254ce8..c9da519 100644
+index e254ce8..9d401fc 100644
 --- a/src/case/w33.rs
 +++ b/src/case/w33.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W33FloorClipSpeedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(//super::with_all_x_spd_subpixels(
      vec![s]
@@ -343,19 +397,206 @@ index e254ce8..c9da519 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // let s = Self::Emu::run_steps_nr(s, &[B|R; 120]);
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
+diff --git a/src/case/w42.rs b/src/case/w42.rs
+new file mode 100644
+index 0000000..e8d5d0e
+--- /dev/null
++++ b/src/case/w42.rs
+@@ -0,0 +1,181 @@
++//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
++//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
++//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
++use blockbuffer::world4::*;
++use emu::{Emu, EmuResult, SmbEmu};
++#[allow(unused_imports)] use emu::inputs::*;
++use heuristics::SearchGoal;
++use heuristics::xpos::XPosHeuristic;
++use options::*;
++use state::{CompressedState, Dir, Dist, PlayerState, State};
++
++/// 4-2 main-area start: Mario drops in at x 40 from the top (same pattern as w12_start; the WR's control row
++/// 6585 is x 40, y 48, y speed 2, FALLING).
++fn w42_start<O: Options>() -> State {
++  SmbEmu::<O, BB42>::iterate_entrance(State {
++    x_pos: 0x2800,
++    y_pos: 0x12000,
++    x_spd: 0x0,
++    v_force: O::Platform::V_FORCE_AREA_INIT,
++    y_spd: 0x0,
++    v_force_down: O::Platform::V_FORCE_AREA_INIT,
++    facing_dir: Dir::RIGHT,
++    moving_dir: Dir::empty(),
++    player_state: PlayerState::FALLING,
++    x_spd_abs: 0,
++    running_speed: false,
++    collision_bits: Dir::LR,
++    side_collision_timer: 0,
++    left_screen_edge_pos: 0x0,
++    jump_swim_timer: 0,
++    running_timer : 0,
++    is_crouching: false,
++    collected_coins: 0,
++    powerup_block_hit: false,
++    powerup_collected: false,
++    parity: 0,
++    a_held: false, block_bounce_timer: 0,
++  })
++}
++
++/// 4-2 warp-zone start: Mario standing at x 24, y 176 (the WR's control row 7248).
++fn w42_warp_start<O: Options>() -> State {
++  State {
++    x_pos: 0x1800,
++    y_pos: 0x1b000,
++    x_spd: 0x0,
++    v_force: O::Platform::V_FORCE_AREA_INIT,
++    y_spd: 0x0,
++    v_force_down: O::Platform::V_FORCE_AREA_INIT,
++    facing_dir: Dir::RIGHT,
++    moving_dir: Dir::empty(),
++    player_state: PlayerState::STANDING,
++    x_spd_abs: 0,
++    running_speed: false,
++    collision_bits: Dir::LR,
++    side_collision_timer: 0,
++    left_screen_edge_pos: 0x0,
++    jump_swim_timer: 0,
++    running_timer : 0,
++    is_crouching: false,
++    collected_coins: 0,
++    powerup_block_hit: false,
++    powerup_collected: false,
++    parity: 0,
++    a_held: false, block_bounce_timer: 0,
++  }
++}
++
++/// Coin handler over a fixed list of coin cells (one state bit per coin). A head/foot/side touch of an
++/// uncollected coin collects it and ends the collision routine for that frame (AwardTouchedCoin ->
++/// HandleCoinMetatile -> rts: no landing, no side impede that frame), so coins on the route must be modeled
++/// exactly; IgnoreCoins treats every coin as already gone. Unknown cells are treated as collected.
++macro_rules! coin_list_handler {
++  ($name:ident, $n:expr, [$(($x:expr, $y:expr)),*]) => {
++    #[allow(dead_code)]
++    pub enum $name {}
++    impl $name {
++      const COINS: [(usize, usize); $n] = [$(($x, $y)),*];
++    }
++    impl CoinHandler for $name {
++      const COIN_HANDLER_BITS: usize = $n;
++      fn is_coin_collected(s: &State, cx: usize, cy: usize) -> bool {
++        for (i, c) in Self::COINS.iter().enumerate() { if c.0 == cx && c.1 == cy { return s.collected_coins & (1 << i) != 0; } }
++        true
++      }
++      fn collect_coin(s: &mut State, cx: usize, cy: usize) -> () {
++        for (i, c) in Self::COINS.iter().enumerate() { if c.0 == cx && c.1 == cy { s.collected_coins |= 1 << i; } }
++      }
++    }
++  }
++}
++/// 4-2 main area: 3 coins in the bottom corridor's ceiling (row 10, columns 27..29).
++coin_list_handler!(W42MainCoins, 3, [(27, 10), (28, 10), (29, 10)]);
++/// 4-2 warp zone: 19 coins (row 1 cols 30..34, row 2 cols 16..18 and 22..24, row 4 cols 26..28, row 6 cols 12..14,
++/// row 7 cols 35..36) — every $c2 cell of BB42Warp.
++coin_list_handler!(W42WarpCoins, 19, [(30, 1), (31, 1), (32, 1), (33, 1), (34, 1), (16, 2), (17, 2), (18, 2), (22, 2), (23, 2), (24, 2), (26, 4), (27, 4), (28, 4), (12, 6), (13, 6), (14, 6), (35, 7), (36, 7)]);
++
++/// 4-2 main area: entrance to the wrong-warp pipe entry (page 5 col 4 row 8 = column 84). Pipe entry needs the
++/// left foot (X+3) on the $10 tile of column 84 and the right foot (X+12) on the $11 tile of column 85, i.e.
++/// X in [1348, 1356]: x_pos >= 0x54400 (the WR enters at X 1348).
++#[allow(dead_code)]
++pub struct W42Main {
++  h: XPosHeuristic,
++}
++impl Options for W42Main {
++  type CoinHandler = W42MainCoins;
++  type Platform = NTSC;
++  type PlayerSize = Small;
++  type Swim = NotSwimming;
++  type PowerupHandler = NoPowerups;
++  type RunningTimer = WithRunningTimer;
++  type ScrollPos = NoScrollPos;
++  type Parity = NoParity;
++  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U84, ::typenum::U8>;
++  type YPosFractionalBehavior = KeepYPosFractionals;
++  type BlockBounce = WithBlockBounceTimer;
++}
++impl super::SmbSearchCase for W42Main {
++  type SearchGoal = Self;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 12]>, Dist>;
++
++  type BlockBuffer = BB42;
++
++  fn start_states() -> Vec<State> {
++    vec![w42_start::<Self>()]
++  }
++  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
++}
++impl SearchGoal for W42Main {
++  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()) }; }
++  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
++    Some(self.h.get_steps_until_x_pos_at_least(s, 0x54400))
++  }
++  fn is_goal_state(&self, _: &State, emu_result: &EmuResult) -> bool {
++    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
++      cx == 84 && cy == 8
++    } else { false }
++  }
++}
++
++/// 4-2 warp zone: entrance to the world-8 pipe entry (page 3 col 2 row 8 = column 50): X in [804, 812],
++/// x_pos >= 0x32400 (the WR enters at X 810).
++#[allow(dead_code)]
++pub struct W42Warp {
++  h: XPosHeuristic,
++}
++impl Options for W42Warp {
++  type CoinHandler = W42WarpCoins;
++  type Platform = NTSC;
++  type PlayerSize = Small;
++  type Swim = NotSwimming;
++  type PowerupHandler = NoPowerups;
++  type RunningTimer = WithRunningTimer;
++  type ScrollPos = NoScrollPos;
++  type Parity = NoParity;
++  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U50, ::typenum::U8>;
++  type YPosFractionalBehavior = KeepYPosFractionals;
++  type BlockBounce = WithBlockBounceTimer;
++}
++impl super::SmbSearchCase for W42Warp {
++  type SearchGoal = Self;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 14]>, Dist>;
++
++  type BlockBuffer = BB42Warp;
++
++  fn start_states() -> Vec<State> {
++    vec![w42_warp_start::<Self>()]
++  }
++  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
++}
++impl SearchGoal for W42Warp {
++  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()) }; }
++  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
++    Some(self.h.get_steps_until_x_pos_at_least(s, 0x32400))
++  }
++  fn is_goal_state(&self, _: &State, emu_result: &EmuResult) -> bool {
++    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
++      cx == 50 && cy == 8
++    } else { false }
++  }
++}
 diff --git a/src/case/w44.rs b/src/case/w44.rs
-index eac77cd..e929426 100644
+index eac77cd..b2b467b 100644
 --- a/src/case/w44.rs
 +++ b/src/case/w44.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W44Speedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      }]
    }
    const SEARCH_SPACE_SIZE_HINT: usize = 0;
@@ -363,19 +604,19 @@ index eac77cd..e929426 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // State {
      //   x_pos: 0x5a3f0 - 0x30,
 diff --git a/src/case/w62.rs b/src/case/w62.rs
-index 9d841af..64bba66 100644
+index 9d841af..022400e 100644
 --- a/src/case/w62.rs
 +++ b/src/case/w62.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W62Vine {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      println!("start state {}", s);
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
@@ -383,19 +624,19 @@ index 9d841af..64bba66 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      }]
    }
    const INITIAL_SEARCH_DISTANCE: Dist = 58;
 diff --git a/src/case/w71.rs b/src/case/w71.rs
-index 6e9ab65..0e9307f 100644
+index 6e9ab65..7dfe2eb 100644
 --- a/src/case/w71.rs
 +++ b/src/case/w71.rs
 @@ -59,6 +59,7 @@ impl super::SmbSearchCase for W71Launcher2Clip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -403,7 +644,7 @@ index 6e9ab65..0e9307f 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // let s = Self::Emu::run_steps_nr(s, &[A|R; 1]);
      // let s = Self::Emu::run_steps_nr(s, &[A; 3]);
@@ -411,19 +652,19 @@ index 6e9ab65..0e9307f 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w73.rs b/src/case/w73.rs
-index ec41e4c..cee910c 100644
+index ec41e4c..0c3e87d 100644
 --- a/src/case/w73.rs
 +++ b/src/case/w73.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W73FloorClip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -431,31 +672,31 @@ index ec41e4c..cee910c 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w82.rs b/src/case/w82.rs
-index 84463c9..bd28d52 100644
+index 84463c9..db4595f 100644
 --- a/src/case/w82.rs
 +++ b/src/case/w82.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W82PiranhaPass {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w84.rs b/src/case/w84.rs
-index 3f1c53b..50a9c28 100644
+index 3f1c53b..be05133 100644
 --- a/src/case/w84.rs
 +++ b/src/case/w84.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W84Speedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      vec![s]
    }
@@ -463,7 +704,7 @@ index 3f1c53b..50a9c28 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      vec![s]
    }
@@ -471,7 +712,7 @@ index 3f1c53b..50a9c28 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -479,7 +720,7 @@ index 3f1c53b..50a9c28 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      vec![s]
    }
@@ -487,7 +728,7 @@ index 3f1c53b..50a9c28 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -495,12 +736,12 @@ index 3f1c53b..50a9c28 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false,
++      a_held: false, block_bounce_timer: 0,
      };
      vec![s]
    }
 diff --git a/src/emu.rs b/src/emu.rs
-index 947eef3..063748f 100644
+index 947eef3..b2efd78 100644
 --- a/src/emu.rs
 +++ b/src/emu.rs
 @@ -3,6 +3,11 @@ use blockbuffer::util::*;
@@ -515,15 +756,17 @@ index 947eef3..063748f 100644
  
  
  bitflags! {
-@@ -120,6 +125,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -120,7 +125,9 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn run_step(mut self) -> (State, EmuResult) {
      self.started_on_ground = self.s.is_on_ground();
 +    let raw_a_pressed = self.joypad.contains(Input::A);
      if O::RunningTimer::USE_RUNNING_TIMER && self.s.running_timer > 0 { self.s.running_timer -= 1; }
++    if O::BlockBounce::BITS > 0 && self.s.block_bounce_timer > 0 { self.s.block_bounce_timer -= 1; } // frame timer decrement (NMI)
  
      let result = self.player_ctrl_routine();
-@@ -136,6 +142,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+ 
+@@ -136,11 +143,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        return (self.s, EmuResult::InvalidStateFallingWithClearedYposFractionals);
      }
      self.s.parity = (self.s.parity + 1) % O::Parity::PARITY;
@@ -531,7 +774,13 @@ index 947eef3..063748f 100644
  
      (self.s, result)
    }
-@@ -194,7 +201,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+   fn player_ctrl_routine(&mut self) -> EmuResult {
+-    if self.s.y_pos < 0x10000 || self.s.y_pos >= 0x1d000 { self.joypad = Input::empty(); };
++    if O::Swim::IS_SWIMMING && (self.s.y_pos < 0x10000 || self.s.y_pos >= 0x1d000) { self.joypad = Input::empty(); }; // PlayerCtrlRoutine: DisJoyp only in water areas (AreaType 0)
+     self.joypad_lr = Dir::from_bits_truncate(self.joypad.bits());
+     self.joypad_ud = self.joypad & (inputs::U | inputs::D);
+     if self.joypad.contains(Input::DOWN) && self.s.is_on_ground() && !self.joypad_lr.is_empty() {
+@@ -194,7 +202,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn player_physics_sub(&mut self) -> () {
      // handle starting jumps
@@ -540,6 +789,25 @@ index 947eef3..063748f 100644
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
+@@ -326,13 +334,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+           O::CoinHandler::collect_coin(&mut self.s, cx, cy);
+           return EmuResult::Success; // exit (no feet or side checks)
+         } else if self.s.y_spd < 0 && (self.s.y_pos & 0x0f00) >= 0x400 {
+-          if is_solid(cv) || O::Swim::IS_SWIMMING {
+-            self.s.y_spd = 0x100 + (self.s.y_spd & 0xff); // hit solid block
++          if is_solid(cv) || O::Swim::IS_SWIMMING || (O::BlockBounce::BITS > 0 && self.s.block_bounce_timer > 0) {
++            self.s.y_spd = 0x100 + (self.s.y_spd & 0xff); // NYSpd: solid block, water area, or BlockBounceTimer != 0 (bounce in progress)
+           } else if O::PlayerSize::is_big(&self.s) && !is_question_block(cv) {
++            if O::BlockBounce::BITS > 0 { self.s.block_bounce_timer = 16; } // PlayerHeadCollision sets BlockBounceTimer = $10
+             self.s.y_spd = -0x200 + (self.s.y_spd & 0xff); // shatter brick
+           } else {
++            if O::BlockBounce::BITS > 0 { self.s.block_bounce_timer = 16; } // PlayerHeadCollision sets BlockBounceTimer = $10
+             /* if is_question_block(cv) */ { O::PowerupHandler::activate_powerup_block(&mut self.s, cx, cy); }
+-            self.s.y_spd &= 0xff; // bump block
++            self.s.y_spd &= 0xff; // bump block (BumpBlock: Player_Y_Speed = 0)
+           }
+         }
+       }
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
 index 39e4b06..d7dac02 100644
 --- a/src/heuristics/mod.rs
@@ -681,7 +949,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..100ce84 100644
+index 350d469..87c813b 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -692,11 +960,55 @@ index 350d469..100ce84 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,160 @@ mod state;
+@@ -22,6 +23,206 @@ mod state;
  mod store;
  
  fn main() {
 +  let args: Vec<String> = ::std::env::args().collect();
++  if args.len() >= 6 && args[1] == "tracec" {
++    // tracec CASE INPUTS.bin FIRST_RECORD N : run a case's model from its start_states()[0] with NES-order input
++    // records FIRST_RECORD.. (N steps; A=$01 B=$02 Sel=$04 Start=$08 U=$10 D=$20 L=$40 R=$80), printing
++    // x/y/speeds/state per step in the trace11pipe format (tools/model_difftest.py --case parses it).
++    let data = ::std::fs::read(&args[3]).unwrap();
++    let first: usize = args[4].parse().unwrap();
++    let n: usize = args[5].parse().unwrap();
++    match args[2].as_str() {
++      "W42Main" => { replayc::<case::w42::W42Main>(&data, first, n, true); }
++      "W42Warp" => { replayc::<case::w42::W42Warp>(&data, first, n, true); }
++      "W11VertPipeEntry" => { replayc::<case::w11::W11VertPipeEntry>(&data, first, n, true); }
++      other => panic!("unknown case {}", other),
++    }
++    return;
++  }
++  if args.len() >= 7 && args[1] == "bfsc" {
++    // bfsc CASE INPUTS.bin FIRST_RECORD PREFIX_STEPS MAX_STEPS [--check-path N] [--out FILE] [--threads N]
++    // Generic per-layer exhaustive BFS (P2.3a): replays PREFIX_STEPS records (from FIRST_RECORD) through the case's
++    // model from start_states()[0], then a layered BFS over the 16 A/B/L/R inputs with dedup on the compressed
++    // player state (global visited set), the case's SearchGoal heuristic as the deadline bound
++    // (step + h(state) > MAX_STEPS is pruned) and the case's is_goal_state as the goal (e.g. a vertical pipe
++    // entry). Stops at the first layer with a goal; prints its input path (RLE) and writes NES-order bytes (--out).
++    let data = ::std::fs::read(&args[3]).unwrap();
++    let first: usize = args[4].parse().unwrap();
++    let prefix: usize = args[5].parse().unwrap();
++    let max_steps: usize = args[6].parse().unwrap();
++    let mut out: Option<String> = None;
++    let mut check_path: usize = 0;
++    let mut threads: usize = 2;
++    let mut i = 7;
++    while i < args.len() {
++      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
++      else if args[i] == "--check-path" { check_path = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
++      else { panic!("unknown option {}", args[i]); }
++    }
++    match args[2].as_str() {
++      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads),
++      "W42Warp" => bfsc_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads),
++      "W11VertPipeEntry" => bfsc_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads),
++      other => panic!("unknown case {}", other),
++    }
++    return;
++  }
 +  if args.len() >= 6 && args[1] == "bfs11c-path" {
 +    // bfs11c-path LAYER_DIR STEP RECORD INPUT [--goombas] [--relaxed] [--root-frame F] [--threads N] [--out FILE]
 +    // Offline backward reconstruction from bfs11c layer files: RECORD (decimal bytes "95,197,..." as printed by
@@ -845,6 +1157,8 @@ index 350d469..100ce84 100644
 +      "W11Flag2" => case::w11::W11Flag2::run(),
 +      "W11VertPipeEntry" => case::w11::W11VertPipeEntry::run(),
 +      "W11SubSpeedup" => case::w11::W11SubSpeedup::run(),
++      "W42Main" => case::w42::W42Main::run(),
++      "W42Warp" => case::w42::W42Warp::run(),
 +      "W84Part4Speedup" => case::w84::W84Part4Speedup::run(),
 +      other => println!("unknown case {}", other),
 +    }
@@ -853,7 +1167,7 @@ index 350d469..100ce84 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +201,506 @@ fn calc_prng() {
+@@ -46,4 +247,661 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1066,6 +1380,161 @@ index 350d469..100ce84 100644
 +      println!("wrote {} NES-order input bytes to {}", nes.len(), path);
 +    }
 +  } else { println!("no grab found within {} steps", max_steps); }
++}
++
++/// Generic replay (P2.3a): run a case's model from start_states()[0] through `n` NES-order records starting at
++/// `first`, optionally tracing each step in the trace11pipe row format. Returns (state, alive).
++fn replayc<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool) -> (State, bool) {
++  use emu::{Emu, EmuResult};
++  use case::SmbSearchCase;
++  let mut s = C::start_states()[0].clone();
++  if trace { println!("step x_pos y_pos x_spd y_spd state facing moving input result"); }
++  for i in 0..n {
++    let input = nes_to_model(data[first + i]);
++    let (ns, res) = <C as SmbSearchCase>::Emu::run_step(s, input);
++    if trace {
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res);
++    }
++    s = ns;
++    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, false); }
++  }
++  (s, true)
++}
++
++/// Generic per-layer exhaustive BFS (P2.3a, see the `bfsc` mode): in-memory frontier, global visited set of
++/// compressed keys, parents/inputs kept per layer for path reconstruction, expansion over `threads` threads.
++/// The case's SearchGoal supplies the deadline heuristic (a lower bound on the steps still needed, so pruning
++/// `step + h > max_steps` is exact) and the goal test.
++fn bfsc_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize)
++    where C::SearchGoal: Send + Sync {
++  use emu::{Emu, EmuResult};
++  use heuristics::SearchGoal;
++  use state::{CompressedState, StateCompressor};
++  use std::collections::HashSet;
++  use std::sync::Arc;
++  type Key<C, A> = CompressedState<C, A>;
++  let (s, alive) = replayc::<C>(data, first, prefix, false);
++  assert!(alive, "prefix replay ended early");
++  println!("root after {} prefix steps (record {}): {}", prefix, first + prefix, s);
++  let t0 = time::precise_time_ns();
++  let goal = Arc::new(C::SearchGoal::new());
++  let hval = |g: &C::SearchGoal, st: &State, step: usize| -> Option<usize> { let mut c = st.clone(); g.distance_to_goal_heuristic(&mut c, step as state::Dist).map(|d| d as usize) };
++  println!("heuristic built in {:.1}s; at root: {:?} steps (deadline {} steps); threads {}", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&goal, &s, 0), max_steps, threads);
++  // --check-path N: replay N more records of the input file as a reference path (e.g. the WR's own
++  // continuation) and report at every layer whether its state is in the frontier, else why not.
++  let mut refpath: Vec<State> = Vec::new();
++  if check_path > 0 {
++    let mut rs = s.clone();
++    for k in 0..check_path {
++      let input = nes_to_model(data[first + prefix + k]);
++      let (ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs, input);
++      let g = goal.is_goal_state(&ns, &res);
++      println!("reference path: step {} x {:#x} y {:#x} xspd {:#x} yspd {:#x} {:?} h {:?} result {:?}{}", k + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hval(&goal, &ns, k + 1), res, if g { " GOAL" } else { "" });
++      if res != EmuResult::Success { break; }
++      refpath.push(ns.clone());
++      rs = ns;
++    }
++  }
++  // model input bits: A 0x80, B 0x40, L 0x02, R 0x01
++  let inputs: Arc<Vec<u8>> = Arc::new((0..16u8).map(|k| { let mut v = 0u8; if k & 1 != 0 { v |= 0x80; } if k & 2 != 0 { v |= 0x40; } if k & 4 != 0 { v |= 0x02; } if k & 8 != 0 { v |= 0x01; } v }).collect());
++  let mut visited: HashSet<Key<C, A>> = HashSet::new();
++  visited.insert(Key::<C, A>::from_state(&s));
++  let mut frontier: Arc<Vec<State>> = Arc::new(vec![s.clone()]);
++  let mut parents: Vec<Vec<u32>> = vec![vec![0]];
++  let mut pinputs: Vec<Vec<u8>> = vec![vec![0]];
++  let mut step = 0;
++  let mut found: Option<(usize, u32, u8, State)> = None; // (step, parent index, input, goal state)
++  while step < max_steps {
++    let t1 = time::precise_time_ns();
++    let n = frontier.len();
++    let per = (n + threads - 1) / threads;
++    let mut handles = Vec::new();
++    for t in 0..threads {
++      let lo = t * per;
++      let hi = ::std::cmp::min(n, lo + per);
++      if lo >= hi { continue; }
++      let frontier = frontier.clone();
++      let inputs = inputs.clone();
++      let goal = goal.clone();
++      handles.push(::std::thread::spawn(move || {
++        let mut outv: Vec<(State, u32, u8)> = Vec::new();
++        let mut goals: Vec<(u32, u8, State)> = Vec::new();
++        let (mut pruned, mut dead, mut other) = (0u64, 0u64, 0u64);
++        let mut max_x: i32 = 0;
++        for pi in lo..hi {
++          let ps = &frontier[pi];
++          for &ib in inputs.iter() {
++            let (ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
++            if goal.is_goal_state(&ns, &res) { goals.push((pi as u32, ib, ns)); continue; }
++            match res {
++              EmuResult::Success => {
++                if ns.y_pos >= 0x1d000 { dead += 1; continue; }
++                let mut c = ns.clone();
++                match goal.distance_to_goal_heuristic(&mut c, (step + 1) as state::Dist) {
++                  None => { pruned += 1; continue; }
++                  Some(hh) => { if step + 1 + hh as usize > max_steps { pruned += 1; continue; } }
++                }
++                if ns.x_pos > max_x { max_x = ns.x_pos; }
++                outv.push((ns, pi as u32, ib));
++              }
++              _ => { other += 1; }
++            }
++          }
++        }
++        (outv, goals, pruned, dead, other, max_x)
++      }));
++    }
++    let mut next: Vec<State> = Vec::new();
++    let mut npar: Vec<u32> = Vec::new();
++    let mut ninp: Vec<u8> = Vec::new();
++    let (mut dup, mut pruned, mut dead, mut other, mut goal_n) = (0u64, 0u64, 0u64, 0u64, 0u64);
++    let mut max_x: i32 = 0;
++    for hd in handles {
++      let (outv, goals, p1, d1, o1, mx) = hd.join().unwrap();
++      pruned += p1; dead += d1; other += o1;
++      if mx > max_x { max_x = mx; }
++      for (pi, ib, gs) in goals {
++        goal_n += 1;
++        if found.is_none() { found = Some((step + 1, pi, ib, gs)); }
++      }
++      for (ns, pi, ib) in outv {
++        if !visited.insert(Key::<C, A>::from_state(&ns)) { dup += 1; continue; }
++        next.push(ns); npar.push(pi); ninp.push(ib);
++      }
++    }
++    println!("layer {}: parents {} -> unique {}, dup {}, pruned {}, dead {}, other {}, goals {}; visited {}; max x {:#x}; {:.1}s",
++      step + 1, n, next.len(), dup, pruned, dead, other, goal_n, visited.len(), max_x, (time::precise_time_ns() - t1) as f64 / 1e9);
++    ::std::io::Write::flush(&mut ::std::io::stdout()).ok();
++    if step < refpath.len() {
++      let rs = &refpath[step];
++      let key = Key::<C, A>::from_state(rs);
++      let in_frontier = next.iter().any(|st| Key::<C, A>::from_state(st) == key);
++      let hh = hval(&goal, rs, step + 1);
++      println!("  check-path step {}: {} (h {:?}, {}{})", step + 1, if in_frontier { "in frontier" } else { "MISSING" }, hh,
++        match hh { Some(h) if step + 1 + h > max_steps => "would be PRUNED; ", None => "h None (PRUNED); ", _ => "" }, if visited.contains(&key) { "key visited" } else { "key not visited" });
++    }
++    if found.is_some() { println!("goal reached at layer {} ({} goal transitions)", step + 1, goal_n); break; }
++    if next.is_empty() { println!("no live states left after layer {}", step + 1); break; }
++    frontier = Arc::new(next);
++    parents.push(npar);
++    pinputs.push(ninp);
++    step += 1;
++  }
++  println!("total {:.1}s, {} states visited", (time::precise_time_ns() - t0) as f64 / 1e9, visited.len());
++  if let Some((gstep, ppi, pib, gs)) = found {
++    println!("earliest goal: step {} (record {} .. {}), state {}", gstep, first + prefix, first + prefix + gstep - 1, gs);
++    let mut seq: Vec<u8> = vec![pib];
++    let mut pi = ppi as usize;
++    let mut l = gstep - 1;
++    while l > 0 { seq.push(pinputs[l][pi]); pi = parents[l][pi] as usize; l -= 1; }
++    seq.reverse();
++    emu::print_rle(seq.iter().map(|&b| emu::Input::from_bits_truncate(b)));
++    if let Some(path) = out {
++      let nes: Vec<u8> = seq.iter().map(|&b| model_to_nes(b)).collect();
++      ::std::fs::write(&path, &nes).unwrap();
++      println!("wrote {} NES-order input bytes to {}", nes.len(), path);
++    }
++  } else { println!("no goal found within {} steps", max_steps); }
 +}
 +
 +/// Compact per-layer BFS (P2.1b-m3), external-memory version: the frontier after `step` steps lives in
@@ -1363,10 +1832,35 @@ index 350d469..100ce84 100644
 +  }
 +}
 diff --git a/src/options.rs b/src/options.rs
-index fba80ad..c05592a 100644
+index fba80ad..7f7755e 100644
 --- a/src/options.rs
 +++ b/src/options.rs
-@@ -296,6 +296,11 @@ pub trait Platform {
+@@ -15,6 +15,24 @@ pub trait Options {
+   type Parity: Parity;
+   type VerticalPipeHandler: VerticalPipeHandler;
+   type YPosFractionalBehavior: YPosFractionalBehavior;
++  /// Block-bounce timer (BlockBounceTimer $0784): a head bump into a brick/question block while a bounce is in
++  /// progress sets Y speed 1 (NYSpd) instead of 0 (BumpBlock) and does not start a new bounce. Default off (no
++  /// state bits) so existing cases and layer-file key layouts are unchanged.
++  type BlockBounce: BlockBounceTimer = NoBlockBounceTimer;
++}
++
++pub trait BlockBounceTimer {
++  const BITS: usize;
++}
++#[allow(dead_code)]
++pub enum NoBlockBounceTimer {}
++impl BlockBounceTimer for NoBlockBounceTimer {
++  const BITS: usize = 0;
++}
++#[allow(dead_code)]
++pub enum WithBlockBounceTimer {}
++impl BlockBounceTimer for WithBlockBounceTimer {
++  const BITS: usize = 5;
+ }
+ #[allow(dead_code)]
+ pub struct SmbOptions<Size: PlayerSize, Swi: Swim, RunT: RunningTimer, YPFB: YPosFractionalBehavior, ScrP: ScrollPos, Par: Parity, Plat: Platform, CoiH: CoinHandler, PowH: PowerupHandler, VerP: VerticalPipeHandler> {
+@@ -296,6 +314,11 @@ pub trait Platform {
      }
      0
    }
@@ -1379,18 +1873,32 @@ index fba80ad..c05592a 100644
      if v_force == Self::V_FORCE_SWIM_TOO_HIGH { 0 }
      else if v_force == Self::V_FORCE_AREA_INIT { 1 }
 diff --git a/src/state.rs b/src/state.rs
-index e8c4d09..ee437ea 100644
+index e8c4d09..58096bf 100644
 --- a/src/state.rs
 +++ b/src/state.rs
-@@ -55,6 +55,7 @@ pub struct State {
+@@ -1,6 +1,6 @@
+ use bitpack::BitPack;
+ use core::array::FixedSizeArray;
+-use options::{CoinHandler, Options, Parity, Platform, PlayerSize, Swim, PowerupHandler, RunningTimer, ScrollPos};
++use options::{BlockBounceTimer, CoinHandler, Options, Parity, Platform, PlayerSize, Swim, PowerupHandler, RunningTimer, ScrollPos};
+ use std::hash::{Hash, Hasher};
+ use std::marker::PhantomData;
+ 
+@@ -55,6 +55,8 @@ pub struct State {
    pub powerup_block_hit: bool, // only for powerup collection
    pub powerup_collected: bool, // only for powerup collection
    pub parity: u8,
 +  pub a_held: bool, // A was pressed on the previous frame (PreviousA_B_Buttons): a jump needs a fresh press
++  pub block_bounce_timer: u8, // BlockBounceTimer ($0784), only when Options::BlockBounce is enabled
  }
  impl State {
    pub fn is_on_ground(&self) -> bool { self.player_state == PlayerState::STANDING }
-@@ -86,6 +87,7 @@ impl ::std::fmt::Display for State {
+@@ -82,10 +84,12 @@ impl ::std::fmt::Display for State {
+     writeln!(f, "  running_timer: {:?}", self.running_timer)?;
+     writeln!(f, "  left_screen_edge_pos: {:#x}", self.left_screen_edge_pos)?;
+     writeln!(f, "  side_collision_timer: {:?}", self.side_collision_timer)?;
++    writeln!(f, "  block_bounce_timer: {:?}", self.block_bounce_timer)?;
+     writeln!(f, "  collected_coins: {:?}", self.collected_coins)?;
      writeln!(f, "  powerup_block_hit: {:?}", self.powerup_block_hit)?;
      writeln!(f, "  powerup_collected: {:?}", self.powerup_collected)?;
      writeln!(f, "  parity: {}", self.parity)?;
@@ -1398,7 +1906,18 @@ index e8c4d09..ee437ea 100644
      write!(f, "}}")
    }
  }
-@@ -129,6 +131,46 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
+@@ -105,6 +109,10 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
+ impl StateArray for [u8; 10] { fn new() -> Self { [0; 10] } }
+ impl StateArray for [u8; 11] { fn new() -> Self { [0; 11] } }
+ impl StateArray for [u8; 12] { fn new() -> Self { [0; 12] } }
++impl StateArray for [u8; 13] { fn new() -> Self { [0; 13] } }
++impl StateArray for [u8; 14] { fn new() -> Self { [0; 14] } }
++impl StateArray for [u8; 15] { fn new() -> Self { [0; 15] } }
++impl StateArray for [u8; 16] { fn new() -> Self { [0; 16] } }
+ pub struct CompressedState<O: Options, A: StateArray> {
+   buf: A,
+   _options: PhantomData<O>,
+@@ -129,6 +137,47 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
      CompressedState { buf: A::new(), _options: PhantomData }
    }
  }
@@ -1429,12 +1948,13 @@ index e8c4d09..ee437ea 100644
 +      running_speed: rs != 0,
 +      collision_bits: Dir::from_bits_truncate(cb as u8),
 +      is_crouching: false, jump_swim_timer: 0, running_timer: 0, left_screen_edge_pos: 0, side_collision_timer: 0,
-+      collected_coins: 0, powerup_block_hit: false, powerup_collected: false, parity: 0,
++      collected_coins: 0, powerup_block_hit: false, powerup_collected: false, parity: 0, block_bounce_timer: 0,
 +      a_held: ah != 0,
 +    };
 +    if O::PlayerSize::CROUCH_BITS > 0 { s.is_crouching = bp.read(1).unwrap() != 0; }
 +    if O::Swim::SWIMMING_BITS > 0 { s.jump_swim_timer = bp.read(5).unwrap() as u8; }
 +    if O::RunningTimer::RUNNING_TIMER_BITS > 0 { s.running_timer = bp.read(4).unwrap() as u8; }
++    if O::BlockBounce::BITS > 0 { s.block_bounce_timer = bp.read(5).unwrap() as u8; }
 +    if O::ScrollPos::SCROLL_POS_BITS > 0 { s.left_screen_edge_pos = bp.read(8).unwrap() as u8; s.side_collision_timer = bp.read(4).unwrap() as u8; }
 +    if O::Parity::PARITY_BITS > 0 { s.parity = bp.read(O::Parity::PARITY_BITS).unwrap() as u8; }
 +    if O::CoinHandler::COIN_HANDLER_BITS > 0 { s.collected_coins = bp.read(O::CoinHandler::COIN_HANDLER_BITS).unwrap(); }
@@ -1445,7 +1965,7 @@ index e8c4d09..ee437ea 100644
  impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
    fn from_state(s: &State) -> CompressedState<O, A> {
      const Y_POS_OFFSET: u32 = 0xd000;
-@@ -136,7 +178,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -136,9 +185,10 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
      let mut buf = A::new();
  
      let bytes_available = buf.as_slice().len();
@@ -1453,8 +1973,11 @@ index e8c4d09..ee437ea 100644
 +    let bytes_needed = (16 + 16 + 13 + 12 + 2 + 2 + 2 + 4 + 4 + 3 + 1 + 2 + 1 + 7
          + O::PlayerSize::CROUCH_BITS + O::Swim::SWIMMING_BITS
          + O::RunningTimer::RUNNING_TIMER_BITS
++        + O::BlockBounce::BITS
          + O::ScrollPos::SCROLL_POS_BITS
-@@ -159,6 +201,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+         + O::Parity::PARITY_BITS
+         + O::CoinHandler::COIN_HANDLER_BITS
+@@ -159,6 +209,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        bitpack.write(O::Platform::get_x_spd_abs_cutoff(s.x_spd_abs) as u32, 3).unwrap();
        bitpack.write(if s.running_speed { 1 } else { 0 }, 1).unwrap();
        bitpack.write(s.collision_bits.bits() as u32, 2).unwrap();
@@ -1462,3 +1985,13 @@ index e8c4d09..ee437ea 100644
  
        if O::PlayerSize::CROUCH_BITS > 0 {
          bitpack.write(if s.is_crouching { 1 } else { 0 }, 1).unwrap();
+@@ -169,6 +220,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+       if O::RunningTimer::RUNNING_TIMER_BITS > 0 {
+         bitpack.write(s.running_timer as u32, 4).unwrap();
+       }
++      if O::BlockBounce::BITS > 0 {
++        bitpack.write(s.block_bounce_timer as u32, 5).unwrap();
++      }
+       if O::ScrollPos::SCROLL_POS_BITS > 0 {
+         bitpack.write(s.left_screen_edge_pos as u32, 8).unwrap();
+         bitpack.write(s.side_collision_timer as u32, 4).unwrap();
