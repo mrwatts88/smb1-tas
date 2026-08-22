@@ -50,6 +50,8 @@ tied to a hypothesis (H-number) so nothing here is treated as evidence until we 
   mean anything due to the framerule" (RTA-rules TAS context). **Gaster319 (0jnl2):** "1-2 was
   improved by a subpixel." ⇒ in-framerule gains exist; nobody claims 8 frames. Our deficit: 8.
 
+- **Maru370, 2024 (speedrun.com 75044 "The Limit of 1-2")**: a "perfect 1-2 TAS" 3 frames faster than HappyLee's, "5 frames away from the next framerule"; zdoroviy_antony saved 7 more subpixels, "not enough to save the frame"; "maybe it is not possible". No tool/search used. ⇒ best-known 1-2 deficit: 5 (P0.8).
+
 ### 4-1
 - No claims found beyond subpixel tidying. Our deficit: 9. (Asumeh 2019: NTSC floor clip in 4-1
   impossible without a Koopa bounce as Big Mario; 4-1 has no Koopas.)

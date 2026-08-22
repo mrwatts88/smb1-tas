@@ -183,3 +183,17 @@ base for the FPG. Next leverage: a flat-world frontier (sound relaxation) and th
 trigger condition (cheap, on this core), and a physics-level core (P1.2) for room-scale search.
 
 **Next.** P2.1b (flat-world frontier + FPG condition), then P1.2 / P0.8 / P0.7 per STATUS.
+## 2026-08-21 — Session 3 (cont.): P0.8 done — prior tools survey (while the P2.1b job runs)
+**Did.** Web survey (TASVideos 8431/14693/5862S/20204, GameResources, speedrun.com 75044/beov8,
+GitHub). Cloned MrWint/smb-opt into `third_party/` and read its state/emu/heuristics/case files.
+Wrote `docs/prior-tools.md`; F52; H21/H22 annotated; community-claims updated; STATUS: new unit
+P1.2-lite (build + validate smb-opt's model, reuse its XPosHeuristic bound).
+
+**Learned.** MrWint's tool is exactly the "physics-level core" P2.1a concluded we need: 10–12-byte
+player-only states, IDA*, precomputed exact x/y-gain heuristics (the sound tight bound), enemies
+ignored, segment searches chained by hand — including a 174+59-frame two-segment 1-1 third room,
+never a single search from the fixed entry. No whole-level or full-state search exists anywhere.
+Maru's best 1-2 is 5 frames short, not 8.
+
+**Next.** P1.2-lite (needs a Rust nightly in the toolbox); P2.1b job result; then the flat-world /
+whole-room search with the sound bound.

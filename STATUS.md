@@ -1,6 +1,6 @@
 # STATUS — SMB1 TAS project
 
-Updated: 2026-08-21 (session 3 — P0.6, P1.1, P2.1a done; next unit P2.1b flat-world frontier + FPG condition)
+Updated: 2026-08-21 (session 3 — P0.6, P1.1, P2.1a, P0.8 done; P2.1b running; next unit P1.2-lite)
 Phase: **P0/P1 → P2** — ground truth mostly done (P0.7, P0.8 remain), stage-1 fast core done
 Record to beat: **17,868 frames** (HappyLee, TASVideos #1715M, 4:57.31) — last input on frame 17848 (0-based), then a 19-frame coast to the axe. A new movie must finish the game with an earlier last input.
 ROM: verified byte-identical to TASVideos' (W) [!] (`tools/verify_rom.py`); classic-header copy in `roms/` on the Linux box (gitignored) — re-verified 2026-08-21.
@@ -18,9 +18,9 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
 | P2.1b | 1-1 third room, sound relaxation on the current core: (1) exact FPG trigger condition from `PlayerBGCollision`/`HandleClimbing`/`FlagpoleRoutine` (x, subpixel, y at the pole); (2) flat-world frontier — point the area/enemy parsers at their terminators, flatten the block buffer, BFS with physics-class + max-P dominance — earliest frame with x ≥ 3158 from the fixed entry (F47); (3) short-horizon search from the WR's stairs-top states for an on-arrival grab (H27) | A | M | P2.1a | Frontier frame with a proof sketch of the relaxation; FPG condition written down; H27 tested |
+| P1.2-lite | Build MrWint/smb-opt (rustup nightly-2018 in the `smb1` toolbox, no sudo), run its 1-1 cases, and differential-test its player model against QuickNES on the WR trace (x/y/speed per frame) and on random inputs in the 1-1 third room; port or wrap its XPosHeuristic as the sound bound for P2.1b | A | M | P1.1 | Model matches the core on the WR's 1-1 frames (or the deviations are listed); bound tables available to `bfs_par` |
 | P1.2 | Stage-2 core: static recompilation of the SMB1 ROM to C with cycle counting + minimal PPU timing (vblank, sprite-0); or, as a first step, a validated player-physics + BG-collision model with ~32-byte states (P1.2-lite) | A | L | P1.1 | Differential test vs QuickNES on ≥ 10M random frames incl. lag; fps recorded |
 | P2.1c | Search engine v2 on the fast core: compact states, multi-process sharding, sound bounds; full 1-1 (all rooms) threshold search for H21 | A | L | P1.2, P2.1b | Ties the WR in 1-1; reports whether T_set − 1 is reachable, with the search record |
-| P0.8 | Survey existing bots/tools (TASVideos thread, GitHub, speedrun.com resources): what exists, which state space each covered, source availability | C | S | — | `docs/prior-tools.md`; hypotheses ledger updated |
 | P0.7 | L+R / U+D semantics catalog from the code (all effects, not just the known decel); pause/Select effects on every timer | B | S | P0.5 | `docs/input-semantics.md` |
 | P1.1b | Direct-link core: build Nes_Emu into the search binary, use `emulate_skip_frame` (no rendering), measure speedup; keep RAM-identity vs F45 | A | S | P1.1 | ≥ 2× fps over F46 with the same WR RAM trace |
 | P2.2 | 8-4 exhaustive search (frame-granular; Bowser RNG, L+R, ending-input trick) | A | L | P2.1 | Report: faster path (verified in two emulators) or proof record |
@@ -34,6 +34,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 | P4.1 | Assemble, verify in two emulators, draft submission text | ship | M | a result | User-reviewed before anything is submitted |
 
 ## Done
+- 2026-08-21 — **P0.8 done**: `docs/prior-tools.md` — the only exhaustive-search tool is MrWint/smb-opt (player-only model, segment searches, 4-4 wall clip); no whole-level/full-state search exists; Maru's best 1-2 is 5 frames from the framerule; F52; H21/H22 annotated; new unit P1.2-lite.
 - 2026-08-21 — **P2.1a done**: `src/search/bfs.c` (in-process BFS engine, exact T_set evaluator verified on the WR, deadline pruning); full-state BFS measured infeasible (×5/layer, F49); WR acceleration profile and pole stop decoded (F47/F48); H21 restructured, H27 added; `docs/experiments/P2.1a-bfs-engine.md`.
 - 2026-08-21 — **P1.1 done**: libretro QuickNES harness (`src/fastcore/harness.c`, `tools/build_core.sh`, `tools/fm2_to_inputs.py`, `tools/compare_ram.py`) replays the WR with RAM identical to the FCEUX dump on every row (F45, alignment law: FCEUX row r ↔ QuickNES row r−3, input record j → QuickNES frame j−2); 15.0k fps/instance, 104k fps on 12 threads, savestate 12.8 KB / 2.5 µs (F46); `docs/experiments/P1.1-fast-core.md`.
 - 2026-08-21 — **P0.6 done**: `docs/warp-model.md` — WZC ∈ {0,1,4,5,6} at any pipe (proof), world 8 only from 4-2's $2F zone, all 58 pipe-destination commands tabulated, completion = axe with WorldNumber ≥ 7, Minus World closed at table level; `tools/warp_tables.py`, `tools/area_data.py`, `tools/ram_trace.py`; facts F38–F44; H5 refuted, H6/H13 refuted at table level, H7 sharpened; `docs/experiments/P0.6-warp-model.md`.
