@@ -274,3 +274,8 @@ ground, Right wins); a pause costs ≥ 44 frames, freezes every timer and the fr
 but still steps the RNG — a pure RNG lever (8-4 Bowser / Hammer Bros), useless for framerules. The 16
 A/B/L/R inputs are complete for small Mario on land (Down = release L/R; Up only on vines).
 **Next.** Check the P2.1b-m3 run (STATUS Running jobs).
+## 2026-08-22 — Session 4 (late): segment comparison — the WR equals MrWint's enemy-free optima in every 1-1 segment
+**Did.** Read the WR's room boundaries from the dump and compared with `w11.rs` solution lengths: 368/111/174
+all equal (F63); bonus room therefore proven optimal; H29 (bounce-assisted room 1) recorded. Built
+`bfs11c-path`; run 3 of the whole-room search launched with an RSS watchdog. **Next.** Run 3's verdict
+(STATUS Running jobs); then H29 needs the room-1 enemy model (goombas + green koopa).
