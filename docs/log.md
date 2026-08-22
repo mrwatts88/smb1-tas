@@ -367,3 +367,11 @@ return (F80). Block states ($23/$c4) are the last main-area model gap (P2.3b-2).
 **Learned.** Validate with WR-mutated trials near the mechanic (every trial touched the lift), not uniform random ones. Two
 lift bugs (kept y fraction; offscreen box) only showed up that way. `pkill -f` self-kill: isolate the kill in its own call.
 **Next.** P2.3b-2 (block states) or P2.3c (search slack) — P2.3c first: without it no 4-2 bound can be computed at all.
+## 2026-08-22 — Session 6 (end): P2.3c measurements
+**Did.** `bfsc --reduced` (MrWint's input set): the 1-1 proof space is only ~2× smaller (F82) — IDA\* is fast by finding, not
+by a small space; proofs need the external-memory engine. Read the WR's warp-zone route: roof run, drop at x 958, 150 px back
+to the pipe (F83) — the x-bound's 147-frame slack is structural; a staged landmark bound (overshoot + return) would cut it to
+~20–30. P2.3c refined in STATUS into concrete sub-steps.
+**Next.** P2.3c-1: generalise `bfs11c` (external memory + `bfs11c-path`) to any case + hook; P2.3c-2: staged bounds per
+segment (warp: overshoot/return; main: pipe-A/brick/pipe-B gates); then P2.3b-2 block states and the enemy models (piranhas,
+goombas, koopa) before any 4-2 bound is claimed.

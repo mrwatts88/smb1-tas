@@ -984,7 +984,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..371c414 100644
+index 350d469..b730e00 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -995,7 +995,7 @@ index 350d469..371c414 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,210 @@ mod state;
+@@ -22,6 +23,211 @@ mod state;
  mod store;
  
  fn main() {
@@ -1031,19 +1031,20 @@ index 350d469..371c414 100644
 +    let mut out: Option<String> = None;
 +    let mut check_path: usize = 0;
 +    let mut threads: usize = 2;
-+    let mut lift = false; let mut aptn0: u16 = 0;
++    let mut lift = false; let mut aptn0: u16 = 0; let mut reduced = false;
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--check-path" { check_path = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--lift" { lift = true; aptn0 = args[i + 1].parse().unwrap(); i += 2; } // W42Main: the 4-2 lift hook, AreaParserTaskNum at the case start (0 for record 6584)
++      else if args[i] == "--reduced" { reduced = true; i += 1; } // MrWint's per-state input set instead of all 16 (P2.3c measurement)
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    match args[2].as_str() {
-+      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 13]>(&data, first, prefix, max_steps, out, check_path, threads, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0),
-+      "W42Warp" => bfsc_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0),
-+      "W11VertPipeEntry" => bfsc_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0),
++      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 13]>(&data, first, prefix, max_steps, out, check_path, threads, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, reduced),
++      "W42Warp" => bfsc_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, reduced),
++      "W11VertPipeEntry" => bfsc_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, reduced),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1206,7 +1207,7 @@ index 350d469..371c414 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +251,737 @@ fn calc_prng() {
+@@ -46,4 +252,738 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1516,7 +1517,7 @@ index 350d469..371c414 100644
 +/// compressed keys, parents/inputs kept per layer for path reconstruction, expansion over `threads` threads.
 +/// The case's SearchGoal supplies the deadline heuristic (a lower bound on the steps still needed, so pruning
 +/// `step + h > max_steps` is exact) and the goal test.
-+fn bfsc_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16)
++fn bfsc_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, reduced: bool)
 +    where C::SearchGoal: Send + Sync {
 +  use emu::{Emu, EmuResult};
 +  use heuristics::SearchGoal;
@@ -1527,7 +1528,7 @@ index 350d469..371c414 100644
 +  let (s, e0, alive) = replayce::<C>(data, first, prefix, false, hook, ext0);
 +  assert!(alive, "prefix replay ended early");
 +  println!("root after {} prefix steps (record {}): {}", prefix, first + prefix, s);
-+  println!("object hook {} (root ext {:#x})", hook.is_some(), e0);
++  println!("object hook {} (root ext {:#x}); inputs: {}", hook.is_some(), e0, if reduced { "MrWint's reduced per-state set (SmbInputFetcher, F76 — not proven lossless)" } else { "all 16 A/B/L/R combinations" });
 +  let t0 = time::precise_time_ns();
 +  let goal = Arc::new(C::SearchGoal::new());
 +  let hval = |g: &C::SearchGoal, st: &State, step: usize| -> Option<usize> { let mut c = st.clone(); g.distance_to_goal_heuristic(&mut c, step as state::Dist).map(|d| d as usize) };
@@ -1576,7 +1577,8 @@ index 350d469..371c414 100644
 +        let mut max_x: i32 = 0;
 +        for pi in lo..hi {
 +          let (ref ps, pe) = frontier[pi];
-+          for &ib in inputs.iter() {
++          let red: Vec<u8> = if reduced { <ida::SmbInputFetcher<C> as ida::InputFetcher>::valid_next_inputs(ps).iter().map(|i| i.bits()).collect() } else { Vec::new() };
++          for &ib in (if reduced { red.iter() } else { inputs.iter() }) {
 +            let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
 +            if goal.is_goal_state(&ns, &res) { goals.push((pi as u32, ib, ns)); continue; }
 +            match res {
