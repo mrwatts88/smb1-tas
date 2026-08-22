@@ -573,7 +573,7 @@ index 39e4b06..d7dac02 100644
    fn new() -> Self;
    fn distance_to_goal_heuristic(&self, s: &mut State, steps_already_taken: Dist) -> Option<Dist>;
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..6682b6e 100644
+index c9bbf89..748d3f7 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
 @@ -6,15 +6,15 @@ use std::io::Write;
@@ -614,7 +614,7 @@ index c9bbf89..6682b6e 100644
    }
    pub fn get_steps_until_x_pos_between(&self, s: &State, min_x_pos: i32, max_x_pos: i32) -> Dist {
      if s.x_pos < min_x_pos { self.get_steps_until_x_pos_at_least(s, min_x_pos) }
-@@ -117,6 +117,16 @@ impl XPosHeuristic {
+@@ -117,6 +117,23 @@ impl XPosHeuristic {
    pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
      s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
    }
@@ -627,6 +627,13 @@ index c9bbf89..6682b6e 100644
 +      for d in v { write!(f, " {}", d).unwrap(); }
 +      writeln!(f).unwrap();
 +    }
++  }
++  /// Max x gain (x_pos units, 256 = 1 px) the table allows in `steps` steps from s's class; None if the class
++  /// is not in the table (the search then uses 0 as the bound, i.e. never prunes).
++  pub fn max_gain_from(&self, s: &State, steps: usize) -> Option<i32> {
++    let c = Self::to_x_pos_state(s);
++    if self.max_distance.get(&c).is_none() { return None; }
++    Some(self.get_max_distance(&c, steps))
 +  }
    fn get_max_distance(&self, s: &XPosState, steps: usize) -> i32 {
      let max_dists = self.max_distance.get(s).unwrap();
@@ -674,7 +681,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..f67e0f7 100644
+index 350d469..100ce84 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -685,7 +692,7 @@ index 350d469..f67e0f7 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,145 @@ mod state;
+@@ -22,6 +23,160 @@ mod state;
  mod store;
  
  fn main() {
@@ -795,6 +802,21 @@ index 350d469..f67e0f7 100644
 +    }
 +    return;
 +  }
++  if args.len() >= 4 && args[1] == "trace11bound" {
++    // trace11bound FIRST_RECORD N INPUTS.bin... : trace11room plus, after each row, the XPos table's max x gain
++    // in 1..40 steps from that state (P1.3 heuristic audit: compare with the real core's gains). Several input
++    // files share one table build; each trace is preceded by "=== FILE".
++    use case::SmbSearchCase;
++    let first: usize = args[2].parse().unwrap();
++    let n: usize = args[3].parse().unwrap();
++    let h = heuristics::xpos::XPosHeuristic::new::<case::w11::W11PipeSpeedup>(&<case::w11::W11PipeSpeedup as SmbSearchCase>::start_states());
++    for path in args.iter().skip(4) {
++      let data = ::std::fs::read(path).unwrap();
++      println!("=== {}", path);
++      replay11b::<case::w11::W11PipeSpeedup>(&data, first, n, &[], true, true, Some(&h));
++    }
++    return;
++  }
 +  if args.len() >= 4 && (args[1] == "trace11pipe" || args[1] == "trace11room") {
 +    // trace11pipe INPUTS.bin FIRST_RECORD N [STEP:yspd=VALUE]... : run the 1-1 third-room model from
 +    // w11_pipe_start with NES-order input bytes (A=$01 B=$02 Sel=$04 Start=$08 U=$10 D=$20 L=$40 R=$80),
@@ -831,7 +853,7 @@ index 350d469..f67e0f7 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +186,499 @@ fn calc_prng() {
+@@ -46,4 +201,506 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -884,7 +906,10 @@ index 350d469..f67e0f7 100644
 +fn model_to_nes(v: u8) -> u8 { let mut b = 0u8; for bit in 0..8 { if v & (1 << bit) != 0 { b |= 0x80 >> bit; } } b }
 +
 +/// Replays `prefix` NES-order records (data[first..]) from w11_pipe_start; returns (state, goomba bits, alive).
-+fn replay11<C: case::SmbSearchCase>(data: &[u8], first: usize, prefix: usize, overrides: &[(usize, i16)], goombas: bool, trace: bool) -> (State, u8, bool) {
++fn replay11<C: case::SmbSearchCase>(data: &[u8], first: usize, prefix: usize, overrides: &[(usize, i16)], goombas: bool, trace: bool) -> (State, u8, bool) { replay11b::<C>(data, first, prefix, overrides, goombas, trace, None) }
++/// replay11 with an optional x-heuristic: when given (and tracing), each row is followed by "bounds: g1 .. g40"
++/// = the table's max x gain in 1..40 steps from the state after the step ("?" if the class is unknown).
++fn replay11b<C: case::SmbSearchCase>(data: &[u8], first: usize, prefix: usize, overrides: &[(usize, i16)], goombas: bool, trace: bool, bounds: Option<&heuristics::xpos::XPosHeuristic>) -> (State, u8, bool) {
 +  use emu::{Emu, EmuResult};
 +  let mut s = case::w11::w11_pipe_start::<C>();
 +  let mut g = 0u8;
@@ -899,6 +924,10 @@ index 350d469..f67e0f7 100644
 +    if trace {
 +      let evs = match ev { RoomEvent::Nothing => String::new(), RoomEvent::Stomp(k) => format!(" STOMP{}", k), RoomEvent::Death => " DEATH".to_string() };
 +      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}{}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res, evs);
++      if let Some(h) = bounds {
++        let v: Vec<String> = (1..=40usize).map(|k| match h.max_gain_from(&ns, k) { Some(g) => g.to_string(), None => "?".to_string() }).collect();
++        println!("bounds: {}", v.join(" "));
++      }
 +    }
 +    s = ns;
 +    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, g, false); }

@@ -338,3 +338,7 @@ entrance leaves stale zeros in the unrendered buffer half, so validity must star
 the real core with random k-frame rollouts; cheap, spare-capacity job) ahead of the 4-2 search; added a standing
 "Model omissions" table to STATUS with the lift/platform gap flagged as the one mechanic that breaks the x-bound;
 H31 records the user's framing: cracks live in unmodeled mechanics.
+## 2026-08-22 — Session 5 (late): P1.3 done — x-bound audited against the real core
+**Did.** `smb-opt trace11bound` (per-step max-gain vector from the search's own classifier) + `tools/heuristic_audit.py`
+(random core rollouts vs the bound): 1.9M checks, 0 violations, 0 unknown classes, bound tight; F68; patch regenerated.
+**Learned.** The pruning bound is not the crack. What remains unmodeled (lifts, shells, bumps, swimming) is.
