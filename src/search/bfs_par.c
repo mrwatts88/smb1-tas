@@ -10,6 +10,12 @@
  * process merges the arenas into the next layer with an open-addressing hash table. Terminals (GES 4/5)
  * are evaluated in the worker (run input-free to StarFlagTaskControl = 4) and reported.
  * Output: DIR/terminals.txt, DIR/best_inputs.bin, per-layer lines on stdout.
+ * --xpos-table FILE: MrWint's XPos max-distance table (third_party/smb-opt `xpos-dump`, F52) keyed by the
+ *   x-physics class ($57:$0705 speed, $0700, $45, $33, $1D==0, $0703!=0); prunes a state when the exact
+ *   model-derived minimum number of frames to reach --target-x exceeds the frames left to --deadline.
+ *   Unknown classes are never pruned. Sound modulo the model (validated F53).
+ * --y-target PX: sound descent bound — Mario must be able to reach Y >= PX (screen px, HighPos 1) by the deadline
+ *   falling at the maximum force ($90 per frame on the 8.8 speed, cap 4 px/frame); see docs/experiments/P2.1b.
  * v3: layer storage is compact — each state stores only the bytes at the addresses that differ from the root
  * RAM in any state seen so far (a growing list, at most LMAX entries; P2.1b measured 70 such addresses
  * after 7 layers). Workers still exchange full 2 KiB RAM images through the arenas.
@@ -67,6 +73,46 @@ static uint64_t hash_ram(const uint8_t *r) {
 }
 #define LMAX 384
 static uint8_t tmpl_ram[RAMSZ]; static uint16_t vaddr[LMAX]; static uint16_t pos_of[RAMSZ]; static int nv = 0;
+/* ---- XPos table (MrWint) ---- */
+typedef struct { int16_t x_spd; uint8_t abs_, moving, facing, ground, running; uint8_t len; int32_t *d; } xcls_t;
+static xcls_t *xt; static uint32_t xt_n, xt_cap, *xt_tab, xt_tcap; static int xt_maxd = 640; static long xt_unknown = 0;
+static uint32_t xkey(int16_t sp, uint8_t a, uint8_t m, uint8_t f, uint8_t g, uint8_t r) {
+    uint64_t k = (uint64_t)(uint16_t)sp | ((uint64_t)a << 16) | ((uint64_t)m << 24) | ((uint64_t)f << 28) | ((uint64_t)g << 32) | ((uint64_t)r << 36);
+    k ^= k >> 29; k *= 0x9E3779B97F4A7C15ULL; k ^= k >> 32; return (uint32_t)k;
+}
+static void xt_load(const char *path) {
+    FILE *f = fopen(path, "r"); if (!f) { perror(path); exit(1); }
+    xt_cap = 1 << 17; xt = malloc(xt_cap * sizeof(xcls_t)); char line[4096];
+    while (fgets(line, sizeof line, f)) {
+        if (xt_n == xt_cap) { xt_cap *= 2; xt = realloc(xt, xt_cap * sizeof(xcls_t)); }
+        xcls_t *c = &xt[xt_n]; int sp, a, m, fc, g, r, md, len; char *p = line; int nread;
+        if (sscanf(p, "%d %d %d %d %d %d %d %d%n", &sp, &a, &m, &fc, &g, &r, &md, &len, &nread) != 8) continue;
+        p += nread; c->x_spd = (int16_t)sp; c->abs_ = a; c->moving = m; c->facing = fc; c->ground = g; c->running = r; c->len = len; xt_maxd = md;
+        c->d = malloc(len * sizeof(int32_t)); for (int i = 0; i < len; i++) { int v; sscanf(p, "%d%n", &v, &nread); p += nread; c->d[i] = v; }
+        xt_n++;
+    }
+    fclose(f);
+    xt_tcap = 1; while (xt_tcap < xt_n * 2) xt_tcap <<= 1; xt_tab = calloc(xt_tcap, sizeof(uint32_t));
+    for (uint32_t i = 0; i < xt_n; i++) { xcls_t *c = &xt[i]; uint32_t h = xkey(c->x_spd, c->abs_, c->moving, c->facing, c->ground, c->running) & (xt_tcap - 1);
+        while (xt_tab[h]) h = (h + 1) & (xt_tcap - 1); xt_tab[h] = i + 1; }
+}
+/* minimum frames until x_pos >= target (units px<<8), or -1 if the class is unknown */
+static long xt_steps(const uint8_t *r, long target) {
+    static const uint8_t CUT[6] = { 0x00, 0x0b, 0x10, 0x19, 0x1c, 0x21 };   /* smb-opt NTSC X_SPD_ABS_CUTOFFS: the model stores the bucket value */
+    int16_t sp = (int16_t)(((int8_t)r[0x57] << 8) | r[0x705]); uint8_t a = r[0x700], m = r[0x45], fc = r[0x33], g = r[0x1d] == 0, ru = r[0x703] != 0;
+    for (int i = 5; i >= 0; i--) if (a >= CUT[i]) { a = CUT[i]; break; }
+    uint32_t h = xkey(sp, a, m, fc, g, ru) & (xt_tcap - 1);
+    while (xt_tab[h]) { xcls_t *c = &xt[xt_tab[h] - 1];
+        if (c->x_spd == sp && c->abs_ == a && c->moving == m && c->facing == fc && c->ground == g && c->running == ru) {
+            long x = ((long)(r[0x6d] << 8 | r[0x86]) << 8) | 0xff;   /* conservative: highest possible fraction */
+            if (target <= x) return 0; long dist = target - x; int len = c->len;
+            if (len == 0) return (dist + xt_maxd - 1) / xt_maxd;
+            if (c->d[len - 1] < dist) return len + (dist - c->d[len - 1] + xt_maxd - 1) / xt_maxd;
+            for (int i = 0; i < len; i++) if (c->d[i] >= dist) return i + 1;
+            return len; }
+        h = (h + 1) & (xt_tcap - 1); }
+    return -1;
+}
 typedef struct layer_s layer_t;
 static layer_t *g_layers[2];
 static void fill_new_slot(int i);
@@ -109,7 +155,7 @@ static const uint8_t INPUTS[16] = { 0x00, 0x01, 0x02, 0x03, 0x40, 0x41, 0x42, 0x
 int main(int argc, char **argv) {
     if (argc < 4) { fprintf(stderr, "usage: see header\n"); return 2; }
     const char *core = argv[1], *rom = argv[2], *inputs = argv[3], *outdir = "runs/bfs";
-    long root = -1, layers = 400, mem_mb = 4000, input_skip = 0, workers = 8, deadline = -1, target_x = -1, max_speed = 40, accel = 2, margin = 0, dump_layer = -1; int quiet_t = 0; const char *dump_file = NULL;
+    long root = -1, layers = 400, mem_mb = 4000, input_skip = 0, workers = 8, deadline = -1, target_x = -1, max_speed = 40, accel = 2, margin = 0, dump_layer = -1; int quiet_t = 0; const char *dump_file = NULL, *xpos_table = NULL; long y_target = -1;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--root")) root = atol(argv[++i]); else if (!strcmp(argv[i], "--layers")) layers = atol(argv[++i]);
         else if (!strcmp(argv[i], "--mem-mb")) mem_mb = atol(argv[++i]); else if (!strcmp(argv[i], "--input-skip")) input_skip = atol(argv[++i]);
@@ -118,6 +164,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--max-speed")) max_speed = atol(argv[++i]); else if (!strcmp(argv[i], "--accel")) accel = atol(argv[++i]);
         else if (!strcmp(argv[i], "--margin")) margin = atol(argv[++i]); else if (!strcmp(argv[i], "--quiet-terminals")) quiet_t = 1;
         else if (!strcmp(argv[i], "--dump-layer")) { dump_layer = atol(argv[++i]); dump_file = argv[++i]; }
+        else if (!strcmp(argv[i], "--xpos-table")) xpos_table = argv[++i];
+        else if (!strcmp(argv[i], "--y-target")) y_target = atol(argv[++i]);
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 2; }
     }
     if (root < 0) { fprintf(stderr, "--root required\n"); return 2; }
@@ -147,6 +195,7 @@ int main(int argc, char **argv) {
     printf("root after frame %ld: GES=%u X=%u page=%u Y=%u speed=%d timer=%u%u%u; state %zu bytes, RAM at +%ld; workers %ld\n",
            root, ram[0x0e], ram[0x86], ram[0x6d], ram[0xce], (int8_t)ram[0x57], ram[0x7f8], ram[0x7f9], ram[0x7fa], ssz, ram_off, workers);
     if (deadline >= 0 && layers > deadline - root) layers = deadline - root;
+    if (xpos_table) { xt_load(xpos_table); printf("xpos table: %u classes\n", xt_n); }
 
     memcpy(tmpl_ram, ram, RAMSZ); memset(pos_of, 0, sizeof pos_of);
     uint32_t cap = (uint32_t)(((size_t)mem_mb << 20) / 2 / (LMAX + 8 + sizeof(link_t) + 8));
@@ -176,7 +225,7 @@ int main(int argc, char **argv) {
                 uint32_t p0 = base + w * PER_W, p1 = p0 + PER_W; if (p0 >= cur->n) break; if (p1 > cur->n) p1 = cur->n; nw++;
                 pid_t pid = fork();
                 if (pid == 0) {
-                    uint32_t nrec = 0, nt = 0; long s_dup = 0, s_dead = 0, s_pruned = 0; (void)s_dup;
+                    uint32_t nrec = 0, nt = 0; long s_dup = 0, s_dead = 0, s_pruned = 0, s_unk = 0; (void)s_dup;
                     for (uint32_t p = p0; p < p1; p++) {
                         decode_state(cur->blobs + (size_t)p * LMAX, work + ram_off);
                         uint8_t parent_ram[RAMSZ]; memcpy(parent_ram, work + ram_off, RAMSZ);
@@ -195,16 +244,23 @@ int main(int argc, char **argv) {
                                 long xt = ((long)(ram[0x6d] << 8 | ram[0x86]) << 8) | ram[0x705]; long sp = (int8_t)ram[0x57], gain = 0;
                                 for (long kk = 1; kk <= frames_left; kk++) { sp += accel; if (sp > max_speed) sp = max_speed; gain += 16 * sp; }
                                 if (xt + gain + margin < target_x * 256) { s_pruned++; continue; }
+                                if (xpos_table) { long st = xt_steps(ram, target_x * 256); if (st < 0) s_unk++; else if (st > frames_left) { s_pruned++; continue; } }
+                                if (y_target >= 0) {   /* best-case descent: 8.8 speed += $90 per frame, cap 4.0 px/frame; +1 px rounding slack */
+                                    long ypx = ((long)ram[0xb5] - 1) * 256 + ram[0xce];
+                                    if (ypx < y_target) { long sp8 = ((int8_t)ram[0x9f]) * 256 + ram[0x433], acc = 0, n = 0;
+                                        while (n < frames_left && ypx + acc / 256 + 1 < y_target) { n++; sp8 += 0x90; if (sp8 > 0x400) sp8 = 0x400; acc += sp8; }
+                                        if (ypx + acc / 256 + 1 < y_target) { s_pruned++; continue; } }
+                                }
                             }
                             rec_t *r = &arenas[w][nrec++]; r->hash = hash_ram(ram); r->parent = p; r->input = INPUTS[k]; memcpy(r->ram, ram, RAMSZ);
                         }
                     }
-                    *counts[w] = nrec; *tcounts[w] = nt; stats[w][0] = s_dead; stats[w][1] = s_pruned; _exit(0);
+                    *counts[w] = nrec; *tcounts[w] = nt; stats[w][0] = s_dead; stats[w][1] = s_pruned; stats[w][2] = s_unk; _exit(0);
                 } else if (pid < 0) { perror("fork"); return 1; }
             }
             for (long w = 0; w < nw; w++) { int st; wait(&st); }
             for (long w = 0; w < nw; w++) {
-                dead += stats[w][0]; pruned += stats[w][1];
+                dead += stats[w][0]; pruned += stats[w][1]; xt_unknown += stats[w][2];
                 for (uint32_t i = 0; i < *counts[w]; i++) { rec_t *r = &arenas[w][i]; long rr = layer_insert(nxt, r->hash, r->ram, r->parent, r->input); if (rr == -1) dup++; else if (rr == -2) full++; }
                 for (uint32_t i = 0; i < *tcounts[w]; i++) { term_t *t = &terms[w][i]; term++; nterm++;
                     if (!quiet_t || best_tset < 0 || t->tset < best_tset)
@@ -214,8 +270,8 @@ int main(int argc, char **argv) {
             if (full) break;
         }
         links[L] = malloc((size_t)nxt->n * sizeof(link_t)); memcpy(links[L], nxt->links, (size_t)nxt->n * sizeof(link_t));
-        printf("layer %ld (after frame %ld): parents %u -> unique %u, dup %ld, dead %ld, pruned %ld, terminal %ld, full %ld; best T_set %ld; vaddrs %d; %.1fs (total %.0fs)\n",
-               L + 1, root + L + 1, cur->n, nxt->n, dup, dead, pruned, term, full, best_tset, nv, now() - tl, now() - t0);
+        printf("layer %ld (after frame %ld): parents %u -> unique %u, dup %ld, dead %ld, pruned %ld, terminal %ld, full %ld; best T_set %ld; vaddrs %d; xunk %ld; %.1fs (total %.0fs)\n",
+               L + 1, root + L + 1, cur->n, nxt->n, dup, dead, pruned, term, full, best_tset, nv, xt_unknown, now() - tl, now() - t0);
         fflush(stdout); fflush(tf);
         if (full) { printf("LAYER FULL (cap %u states of %d bytes) — stop; raise --mem-mb\n", cap, LMAX); break; }
         if (nxt->n == 0) { printf("no live states left\n"); break; }

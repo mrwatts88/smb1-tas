@@ -197,3 +197,18 @@ Maru's best 1-2 is 5 frames short, not 8.
 
 **Next.** P1.2-lite (needs a Rust nightly in the toolbox); P2.1b job result; then the flat-world /
 whole-room search with the sound bound.
+## 2026-08-21 — Session 3 (end): P2.1b/P1.2-lite checkpointed, job v4 running
+**Did.** Parallel compact-state BFS (`src/search/bfs_par.c` v3: template+RAM states, varying-address
+compression, forked workers) verified against v2; exported MrWint's XPos table from smb-opt and wired
+it in as a sound x bound; added a best-case-descent y bound; found and documented the template
+caveat at lag frames (F50). Pole search from the WR's frame-1229 state: v2 hit 1.52M states at
+frame 1243 with no grab ≤ 1284; restarted as run v4 with all bounds (running at session end).
+smb-opt's own W11PipeSpeedup reproduced (174 frames). F54; experiment files updated.
+
+**Learned.** The x bound is now exact-model-tight (every real-game x-class was in the table); the
+remaining growth (×1.4–1.8/layer) is y/subpixel variety, which only the descent bound and the
+deadline cut late. The model+core hybrid works: model for bounds, core for truth.
+
+**Next session.** (1) Read `runs/P2.1b-root1229-v4/stdout.log` (see STATUS Running jobs). (2) Depending
+on the outcome: full third room from root 1040 (P2.1b), or widen roots; consider the cloud box for
+memory. (3) Decide P1.2-lite's enemy question. User asked to end the session here; no new units taken.

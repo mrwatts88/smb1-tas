@@ -15,3 +15,4 @@ target/
 data/**/*.ram
 # third-party sources (cloned/built by tools/build_core.sh)
 third_party/
+data/xpos_table_*.txt
