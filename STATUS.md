@@ -8,10 +8,10 @@ Our best full movie: none yet
 Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox container `smb1`, Mesen2 native — run via `tools/{fceux,mesen2,bizhawk}_run.sh`, rebuild with `tools/toolbox_setup.sh` (see `docs/experiments/P0.1-tooling.md`). Git: private GitHub remote — commit after every unit, then push (document → STATUS → commit → push)
 
 ## Running jobs
-(none)
+- **P2.1b-root1229-par** (Linux box, pid in `runs/P2.1b-root1229-par/stdout.log` header; started 2026-08-21): `build/bfs_par` pole search from the WR's frame-1229 state, 10 workers, 6 GB cap. Check: `tail runs/P2.1b-root1229-par/stdout.log` (one line per layer; ends with `terminals:` / `LAYER FULL` / `no live states left`), `runs/P2.1b-root1229-par/terminals.txt`. A T_set ≤ 1813 = candidate 21-frame improvement (re-verify in FCEUX/BizHawk). Expected ≤ 2 h.
 
 ## In progress
-(none)
+- **P2.1b** — 1-1 third room relaxations on the current core. Started 2026-08-21. Part (3) first: `build/bfs` from the WR state at frame 1229 (stairs top, x 3033) with `--deadline 1284 --target-x 3158` (H27 test); then (1) the FPG trigger condition from the code; then (2) the flat-world frontier. Checkpoint: v1 run hit the memory cap at layer 10 (`runs/P2.1b-root1229/`); v2 `src/search/bfs_par.c` (2 KiB states, F50; forked workers) launched as the running job above. FPG geometry written down (F51). Still to do: (2) flat-world frontier; widen roots to 1176/1200; write `docs/experiments/P2.1b-pole-search.md` results.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
