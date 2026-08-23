@@ -20,6 +20,8 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
+**Standing lead (H36, 2026-08-22):** 4-2 top route = HappyLee's "2 frames short" − the pipe-entry frame (F79, likely transfers) = 1 short; his bottom-route ending was 3 frames loose (F88), so the top route's unexamined ending is the most hopeful concrete target. Needs the main-area search with the top route allowed (P2.3c-2c + a run).
+
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
 | P2.1b-m3 | **Whole-room exact search engine.** Make `bfs11` (smb-opt patch) per-layer and compact: frontier as 10/11-byte compressed keys with a decompressor (the compression is lossless: x subpixel multiples of 16, speed fraction multiples of 4), parents/inputs appended to disk, per-layer dedup by sort/hash of keys (no global visited set; the goomba-relevance/frame keying stays), parallel expansion over 12 cores; add the landing bound "on the ground at X ≥ 3155 by step 236" (F60) on top of the x/y bounds. Run the relaxed model + goombas from the fixed entry with deadline 238 (proof direction), then the exact model on any candidate; replay candidates on the core. Expect ~4×10¹¹ model steps (F61). Alternative if engineering stalls: the current engine on a 64 GB cloud box (needs the cloud decision in "Needs user input"). | A | L | P2.1b-m2 | Either a grab ≤ step 238 replayed on the core (→ P4.1), or a complete search record refuting H28 |
