@@ -31,7 +31,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ram_trace import load_symbols  # noqa: E402
+_argv = sys.argv; sys.argv = sys.argv[:1]   # area_data.py parses sys.argv at import time
 from area_data import read_block  # noqa: E402
+sys.argv = _argv
 
 SYMS = load_symbols()
 

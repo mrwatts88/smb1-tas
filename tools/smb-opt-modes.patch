@@ -1570,7 +1570,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..72f8395 100644
+index 350d469..2f985fb 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1876,7 +1876,7 @@ index 350d469..72f8395 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +335,1101 @@ fn calc_prng() {
+@@ -46,4 +335,1106 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2113,9 +2113,14 @@ index 350d469..72f8395 100644
 +  if *ext & 0x100 != 0 {
 +    // AreaParserTaskNum (post-frame value): a burst of 8 tasks starts (value 7 after this frame) when
 +    // ScrollThirtyTwo = ScreenLeft mod 32 wraps while no burst is running; the enemy loader skips frames with value 7 (F78).
-+    let mut aptn = (*ext & 0xf) as i32;
++    // The enemy loader (EnemiesAndLoopsCore) runs before the frame's parser task (GameEngine: ProcELoop, then
++    // RunParser at the end), so its AreaParserTaskNum & 7 == 7 test sees the PREVIOUS frame's value (P2.5c,
++    // WR dump row 6733: an object is consumed on a burst-start frame; F78 amended). The stored value is then
++    // advanced for this frame: a burst of 8 tasks starts (7 after this frame) when ScrollThirtyTwo wraps while idle.
++    let pre = (*ext & 0xf) as i32;
++    let mut aptn = pre;
 +    if aptn > 0 { aptn -= 1; } else if (sl >> 5) > (sl_prev >> 5) { aptn = 7; }
-+    if sl >= LIFT_SPAWN_SL && (aptn & 7) != 7 { *ext = 0; return LiftEvent::Spawn; }
++    if sl >= LIFT_SPAWN_SL && (pre & 7) != 7 { *ext = 0; return LiftEvent::Spawn; }
 +    *ext = 0x100 | aptn as u16;
 +    return LiftEvent::Nothing;
 +  }
