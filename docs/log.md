@@ -423,9 +423,9 @@ the cloud decision for the runs. Run 4 ETA ~2026-08-24 early morning.
 **Did.** Installed `hcloud` 1.67.0 to `~/.local/bin` from the official tarball (no sudo, no toolbox); the user
 created context `smb1-tas` in their own terminal — `hcloud context create` needs a TTY and fails under Claude
 Code's `! …` with `non-interactive tty detected`. Verified against the API (`hcloud location list`, exit 0).
-Established the billing rules from Hetzner's docs + the authenticated pricing endpoint (F92): hourly rounded up,
+Established the billing rules from Hetzner's docs + the authenticated pricing endpoint (F95): hourly rounded up,
 monthly cap, ancillary rates — and the one that matters, **a powered-off server still bills; only `delete` stops
-the charge**. Measured the engine's scaling limit from run 4's own log (F93): expansion is parallel over
+the charge**. Measured the engine's scaling limit from run 4's own log (F96): expansion is parallel over
 `--threads`, the k-way merge is single-threaded, serial fraction 4–6 % at 12 threads → the useful ceiling is
 ~48 cores. Since $/core-hour is flat across dedicated tiers, the $300 cap is really ~9,000 core-hours and
 machine size buys wall-clock only. **Then the user hit the account quota**: new account, only ccx13/ccx23/ccx33
@@ -444,8 +444,8 @@ main-area proof run. Unchanged: P2.3c-2c is still the in-progress unit.
 ## 2026-08-22 — Session 8 (alongside run 4): P2.3c-2c started — where the 4-2 main-area bound is loose; top-route reference via segment searches
 **Did.** Run 4 checked (layer 142, ~1000–1400 s/layer, ETA 2026-08-24 morning). Measured the x-only `W42Main` bound along
 the WR (`--check-path 588`): root 540 vs 588; slack 46 → 36 in the entrance fall, 35 → 4 in the col-30 wall entry
-(steps 201–221), tight elsewhere (F94). Read the geometry exactly (F92: the pillar is rows 7–9 with an open row 10 — the WR
-runs *under* it; pipe B is a floor-to-row-4 wall) and the wall-entry mechanics from the model trace + disassembly (F93: a
+(steps 201–221), tight elsewhere (F94). Read the geometry exactly (F95: the pillar is rows 7–9 with an open row 10 — the WR
+runs *under* it; pipe B is a floor-to-row-4 wall) and the wall-entry mechanics from the model trace + disassembly (F96: a
 Left press turns the foot-check impede into a +1 px push into the wall). Decoded the enemy data: `$3A` at col 46 = **3
 goombas on the Y-112 top floor**, the route HappyLee calls 2 frames short — they are not in the model. Added `bfscx
 --goal-x PX [--goal-y PY]` (position goals, x-table bound, best-of-layer goal pick; regression control identical),
