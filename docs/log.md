@@ -597,13 +597,13 @@ Fedora session was working concurrently. Merge deliberately: `docs/facts.md` (F1
 `STATUS.md` and `docs/log.md` are the likely conflicts, and the fact numbers may need shifting
 if the other session also appended.
 
-## 2026-08-23 — Session 11: S2 solved enemy-aware — 166 = the movement bound, the goombas are free (F111); S3 running
+## 2026-08-23 — Session 11: S2 solved enemy-aware — 166 = the movement bound, the goombas are free (F112); S3 running
 **Did.** Pulled the Mac agent's P0.11 work mid-session (two-box protocol in PROCESS.md; the Mac is NOT yet operational —
 `docker build` hangs there, P0.11a needs the user: Docker Desktop GUI repair or `dnf install qemu-user-static` here).
 Run 4 SIGSTOPped 16:40 (user OK'd; **resume `kill -CONT 172117`**) to give the S2 work 8 threads. S2 (first
 x ≥ 755 ∧ Y ≤ 112 from `chain_s1.bin`, `--enemies 0`): probe gave root bound 166, and the ladder's **first rung d166
 found the goal at layer 166** (70.6M goal transitions, peak frontier 5.54M, 1,996 s) — proof-grade since deadline =
-bound (F111). Reconstruction first FAILED: bfscx printed the goal-parent record truncated to klen+2 = 22 bytes (a
+bound (F112). Reconstruction first FAILED: bfscx printed the goal-parent record truncated to klen+2 = 22 bytes (a
 24-byte-record-era print), so the 64-byte enemy ext was zero-padded and matched no parent. Recovered the full 96-byte
 record from `layer_165.bin` by prefix (3 matches — the goombas in three walk phases), reran, and fixed the print to
 emit the full record (engine rebuilt, patch regenerated). `chain_s2.bin` (6,899) **core-verified 315/315 frames, 1
@@ -617,3 +617,31 @@ fails, suspect the record before the search.
 **Next.** S3 verdict → S4 (the wrong-warp pipe entry; the F100 slot-dependent plant is the open cost question —
 if S4 is expensive, test a slot-filling item bump, H34) → `replay_check` core replay of the full chain → the slack
 accounting vs HappyLee's 577 → the staged full-level bound. Resume run 4 when the searches are done.
+
+### 2026-08-23 (session 11, Mac) — P0.11a: the Mac is operational
+
+**Did.** Cleared the `docker build` blocker by routing around it: with `qemu-user-static`
+installed on the Fedora box, the arm64 image is built there under emulation (~25 min, `nice`d)
+and shipped to the Mac as a tarball — the Mac needs only `docker load` and `docker run`, the
+two operations that do work (F109). `smb-opt` then builds **natively arm64** in the container
+in 1m 59s, and the 4-2 WR-suffix control gate reproduces
+`runs/P2.3c/ctrl_w42main_p575_d587.log` **exactly** (F111). Merged the P0.11 branch to main
+(`eae7ec2`, clean, both sides' STATUS edits intact).
+
+**Learned / built.** The day-to-day hazard is not the container, it is **engine staleness**:
+`third_party/smb-opt` is untracked and reaches the project only through
+`tools/smb-opt-modes.patch`, so any pull touching that patch leaves the Mac's binary built from
+the wrong source with silently wrong numbers. This actually bit mid-session — the patch changed
+in `5bfe55c` while the Mac still had `2a1d15b`'s applied. Now mechanised rather than written
+down: `tools/mac_sync_engine.sh` (hard reset → reapply → rebuild → stamp
+`third_party/smb-opt/.built-from`) and a guard in `tools/mac_run.sh` that **refuses to run the
+engine** (exit 3) when the patch sha256 does not match the stamp. Two traps found while
+testing it: `set -e` plus `$(awk ...)` on a missing stamp killed the script before it could
+warn, and `git clean` skips patch-added files if they were ever `git add -N`'d, so the reset
+must be `--hard`.
+
+**Still open.** Expand throughput on the Mac is **unmeasured** — the control gate is too small
+to time, so F106's proxy (~2.8x/thread) is all we have. That is P0.11b.
+
+**Next.** P0.11b (throughput), then start using the Mac for difftest/ladder fan-out per
+PROCESS "Parallel work on the second host".

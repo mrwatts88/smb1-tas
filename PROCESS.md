@@ -73,7 +73,19 @@ may reach for when a unit happens to contain independent work.
   means two diverging working trees reconciled by hand through a patch file. The Mac only ever
   `git apply`s the committed patch and builds; it never touches `third_party/`. A unit that
   changes the engine is therefore not a Mac-parallelism candidate until it is committed.
-- **Cite build provenance.** Any Mac-produced result names the commit whose patch it built from.
+- **A patch change makes the Mac's engine stale — resync before running anything.** Whenever a
+  pull changes `tools/smb-opt-modes.patch`, the Mac's binary was built from the wrong source
+  and every number it produces is wrong. Run **`tools/mac_sync_engine.sh`** (hard-resets the
+  clone to the pinned commit, reapplies the current patch, rebuilds in the container, and
+  writes a provenance stamp). This is enforced, not just documented: `tools/mac_run.sh`
+  compares the patch's sha256 against that stamp and **refuses to run the engine binary** when
+  they differ (exit 3). Do not defeat the guard with `MAC_RUN_ALLOW_STALE=1` to get a result —
+  it exists for the rebuild itself.
+- **Re-run the control gate after every resync**, before trusting any Mac number:
+  `bfscx W42Main data/wr/wr_inputs.bin 6584 575 587 --lift 0 --check-path 12` must give layers
+  6, 16, 34, 70, 134, 673, 3472, 16472, 69489, 257001 (`runs/P2.3c/ctrl_w42main_p575_d587.log`).
+- **Cite build provenance.** Any Mac-produced result names the commit whose patch it built from
+  (`third_party/smb-opt/.built-from`).
 - **The Mac runs everything inside the container** (`tools/mac_run.sh`), because it cannot run
   the engine natively (F107). `mac_run.sh` supplies the memory cap, which is how the Mac obeys
   the "never start a search without a cgroup cap" rule at the top of STATUS "Running jobs" —
