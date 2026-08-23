@@ -22,6 +22,21 @@ Usage: tools/model_difftest.py [--n 100] [--len 120] [--seed 1] [--root-record 1
                     records R.. (model step i == QuickNES frame R-2+i, same law as 1-1); the goal is the case's
                     vertical pipe entry (model StateChangeVerticalPipe vs core GES 3). --root-record defaults to R.
                     E.g. --case W42Warp --first 7247 --wr --len 480 ; --case W42Main --first 6584 --n 50 --len 300
+  --enemies APTN0   W42Main with the lift + enemy module (P2.5c-2): model deaths must coincide with the core's GES 11;
+                    stomps/kicks are counted from the model's trace and the player fields after them are compared
+                    as usual; a bump of an item cell ((28,7) (55,7) (81,7) (64,3), H34: unmodelled spawns) stops
+                    the trial on that frame without a verdict (like a pit), reported as "item bump".
+  --arun AMAX       A held in runs of random length 0..AMAX (jumps of every height), started with probability pa
+  --wr-file FILE    use FILE's records as "the WR" (--wr compares FILE's own records from --root-record: a frame-by-
+                    frame check of a prefix file); --only SUBSTR runs only the trials whose name contains SUBSTR
+                    (the random stream is unchanged, so a trial of a big run is reproduced exactly; use --keep DIR)
+  --stop-x X        stop a trial without a verdict once the model's X >= X (W42Main: 1540 = the last columns of the
+                    block map, cols 0-97; beyond it the model has no blocks and no verdict is meaningful)
+  --require-event   run the model first and spend a core run only on trials whose model trace has a Stomp/Kick
+                    (stomp/kick-dense difftests from a large random pool; skipped trials are counted)
+  --prefix FILE     the trial prefix = FILE's records (instead of the WR's records up to --root-record); the random
+                    records follow it. --prefix-dir DIR: every *.bin in DIR (sorted) is used as a prefix, --n trials
+                    each (tools/w42_prefix_gen.py writes such prefixes: enemy-dense difftests from a chosen region).
 """
 import os, random, re, subprocess, sys, tempfile
 
@@ -34,6 +49,8 @@ MODEL_FIRST = 1048          # record index of model step 0 (= QuickNES frame 104
 MODEL_FRAME0 = 1046
 BOUNCE = "66:yspd=-1024"    # goomba stomp at row 1112 (F53)
 A, B, L, R = 0x01, 0x02, 0x40, 0x80  # NES order
+ITEM_MASK = (1 << 3) | (1 << 7) | (1 << 11) | (1 << 15)   # W42MainBlocks::CELLS bits of (64,3) (28,7) (55,7) (81,7)
+BLOCKS_RE = re.compile(r"^blocks: bounce \d+ used (0x[0-9a-f]+|\d+) ")
 
 SYM = dict(X=0x86, PAGE=0x6D, XSUB=0x0400, XSPD=0x57, XFRAC=0x0705, Y=0xCE, YHI=0xB5, YSPD=0x9F,
            YFRAC=0x0433, STATE=0x1D, GES=0x0E)
@@ -72,34 +89,50 @@ def run_model(inputs_path, steps, goombas=False):
               [SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE]
     out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
     rows = {}
+    step = None
     for line in out.splitlines():
         m = ROW_RE.match(line)
         if not m:
             if line and line[0].isdigit():
                 raise SystemExit(f"unparsed model row: {line!r}")
+            b = BLOCKS_RE.match(line)
+            if b and step is not None:
+                rows[step]["USED"] = int(b.group(1), 0)
             continue
         step = int(m.group(1))
         x_pos, y_pos, x_spd, y_spd = (int(m.group(k), 16) for k in (2, 3, 4, 5))
         x_spd, y_spd = s16(x_spd & 0xffff), s16(y_spd & 0xffff)
         rows[step] = dict(XP=(x_pos >> 8) & 0xffff, XSUB=x_pos & 0xff, XSPD=x_spd >> 8, XFRAC=x_spd & 0xff,
                           YP=(y_pos >> 8) & 0xffff, YSPD=y_spd >> 8, YFRAC=y_spd & 0xff,
-                          STATE=STATES[m.group(6)], RESULT=m.group(10))
+                          STATE=STATES[m.group(6)], RESULT=m.group(10), USED=0)
     return rows
 
-def compare(core, model, first_step, last_step, verbose):
-    """Returns (frames_compared, mismatches[(frame, field, model, core)], grab_info)."""
+STOP_X = None               # --stop-x: stop without verdict when the model's X reaches it (e.g. the end of a case's block map)
+
+D = 0x20                    # NES Down
+
+def compare(core, model, first_step, last_step, verbose, inputs=None):
+    """Returns (frames_compared, mismatches[(frame, field, model, core)], grab_info, events{stomps, kicks})."""
     mism, n = [], 0
     grab = None
+    ev = dict(stomps=0, kicks=0)
+    # item bumps already in the prefix are the caller's responsibility (the WR's (28,7) mushroom at ~6780 is
+    # harmless for slot occupancy: the object is gone by 6889, before the lift spawns; module check to 7038)
+    used0 = model[first_step - 1]["USED"] if first_step > 0 and (first_step - 1) in model else 0
     for step in range(first_step, last_step + 1):
         f = MODEL_FRAME0 + step
         if step not in model:
             break
         mr = model[step]
         cr = core_row(core, f)
+        if "STOMP" in mr["RESULT"]: ev["stomps"] += 1
+        if "KICK" in mr["RESULT"]: ev["kicks"] += 1
         if "StateChangeVerticalPipe" in mr["RESULT"]:
             # vertical pipe entry: the core sets GES 3 on the same frame (HandlePipeEntry); positions comparable
             grab = dict(model_frame=f, model_y=mr["YP"] & 0xff, core_ges=cr["GES"], core_y=cr["YP"] & 0xff,
                         core_frame=f if cr["GES"] == 3 else None, pipe=True)
+            if inputs is not None and not (inputs[MODEL_FIRST + step] & D):
+                grab["no_down"] = True   # F74: the model reports the entry as possible; without Down the core stays
             for k in ("XP", "YP"):
                 if mr[k] != cr[k]:
                     mism.append((f, k, mr[k], cr[k]))
@@ -124,6 +157,10 @@ def compare(core, model, first_step, last_step, verbose):
                 if mr[k] != cr[k]:
                     mism.append((f, k, mr[k], cr[k]))
             break
+        if STOP_X is not None and mr["XP"] >= STOP_X:
+            grab = dict(model_frame=None, core_frame=f, core_ges=cr["GES"], core_y=cr["YP"] & 0xff, model_y=None, stopx=True)
+            n += 1
+            break
         if mr["YP"] >= 0x1d0 or cr["YP"] >= 0x1d0:
             # below the screen bottom (fell into a pit): the game continues in the void until the pit death; not
             # a modeled region (the searches prune y >= 0x1d000 as dead) -> stop here without a verdict
@@ -136,7 +173,11 @@ def compare(core, model, first_step, last_step, verbose):
                 mism.append((f, k, mr[k], cr[k]))
         if mism and not verbose:
             break
-    return n, mism, grab
+        if ENEMIES is not None and (mr["USED"] & ITEM_MASK & ~used0 or "ITEMBUMP" in mr["RESULT"]):
+            # an item cell was bumped: the core spawns a mushroom/star/vine (H34, outside the model) -> stop here
+            grab = dict(model_frame=None, core_frame=f, core_ges=cr["GES"], core_y=cr["YP"] & 0xff, model_y=None, item=True)
+            break
+    return n, mism, grab, ev
 
 def main():
     args = sys.argv[1:]
@@ -159,8 +200,15 @@ def main():
         elif a == "--lift": opt["lift"] = int(args[i + 1]); i += 2
         elif a == "--enemies": opt["enemies"] = int(args[i + 1]); i += 2
         elif a == "--arun": opt["arun"] = int(args[i + 1]); i += 2
+        elif a == "--prefix": opt["prefix"] = args[i + 1]; i += 2
+        elif a == "--prefix-dir": opt["prefix_dir"] = args[i + 1]; i += 2
+        elif a == "--wr-file": opt["wr_file"] = args[i + 1]; i += 2   # compare FILE's own records instead of the WR's
+        elif a == "--only": opt["only"] = args[i + 1]; i += 2         # run only the trials whose name contains this
+        elif a == "--require-event": opt["require_event"] = True; i += 1   # model first; core only if a Stomp/Kick occurs
+        elif a == "--stop-x": opt["stop_x"] = int(args[i + 1]); i += 2     # stop a trial (no verdict) once the model's X >= this
         else: raise SystemExit(f"unknown option {a}")
-    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT, ENEMIES
+    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT, ENEMIES, STOP_X
+    if opt.get("stop_x") is not None: STOP_X = opt["stop_x"]
     if opt.get("lift") is not None: LIFT = opt["lift"]
     if opt.get("enemies") is not None: ENEMIES = opt["enemies"]
     if opt.get("case"):
@@ -168,12 +216,22 @@ def main():
         MODEL_FIRST = opt["first"]
         MODEL_FRAME0 = MODEL_FIRST - 2
         if opt["root"] == 1232: opt["root"] = MODEL_FIRST
-    wr = open(WR, "rb").read()
+    wr = open(opt.get("wr_file") or WR, "rb").read()
     rng = random.Random(opt["seed"])
     tmp = opt["keep"] or tempfile.mkdtemp(prefix="difftest_")
     os.makedirs(tmp, exist_ok=True)
     trials = [("wr", wr[: opt["root"] + opt["len"]])] if opt["wr"] else []
-    for t in range(opt["n"] if opt["mutate"] == 0 else 0):
+    prefixes = [("", wr[: opt["root"]])]
+    if opt.get("prefix"):
+        prefixes = [(os.path.basename(opt["prefix"]).rsplit(".", 1)[0] + "/", open(opt["prefix"], "rb").read())]
+    elif opt.get("prefix_dir"):
+        names = sorted(f for f in os.listdir(opt["prefix_dir"]) if f.endswith(".bin"))
+        prefixes = [(f.rsplit(".", 1)[0] + "/", open(os.path.join(opt["prefix_dir"], f), "rb").read()) for f in names]
+    if prefixes[0][0]:
+        assert opt["mutate"] == 0 and not opt["wr"], "--prefix/--prefix-dir: random trials only"
+        assert all(len(p) >= MODEL_FIRST for _, p in prefixes), "a prefix must reach the case's first record"
+    for pname, pfx in prefixes:
+      for t in range(opt["n"] if opt["mutate"] == 0 else 0):
         if opt["arun"] > 0:
             # --arun AMAX: A is held in runs of random length 0..AMAX started with probability pa (jumps of every height,
             # as tools/ygate_audit.py) so trials climb to the 4-2 top floor (P2.5c-2)
@@ -188,25 +246,33 @@ def main():
             rnd = bytes((R if rng.random() < opt["pr"] else 0) | (L if rng.random() < opt["pl"] else 0)
                         | (A if rng.random() < opt["pa"] else 0) | (B if rng.random() < opt["pb"] else 0)
                         for _ in range(opt["len"]))
-        trials.append((f"t{t}", wr[: opt["root"]] + rnd))
+        trials.append((f"{pname}t{t}", pfx + rnd))
     for t in range(opt["n"] if opt["mutate"] > 0 else 0):
         # the WR's own records from the root, with `mutate` random frames replaced by random A/B/L/R bytes
         suffix = bytearray(wr[opt["root"]: opt["root"] + opt["len"]])
         for _ in range(opt["mutate"]):
             suffix[rng.randrange(len(suffix))] = rng.choice([0, R, R | B, R | A | B, L, L | R, A, A | R, 0, R | B])
         trials.append((f"m{t}", wr[: opt["root"]] + bytes(suffix)))
-    first_step = opt["root"] - MODEL_FIRST
-    last_step = first_step + opt["len"] - 1
-    frames = MODEL_FRAME0 + last_step + 1
     tot_frames, bad, grabs, grab_match = 0, 0, 0, 0
     fpg_n = [0]
     deaths = [0]
+    stomps, kicks, items, skipped, nodown = 0, 0, 0, 0, 0
+    if opt.get("only"):
+        trials = [(nm, inp) for nm, inp in trials if opt["only"] in nm]   # the rng stream is unchanged
     for name, inputs in trials:
-        ip = os.path.join(tmp, name + ".bin")
+        first_step = len(inputs) - opt["len"] - MODEL_FIRST       # = root - MODEL_FIRST without a prefix
+        last_step = first_step + opt["len"] - 1
+        frames = MODEL_FRAME0 + last_step + 1
+        ip = os.path.join(tmp, name.replace("/", "_") + ".bin")
         open(ip, "wb").write(inputs)
-        core = run_core(ip, frames, os.path.join(tmp, name + ".ram"))
         model = run_model(ip, last_step + 1, opt["goombas"])
-        n, mism, grab = compare(core, model, first_step, last_step, opt["verbose"])
+        if opt.get("require_event") and not any(("STOMP" in r["RESULT"] or "KICK" in r["RESULT"]) for st, r in model.items() if st >= first_step):
+            skipped += 1
+            if not opt["keep"]: os.remove(ip)
+            continue
+        core = run_core(ip, frames, os.path.join(tmp, name.replace("/", "_") + ".ram"))
+        n, mism, grab, ev = compare(core, model, first_step, last_step, opt["verbose"], inputs)
+        stomps += ev["stomps"]; kicks += ev["kicks"]
         tot_frames += n
         status = "ok"
         if mism:
@@ -214,7 +280,11 @@ def main():
             status = "MISMATCH " + "; ".join(f"f{f} {k} model {m} core {c}" for f, k, m, c in mism[:6])
         gtxt = ""
         if grab:
-            if grab.get("pipe"):
+            if grab.get("pipe") and grab.get("no_down"):
+                nodown += 1
+                gtxt = f" pipe entry possible at f{grab['model_frame']} Y{grab['model_y']}, no Down pressed (stopped)"
+                if grab["model_y"] != grab["core_y"]: bad += 0 if mism else 1; gtxt += " Y DIFF"
+            elif grab.get("pipe"):
                 grabs += 1
                 ok = grab["core_frame"] == grab["model_frame"] and grab["core_y"] == grab["model_y"]
                 grab_match += ok
@@ -232,17 +302,26 @@ def main():
                 if not ok: bad += 0 if mism else 1
             elif grab.get("pit"):
                 gtxt = f" fell below the screen at f{grab['core_frame']} (stopped)"
+            elif grab.get("stopx"):
+                gtxt = f" reached x {STOP_X} at f{grab['core_frame']} (stopped)"
+            elif grab.get("item"):
+                items += 1
+                gtxt = f" item bump at f{grab['core_frame']} (H34, stopped)"
             elif grab.get("death") and grab["death"][0] == grab["death"][1]:
                 deaths[0] += 1
                 gtxt = f" death f{grab['core_frame']} ok"
             else:
                 gtxt = f" core left GES 8 at f{grab['core_frame']} (GES {grab['core_ges']}) vs model death={grab.get('death', (False,))[0]}"
                 bad += 0 if mism else 1
-        print(f"{name}: {n} frames {status}{gtxt}")
+        etxt = (f" stomps={ev['stomps']}" if ev["stomps"] else "") + (f" kicks={ev['kicks']}" if ev["kicks"] else "")
+        print(f"{name}: {n} frames {status}{gtxt}{etxt}", flush=True)
         if not opt["keep"]:
-            os.remove(ip); os.remove(os.path.join(tmp, name + ".ram"))
+            os.remove(ip); os.remove(os.path.join(tmp, name.replace("/", "_") + ".ram"))
     print(f"summary: {len(trials)} trials, {tot_frames} frames compared, {bad} trials with a difference, "
-          f"{grabs} grabs ({grab_match} identical frame+Y+FPG; {fpg_n[0]} FPG on the core), {deaths[0]} matching deaths")
+          f"{grabs} grabs ({grab_match} identical frame+Y+FPG; {fpg_n[0]} FPG on the core), {deaths[0]} matching deaths"
+          + (f", {stomps} stomps, {kicks} kicks, {items} item bumps (stopped)" if ENEMIES is not None else "")
+          + (f", {skipped} trials skipped (no model stomp/kick)" if opt.get("require_event") else "")
+          + (f", {nodown} pipe entries possible without Down (stopped)" if nodown else ""))
     if not opt["keep"]:
         os.rmdir(tmp)
 

@@ -841,7 +841,7 @@ index 3f1c53b..fc1d170 100644
      vec![s]
    }
 diff --git a/src/emu.rs b/src/emu.rs
-index 947eef3..3a0dc08 100644
+index 947eef3..fc94a87 100644
 --- a/src/emu.rs
 +++ b/src/emu.rs
 @@ -3,6 +3,11 @@ use blockbuffer::util::*;
@@ -856,7 +856,22 @@ index 947eef3..3a0dc08 100644
  
  
  bitflags! {
-@@ -96,11 +101,90 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
+@@ -68,6 +73,14 @@ pub fn print_rle<I: Iterator>(mut inputs: I) -> () where I::Item: PartialEq + ::
+   println!("] (len: {})", len);
+ }
+ 
++thread_local! {
++  /// (x_pos, y_pos) of the player after PlayerMovementSubs/ScrollHandler and before PlayerBGCollision in the most
++  /// recent `run_step` on this thread — what BoundingBoxCore uses for the player's hitbox (P2.5c-2, F101).
++  static PRE_BG_POS: ::std::cell::Cell<(i32, i32)> = ::std::cell::Cell::new((0, 0));
++}
++/// The player's pre-BG-collision position of the last `run_step` on this thread (see PRE_BG_POS).
++pub fn pre_bg_pos() -> (i32, i32) { PRE_BG_POS.with(|c| c.get()) }
++
+ pub trait Emu {
+   fn run_step(State, Input) -> (State, EmuResult);
+   fn run_step_nr(s: State, input: Input) -> State {
+@@ -96,11 +109,90 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
    started_jump: bool,
    started_on_ground: bool,
    x_scroll: i8, // only for scroll
@@ -947,7 +962,7 @@ index 947eef3..3a0dc08 100644
    fn new(s: State, joypad: Input) -> Self {
      SmbEmu {
        s,
-@@ -113,16 +197,22 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -113,16 +205,22 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        started_jump: false,
        started_on_ground: false,
        x_scroll: 0,
@@ -970,7 +985,7 @@ index 947eef3..3a0dc08 100644
  
      if O::ScrollPos::TRACK_SCROLL_POS && self.side_collision { self.s.side_collision_timer = 0xf; }
      else if O::ScrollPos::TRACK_SCROLL_POS && self.s.side_collision_timer > 0 { self.s.side_collision_timer -= 1; }
-@@ -136,11 +226,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -136,11 +234,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        return (self.s, EmuResult::InvalidStateFallingWithClearedYposFractionals);
      }
      self.s.parity = (self.s.parity + 1) % O::Parity::PARITY;
@@ -984,7 +999,18 @@ index 947eef3..3a0dc08 100644
      self.joypad_lr = Dir::from_bits_truncate(self.joypad.bits());
      self.joypad_ud = self.joypad & (inputs::U | inputs::D);
      if self.joypad.contains(Input::DOWN) && self.s.is_on_ground() && !self.joypad_lr.is_empty() {
-@@ -194,7 +285,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -153,6 +252,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+ 
+     self.scroll_handler();
+ 
++    // BoundingBoxCore runs here in the game (5607-5609), before PlayerBGCollision: the player's hitbox for this
++    // frame's enemy collisions is built from the position after movement, before the landing snap / wall
++    // push-back. Kept per thread for the object hook of the step that just ran (P2.5c-2, F101).
++    PRE_BG_POS.with(|c| c.set((self.s.x_pos, self.s.y_pos)));
+     self.player_bg_collision()
+   }
+   fn player_movement_subs(&mut self) -> () {
+@@ -194,7 +297,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn player_physics_sub(&mut self) -> () {
      // handle starting jumps
@@ -993,7 +1019,7 @@ index 947eef3..3a0dc08 100644
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
-@@ -283,6 +374,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -283,6 +386,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      self.s.x_pos = self.s.x_pos + ((self.s.x_spd as i32 >> 8) << 4);
      if O::ScrollPos::TRACK_SCROLL_POS {
        self.x_scroll = ((self.s.x_pos >> 8) - (old_x_pos >> 8)) as i8;
@@ -1001,7 +1027,7 @@ index 947eef3..3a0dc08 100644
      }
    }
    fn move_vertically(&mut self) -> () {
-@@ -291,8 +383,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -291,8 +395,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      if self.s.y_spd >= O::Platform::MAX_Y_SPD && (self.s.y_spd & 0xff) >= 0x80 { self.s.y_spd = O::Platform::MAX_Y_SPD; }
    }
    fn scroll_handler(&mut self) -> () {
@@ -1018,7 +1044,7 @@ index 947eef3..3a0dc08 100644
        if rel_x_pos < 0x50 || self.s.side_collision_timer > 0 || self.x_scroll <= 0 { return; }
        if rel_x_pos < 0x70 && self.x_scroll >= 2 { self.x_scroll -= 1; }
        self.s.left_screen_edge_pos = self.s.left_screen_edge_pos.wrapping_add(self.x_scroll as u8);
-@@ -310,6 +409,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -310,6 +421,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
  
      if is_coin(cv) && O::CoinHandler::is_coin_collected(&self.s, cx, cy) { cv = 0; } // ignore collected coins
      if /* is_question_block(cv) && */ O::PowerupHandler::is_activated_powerup_block(&self.s, cx, cy) { cv = 0xc4; } // question block changed to solid block
@@ -1029,7 +1055,7 @@ index 947eef3..3a0dc08 100644
      if cv == 0 { CollisionResult::NoCollision } else { CollisionResult::Collision(cv, cx, cy) }
    }
    fn player_bg_collision(&mut self) -> EmuResult {
-@@ -323,16 +426,19 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -323,16 +438,19 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      if self.s.y_pos >= (if O::PlayerSize::is_big(&self.s) && !self.s.is_crouching { 0x12000 } else { 0x11000 }) { // HeadChk
        if let CollisionResult::Collision(cv, cx, cy) = self.block_buffer_collision(0) {
          if is_coin(cv) {
@@ -1053,7 +1079,7 @@ index 947eef3..3a0dc08 100644
            }
          }
        }
-@@ -353,7 +459,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -353,7 +471,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
  
        if let CollisionResult::Collision(cv, cx, cy) = foot_collision {
          if is_coin(cv) {
@@ -1062,7 +1088,7 @@ index 947eef3..3a0dc08 100644
            return EmuResult::Success; // exit (no side checks)
          } else if !is_climb(cv) && !is_hidden_block(cv) && self.s.y_spd >= 0 {
            if cv == 0xc5 { // axe hit
-@@ -406,7 +512,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -406,7 +524,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
          }
        }
      } else if is_coin(cv) {
@@ -1570,7 +1596,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..ae994e1 100644
+index 350d469..2c41815 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1881,7 +1907,7 @@ index 350d469..ae994e1 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +338,1182 @@ fn calc_prng() {
+@@ -46,4 +338,1188 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2106,7 +2132,7 @@ index 350d469..ae994e1 100644
 +const LIFT_SPAWN_SL: i32 = 625;   // spawns on the first frame with ScreenLeft >= 625 (x 928 <= (ScreenRight+48)&~15) unless AreaParserTaskNum&7 == 7
 +const LIFT_ERASE_SL: i32 = 1013;  // OffscreenBoundsCheck: erased once x < ScreenLeft - 72
 +#[derive(PartialEq, Debug, Clone, Copy)]
-+enum LiftEvent { Nothing, Spawn, Land, Bonk, SideL, SideR, Erase, Stomp, Kick, Death }
++enum LiftEvent { Nothing, Spawn, Land, Bonk, SideL, SideR, Erase, Stomp, Kick, Death, ItemBump }
 +/// Lift y after k frames since the spawn frame (no move on the spawn frame; then Y_MoveForce $f0 per frame: 15 px per 16 frames).
 +fn lift_y_after(k: u16) -> i32 { if k == 0 { LIFT_Y0 } else { let m = k as i32 - 1; LIFT_Y0 + m - m / 16 } }
 +fn screen_left16(s: &State) -> i32 { let x = s.x_pos >> 8; let sl = s.left_screen_edge_pos as i32; let page = if sl <= (x & 0xff) { x >> 8 } else { (x >> 8) - 1 }; (page << 8) | sl }
@@ -2209,6 +2235,7 @@ index 350d469..ae994e1 100644
 +    itc_tick: ((<case::w42::W42MainBlocks as BlockStates>::IP0 as i32 - frame as i32 + 1) % 21 + 21) % 21 == 0,
 +    aptn_pre,
 +    px: s.x_pos >> 8, py: (s.y_pos >> 8) & 0xff, pys_pos: (s.y_spd >> 8) > 0,
++    bx: emu::pre_bg_pos().0 >> 8, by: (emu::pre_bg_pos().1 >> 8) & 0xff,
 +    bounce_cell: s.blocks.bounce_cell,
 +  };
 +  // the parser ran a render task this frame iff the task number changed (paused frames keep it)
@@ -2225,6 +2252,11 @@ index 350d469..ae994e1 100644
 +    ext.set_u16(e);
 +    if e == 0x200 { let mut sl2 = Slots::unpack(&ext.0); for i in 0..6 { if sl2.s[i].class == w42enemies::CLASS_LIFT { sl2.s[i].class = w42enemies::CLASS_EMPTY; sl2.s[i].state = 0; } } sl2.pack(&mut ext.0); }
 +  }
++  // H34: a bump of an item cell ((64,3) vine, (28,7)/(55,7) mushroom, (81,7) star — W42MainBlocks::CELLS bits 3/7/11/15)
++  // spawns an object the model does not have (slot use, power-up): searches refuse the transition (ItemBump is
++  // pruned like a death); traces only report it.
++  const ITEM_MASK: u16 = (1 << 3) | (1 << 7) | (1 << 11) | (1 << 15);
++  if ev != EnemyEvent::Death && s.blocks.used & ITEM_MASK & !pre.blocks.used != 0 { return LiftEvent::ItemBump; }
 +  match ev { EnemyEvent::Death => LiftEvent::Death, EnemyEvent::Stomp => LiftEvent::Stomp, EnemyEvent::Kick => LiftEvent::Kick, EnemyEvent::Nothing => lev }
 +}
 +
@@ -2272,7 +2304,7 @@ index 350d469..ae994e1 100644
 +    let input = nes_to_model(data[first + i]);
 +    let (mut ns, res) = <C as SmbSearchCase>::Emu::run_step(s.clone(), input);
 +    let mut evs = String::new();
-+    if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&s, &mut ns, &mut ext); let eu = ext.u16(); if ev == LiftEvent::Death { evs = " DEATH".to_string(); } else if ev == LiftEvent::Stomp || ev == LiftEvent::Kick { evs = format!(" {:?}", ev).to_uppercase(); } else if ev != LiftEvent::Nothing || eu < 0x100 { evs = format!(" lift {:?} k {} y {}", ev, eu, if eu < 0x100 { lift_y_after(eu) } else { -1 }); } } }
++    if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&s, &mut ns, &mut ext); let eu = ext.u16(); if ev == LiftEvent::Death { evs = " DEATH".to_string(); } else if ev == LiftEvent::Stomp || ev == LiftEvent::Kick || ev == LiftEvent::ItemBump { evs = format!(" {:?}", ev).to_uppercase(); } else if ev != LiftEvent::Nothing || eu < 0x100 { evs = format!(" lift {:?} k {} y {}", ev, eu, if eu < 0x100 { lift_y_after(eu) } else { -1 }); } } }
 +    if trace {
 +      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}{}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res, evs);
 +      if <<C as options::Options>::ScrollPos as options::ScrollPos>::TRACK_SCROLL_POS { println!("scroll: {} sct {}", ns.left_screen_edge_pos, ns.side_collision_timer); }
@@ -2474,7 +2506,7 @@ index 350d469..ae994e1 100644
 +              match res {
 +                EmuResult::Success => {
 +                  let mut ne = pe;
-+                  if let Some(h) = hook { h(&ps, &mut ns, &mut ne); }
++                  if let Some(h) = hook { let ev = h(&ps, &mut ns, &mut ne); if ev == LiftEvent::Death || ev == LiftEvent::ItemBump { dead += 1; continue; } }
 +                  if ns.y_pos >= 0x1d000 { dead += 1; continue; }
 +                  match xy_h(&*goal, &ns, ne.u16(), step + 1, goal_x, goal_y) {
 +                    None => { pruned += 1; continue; }
@@ -2606,7 +2638,7 @@ index 350d469..ae994e1 100644
 +              let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
 +              if res != EmuResult::Success { continue; }
 +              let mut ne = pe;
-+              if let Some(h) = hook { h(&ps, &mut ns, &mut ne); }
++              if let Some(h) = hook { let ev = h(&ps, &mut ns, &mut ne); if ev == LiftEvent::Death || ev == LiftEvent::ItemBump { continue; } }
 +              if ns.y_pos >= 0x1d000 { continue; }
 +              if ne != rec_ext(&target, klen) { continue; }
 +              if Key::<C, A>::from_state(&ns).as_bytes() == &target[..klen] { return Some((r, ib)); }
@@ -2702,7 +2734,7 @@ index 350d469..ae994e1 100644
 +            match res {
 +              EmuResult::Success => {
 +                let mut ne = pe;
-+                if let Some(h) = hook { h(ps, &mut ns, &mut ne); }
++                if let Some(h) = hook { let ev = h(ps, &mut ns, &mut ne); if ev == LiftEvent::Death || ev == LiftEvent::ItemBump { dead += 1; continue; } }
 +                if ns.y_pos >= 0x1d000 { dead += 1; continue; }
 +                let mut c = ns.clone();
 +                match goal.distance_to_goal_heuristic(&mut c, (step + 1) as state::Dist) {
@@ -3320,10 +3352,10 @@ index e8c4d09..0d62041 100644
    }
 diff --git a/src/w42enemies.rs b/src/w42enemies.rs
 new file mode 100644
-index 0000000..54f0ed5
+index 0000000..e3ac1a5
 --- /dev/null
 +++ b/src/w42enemies.rs
-@@ -0,0 +1,418 @@
+@@ -0,0 +1,421 @@
 +//! P2.5c-2 — the 4-2 main-area enemies as a per-step object hook for `W42Main` (`--enemies`): the enemy-data loader
 +//! (`ProcessEnemyData`), the `$3A` goomba group, the green koopa, the buzzy beetles, the piranha plants the area
 +//! parser inserts into the pipes, and the lift's slot occupancy, with the per-slot RAM packed into the record's ext
@@ -3565,7 +3597,10 @@ index 0000000..54f0ed5
 +  }
 +}
 +
-+pub struct Frame { pub sl16: i32, pub fc_odd: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub pys_pos: bool, pub bounce_cell: u16 }
++/// `bx`/`by`: the player's position after movement and before PlayerBGCollision (emu::pre_bg_pos) — the game builds
++/// the player's hitbox from it (BoundingBoxCore before PlayerBGCollision), so a landing snap or a wall push-back in
++/// the same frame does not move the box (F101); `px`/`py` are the final position (CheckPlayerVertical, plant range).
++pub struct Frame { pub sl16: i32, pub fc_odd: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
 +
 +impl Slots {
 +  /// ProcessEnemyData for free slot `slot` (CheckRightBounds / CheckRightExtBounds / HandleGroupEnemies).
@@ -3625,8 +3660,8 @@ index 0000000..54f0ed5
 +    }
 +    let mut stomp_timer = 0u8;
 +    let mut ev = EnemyEvent::Nothing;
-+    let prelx = ((f.px - f.sl16) & 0xff) as u8;
-+    let pbox = (prelx.wrapping_add(3), (f.py + 20) as u8, prelx.wrapping_add(13), (f.py + 32) as u8);
++    let prelx = ((f.bx - f.sl16) & 0xff) as u8;   // RelativePlayerPosition + BoundingBoxCore before PlayerBGCollision (F101)
++    let pbox = (prelx.wrapping_add(3), (f.by + 20) as u8, prelx.wrapping_add(13), (f.by + 32) as u8);
 +    let player_ok = f.py < 0xd0;
 +    let mut boxes: [Option<(u8, u8, u8, u8)>; 6] = [None; 6];
 +    for i in 0..6 {

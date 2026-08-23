@@ -514,3 +514,24 @@ move force / collision / masked bits / sub-pixel accumulators) turned out to mat
 is now in the record even for empty slots. Three core difftests (`--enemies`) launched for the next session. Process
 lesson, twice: a `cd` inside a compound Bash command made later commands run in the vendored smb-opt repo (a stray
 commit there, reset) — absolute paths and `git -C` only.
+
+## 2026-08-23 — Session 10: P2.5c-2 step 1b — the enemy module validated on the core; F101; search pruning fixed
+**Did.** Read the session-9 difftests (0 differences, but only ~15 goomba contacts). Built region-prefix difftesting:
+`tools/w42_prefix_gen.py` (model-generated prefixes that reach a region without item bumps or enemy events) and
+`model_difftest.py --prefix-dir/--require-event/--stop-x/--wr-file/--only` with stomp/kick counts and the H34
+item-bump stop. The first koopa-region trials exposed **F101**: the player's hitbox is built *before*
+`PlayerBGCollision`, so a landing snap or wall push-back in the same frame does not move it (pipe-A plant kill
+at f7132, koopa kill two frames later at f7232) — fixed via a per-thread pre-collision position (`emu::pre_bg_pos`).
+Then a zero exposed a tool bug (the trace prints ` STOMP`, the tools looked for `Stomp`), and the beetle set showed
+the block map ends at col 97 (`--stop-x`). Final: **5,787 trials, 877,058 frames, 0 differences; 1,825 matching
+deaths, 3,686 stomps, 949 kicks** (F102) — goombas, koopa/beetle shells and kicks, the three plants, F100's
+slot-dependent plant. Found and fixed that the search loops ignored the hook's verdict (enemy deaths were not pruned);
+item bumps are now refused in searches (`LiftEvent::ItemBump`); two search controls (the WR suffix is outside the
+enemy model because of its vine bump — consistent with F100; a vine-free entry path searches end to end). Patch
+regenerated. Run 4 paused with SIGSTOP at 12:28 at the user's request (resume: `kill -CONT 172117`).
+**Learned.** Every difference so far came from *ordering within the frame* (F78 loader, F101 hitbox), not from the
+rules themselves — read the routine order, not just the routine. A count of zero is a test of the tooling before
+it is a fact about the game. Region prefixes + model-filtered continuations give 100× the event density of random
+inputs from the root for the same core time.
+**Next.** P2.5c-2 steps 4–5: the ygate bounce relaxation (stomps give −4 y speed: the y-bound must admit them),
+then the enemy-aware S1→S4 chain / main-area run; d149 (enemy-free S1) still running under its watchdog.
