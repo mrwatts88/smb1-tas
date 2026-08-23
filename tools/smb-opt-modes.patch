@@ -1644,7 +1644,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..22032d6 100644
+index 350d469..82ad512 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2645,8 +2645,8 @@ index 350d469..22032d6 100644
 +  match goal_first {
 +    Some((gstep, prec, pib, ref gs)) => {
 +      println!("earliest goal: step {} (records {} .. {}), best of the layer by (x speed, x): state {}", gstep, first + prefix, first + prefix + gstep - 1, gs);
-+      println!("goal parent record: {:?} input {:#x}", &prec[..klen + 2], pib);
-+      println!("reconstruct with: smb-opt bfscx-path CASE {} {} \"{:?}\" {:#x} [--lift N] --out FILE", ldir, gstep - 1, &prec[..klen + 2], pib);
++      println!("goal parent record: {:?} input {:#x}", &prec[..], pib);
++      println!("reconstruct with: smb-opt bfscx-path CASE {} {} \"{:?}\" {:#x} [--lift N] --out FILE", ldir, gstep - 1, &prec[..], pib);
 +      if out.is_some() { println!("(--out: pass it to bfscx-path to write the reconstructed inputs)"); }
 +    }
 +    None => { println!("no goal found within {} steps", max_steps); }

@@ -596,3 +596,24 @@ all work, so this is image *creation* specifically. Two of the four ways out nee
 Fedora session was working concurrently. Merge deliberately: `docs/facts.md` (F105–F110),
 `STATUS.md` and `docs/log.md` are the likely conflicts, and the fact numbers may need shifting
 if the other session also appended.
+
+## 2026-08-23 — Session 11: S2 solved enemy-aware — 166 = the movement bound, the goombas are free (F111); S3 running
+**Did.** Pulled the Mac agent's P0.11 work mid-session (two-box protocol in PROCESS.md; the Mac is NOT yet operational —
+`docker build` hangs there, P0.11a needs the user: Docker Desktop GUI repair or `dnf install qemu-user-static` here).
+Run 4 SIGSTOPped 16:40 (user OK'd; **resume `kill -CONT 172117`**) to give the S2 work 8 threads. S2 (first
+x ≥ 755 ∧ Y ≤ 112 from `chain_s1.bin`, `--enemies 0`): probe gave root bound 166, and the ladder's **first rung d166
+found the goal at layer 166** (70.6M goal transitions, peak frontier 5.54M, 1,996 s) — proof-grade since deadline =
+bound (F111). Reconstruction first FAILED: bfscx printed the goal-parent record truncated to klen+2 = 22 bytes (a
+24-byte-record-era print), so the 64-byte enemy ext was zero-padded and matched no parent. Recovered the full 96-byte
+record from `layer_165.bin` by prefix (3 matches — the goombas in three walk phases), reran, and fixed the print to
+emit the full record (engine rebuilt, patch regenerated). `chain_s2.bin` (6,899) **core-verified 315/315 frames, 1
+stomp** (x ≈ 690, in stride). S2's 30 G of layers deleted after the verified reconstruction. S3 (→ x ≥ 1005, the
+lift pit) probed: root bound 100; ladder `100 2 140` running at 8 threads (`top_s3_ladder.log`). `bfscx_ladder.sh`
+gained a `MEMCAP` override and a <40G-free disk guard.
+**Learned.** The enemy-aware optimum can *equal* the enemy-free movement bound — a stomp taken in stride while
+already descending costs nothing; H36's "three forced stomps" premise is dead for the group section (1 stomp, 0
+frames). Also: every truncation is invisible until an ext is nonzero — print full records, and when a reconstruction
+fails, suspect the record before the search.
+**Next.** S3 verdict → S4 (the wrong-warp pipe entry; the F100 slot-dependent plant is the open cost question —
+if S4 is expensive, test a slot-filling item bump, H34) → `replay_check` core replay of the full chain → the slack
+accounting vs HappyLee's 577 → the staged full-level bound. Resume run 4 when the searches are done.
