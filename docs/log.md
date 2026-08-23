@@ -455,9 +455,12 @@ layer 29; 149 running (~9M states/layer, ~100 s/layer at nice 10, 2 threads, 2 G
 **Learned.** The WR's main-area deficit is two localized costs (entrance fall 10, wall entry 31), so the enemy-free top route
 should be ≈ 550–555 — and the thing that can make it 577 is the goomba group, which means 4-2 needs the P2.5-style enemy
 module before any proof run is meaningful. The x-only bound's remaining looseness is y-variety (heights), not x.
-**Next.** S1 verdict → `bfscx-path … --out` → `tools/chain_inputs.py` → S2 (x ≥ 755, Y ≤ 112) → S3 (x ≥ 1005) → S4 (pipe
-entry, case goal) → model length vs 577 → `tools/replay_check.py --case W42Main --first 6584 --prefix 0 --path CHAIN --lift 0
---down` on the core (expect a goomba death) → bound design + the 4-2 goomba port plan. Then the cloud decision.
+**S1 verdict (late):** deadline 149 reached 23M states at layer 100 still growing (max x ≈ 215 px) and was killed by the
+watchdog; 147 dies at layer 29 — the x-only bound keeps every height variant (F95). Reference chain parked.
+**Next.** The y-coupled gate terms for `W42Main` (must-land-then-jump law at the pillar top / pipe B, the entrance fall with
+air acceleration; spec in the experiment file), checked on the WR and audited, then the S1 ladder again → chain S2–S4 →
+core replay. New unit P2.5c (4-2 enemy module: the goomba group, koopa, beetle) queued right behind it — 4-2 is
+goomba-limited on the top route. Then the cloud decision (the user wants to discuss the provider next session).
 
 ## 2026-08-22 — Session 8 (cont.): P0.10 revised — the auction route, pro-rata billing, and a sizing rule
 **Did.** Two corrections to the earlier P0.10 conclusion, both from following the user's questions rather than
