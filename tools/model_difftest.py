@@ -62,10 +62,11 @@ def core_row(data, f):
 
 CASE = None                 # --case NAME: generic tracec mode (MODEL_FIRST/MODEL_FRAME0 set from --first)
 LIFT = None                 # --lift APTN0: W42Main with the 4-2 lift hook (tracec ... --lift APTN0)
+ENEMIES = None              # --enemies APTN0: W42Main with the lift + enemies hook (P2.5c-2); deaths by enemies must match GES 11
 
 def run_model(inputs_path, steps, goombas=False):
     if CASE:
-        cmd = [SMBOPT, "tracec", CASE, inputs_path, str(MODEL_FIRST), str(steps)] + (["--lift", str(LIFT)] if LIFT is not None else [])
+        cmd = [SMBOPT, "tracec", CASE, inputs_path, str(MODEL_FIRST), str(steps)] + (["--enemies", str(ENEMIES)] if ENEMIES is not None else ["--lift", str(LIFT)] if LIFT is not None else [])
     else:
         cmd = [SMBOPT, "trace11room", inputs_path, str(MODEL_FIRST), str(steps)] if goombas else \
               [SMBOPT, "trace11pipe", inputs_path, str(MODEL_FIRST), str(steps), BOUNCE]
@@ -156,9 +157,11 @@ def main():
         elif a == "--case": opt["case"] = args[i + 1]; i += 2
         elif a == "--first": opt["first"] = int(args[i + 1]); i += 2
         elif a == "--lift": opt["lift"] = int(args[i + 1]); i += 2
+        elif a == "--enemies": opt["enemies"] = int(args[i + 1]); i += 2
         else: raise SystemExit(f"unknown option {a}")
-    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT
+    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT, ENEMIES
     if opt.get("lift") is not None: LIFT = opt["lift"]
+    if opt.get("enemies") is not None: ENEMIES = opt["enemies"]
     if opt.get("case"):
         CASE = opt["case"]
         MODEL_FIRST = opt["first"]
