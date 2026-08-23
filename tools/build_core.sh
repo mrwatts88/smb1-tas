@@ -17,9 +17,13 @@ if [ ! -d third_party/smb-opt ]; then
   git clone https://github.com/MrWint/smb-opt.git third_party/smb-opt
   ( cd third_party/smb-opt && git checkout -q daa44287bc9ccab7e85b430e80bf7dff77542542 && git apply ../../tools/smb-opt-modes.patch )
 fi
-if [ -x "$HOME/.cargo/bin/cargo" ]; then
-  ( cd third_party/smb-opt && "$HOME/.cargo/bin/cargo" build --release ) && \
+# Resolve cargo from PATH first, then the usual rustup location. The Mac overflow host
+# (P0.11) builds inside tools/Dockerfile.smbopt, where CARGO_HOME is /opt/cargo, not ~/.cargo.
+CARGO=$(command -v cargo || true)
+[ -n "$CARGO" ] || { [ -x "$HOME/.cargo/bin/cargo" ] && CARGO="$HOME/.cargo/bin/cargo"; }
+if [ -n "$CARGO" ]; then
+  ( cd third_party/smb-opt && "$CARGO" build --release ) && \
   third_party/smb-opt/target/release/smb-opt xpos-dump data/xpos_table_11.txt && echo "built smb-opt and data/xpos_table_11.txt"
 else
-  echo "skipping smb-opt (no ~/.cargo/bin/cargo)"
+  echo "skipping smb-opt (no cargo on PATH and no ~/.cargo/bin/cargo)"
 fi

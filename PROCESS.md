@@ -48,6 +48,40 @@ STATUS is current; never end a session with uncommitted work.
   Terminate instances before the session ends unless a job is running — then record the
   instance ID and an auto-shutdown deadline. Never leave an idle instance running.
 
+## Parallel work on the second host
+
+An **addition to** the loop above, not a new topology. The default is unchanged: one session,
+normal process, primary box. The Mac (`ssh mac`, F105) is opportunistic overflow the session
+may reach for when a unit happens to contain independent work.
+
+- **Default: unchanged.** Run the loop as written. Do not restructure a unit to use two boxes.
+- **When a unit contains independent parallel work** — difftest trial batches, ladder rungs at
+  different deadlines, a second segment, a control run — spawn a subagent to get it started on
+  the Mac while you carry on here. *Independent* means no shared layer files, no shared engine
+  edits, and results that combine by concatenation rather than by merge.
+- **Subagents report; they do not write.** A subagent never commits and never edits STATUS.md
+  or `docs/`. It launches its job, reads its log, and returns the numbers; the session folds
+  those into the documentation and commits. This keeps a single writer without needing any
+  coordination protocol.
+- **Subagents are unit-scoped, not machine-scoped.** Do not create a long-lived "Mac agent".
+  Searches run detached with watchdogs, so an agent that owns a machine just burns context
+  polling a log. Spawn for a piece of work, let it finish, move on. It bootstraps from
+  CLAUDE.md → PROCESS.md → STATUS.md like any fresh session.
+- **Exactly one machine edits the engine: the primary box.** `third_party/smb-opt` is an
+  untracked clone of MrWint's repo whose only channel into this project is
+  `tools/smb-opt-modes.patch`, regenerated at commit time. Two machines editing engine sources
+  means two diverging working trees reconciled by hand through a patch file. The Mac only ever
+  `git apply`s the committed patch and builds; it never touches `third_party/`. A unit that
+  changes the engine is therefore not a Mac-parallelism candidate until it is committed.
+- **Cite build provenance.** Any Mac-produced result names the commit whose patch it built from.
+- **The Mac runs everything inside the container** (`tools/mac_run.sh`), because it cannot run
+  the engine natively (F107). `mac_run.sh` supplies the memory cap, which is how the Mac obeys
+  the "never start a search without a cgroup cap" rule at the top of STATUS "Running jobs" —
+  macOS has no `systemd-run --scope -p MemoryMax=`. Use `tools/watchdog.sh` (portable) for the
+  frontier-size and free-disk limits.
+- **If the Mac is unreachable or the container is unavailable, carry on.** That is a lost
+  optimization, not a blocker: note it and run the unit on the primary box.
+
 ## Evidence standards
 - `docs/facts.md` entries carry a status: **V** (verified by us — cite the script/experiment)
   or **S** (sourced from the community — cite the URL; treat as a claim to verify).
