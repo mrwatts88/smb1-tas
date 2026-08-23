@@ -68,7 +68,7 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 
 ## Blocked / Needs user input
 - (optional, not blocking) **Native emulator install on the host** would let `tools/fceux_run.sh` skip the container: `sudo dnf install -y fceux xorg-x11-server-Xvfb mono-core mono-devel libgdiplus lsb_release cmake clang gdb strace` (RPM Fusion is already enabled on the host). Everything currently runs in the rootless toolbox container, so this is a convenience only.
-- **Cloud** (optional now, useful soon): run 4 fits the laptop (≤ 10 GB, ~1 day). A cloud box would matter for
+- **Cloud — now required for any big search (decision 2026-08-22, docs/decisions.md):** the next exhaustive runs (P2.3c warp zone / main area, any further whole-room run) go to a cloud box, not the laptop. Needed from the user: a provider + auth from this box. Original note: run 4 fits the laptop (≤ 10 GB, ~1 day). A cloud box would matter for
   (i) a re-run if the frontier outgrows the laptop's time budget, and (ii) P2.5's many segment searches. What is
   needed from the user: a provider + a way to authenticate from this box (e.g. `aws configure`/`gcloud auth
   login`/`hcloud context create` typed with `! …`). Recommendation: a 32–64 vCPU / 128 GB spot instance

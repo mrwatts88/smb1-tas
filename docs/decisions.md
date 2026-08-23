@@ -11,3 +11,5 @@ STATUS "Needs user input" and keep working on other units.
 | D4 | 2026-08-21 | No community engagement for now (no forum posts, DMs, Discord, submissions). Reading public sources is fine. |
 | D5 | 2026-08-21 | The project runs as a self-contained agentic loop (PROCESS.md + STATUS.md); "continue working" in a brand-new session must be a sufficient prompt. |
 | D6 | 2026-08-21 | Small spend is acceptable; cloud cap $300 total without asking (PROCESS.md). |
+
+- **2026-08-22 — Big searches go to the cloud, not the laptop.** Multi-hour/multi-day exhaustive searches (whole-room runs, P2.3c segment proofs) must run on a cloud box; the laptop is for the model, tools, short validations, and reading the code. Run 4 (P2.1b-m3) is the last laptop-hosted long search. Needed from the user before the next big search: a provider + authentication from this box (see STATUS "Blocked / Needs user input").
