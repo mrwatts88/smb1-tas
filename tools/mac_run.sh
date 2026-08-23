@@ -24,6 +24,31 @@ done
 [ $# -gt 0 ] || { echo "$0: no command given" >&2; exit 2; }
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
+
+# Staleness guard. third_party/smb-opt is untracked and reaches this project only through
+# tools/smb-opt-modes.patch, so a patch change on main leaves the Mac's binary built from
+# the wrong source — and its numbers silently wrong. Refuse to run the engine in that state.
+STAMP="$REPO/third_party/smb-opt/.built-from"
+PATCH="$REPO/tools/smb-opt-modes.patch"
+if [ -f "$PATCH" ]; then
+  NOW=$(shasum -a 256 "$PATCH" 2>/dev/null || sha256sum "$PATCH" 2>/dev/null || true)
+  NOW=${NOW%% *}
+  WAS=$(awk '/^patch_sha256/ { print $2 }' "$STAMP" 2>/dev/null || true)
+  if [ "$NOW" != "$WAS" ]; then
+    echo "WARNING: the Mac's smb-opt build is STALE or unstamped." >&2
+    echo "         tools/smb-opt-modes.patch has changed since it was built." >&2
+    echo "         Fix with: tools/mac_sync_engine.sh" >&2
+    case "$*" in
+      *target/release/smb-opt*)
+        [ "${MAC_RUN_ALLOW_STALE:-}" = "1" ] || {
+          echo "REFUSING to run the engine from a stale build." >&2
+          echo "(override for a non-engine use with MAC_RUN_ALLOW_STALE=1)" >&2
+          exit 3; }
+        ;;
+    esac
+  fi
+fi
+
 exec docker run --rm \
   --memory="$MEM" --memory-swap="$MEM" \
   --volume "$REPO":/work --workdir /work \

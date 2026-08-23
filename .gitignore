@@ -16,3 +16,5 @@ data/**/*.ram
 # third-party sources (cloned/built by tools/build_core.sh)
 third_party/
 data/xpos_table_*.txt
+# default layer dir when bfscx is run without --layer-dir (e.g. the control gate)
+bfscx_layers/
