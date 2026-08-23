@@ -458,3 +458,25 @@ module before any proof run is meaningful. The x-only bound's remaining loosenes
 **Next.** S1 verdict → `bfscx-path … --out` → `tools/chain_inputs.py` → S2 (x ≥ 755, Y ≤ 112) → S3 (x ≥ 1005) → S4 (pipe
 entry, case goal) → model length vs 577 → `tools/replay_check.py --case W42Main --first 6584 --prefix 0 --path CHAIN --lift 0
 --down` on the core (expect a goomba death) → bound design + the 4-2 goomba port plan. Then the cloud decision.
+
+## 2026-08-22 — Session 8 (cont.): P0.10 revised — the auction route, pro-rata billing, and a sizing rule
+**Did.** Two corrections to the earlier P0.10 conclusion, both from following the user's questions rather than
+my own plan. (1) **The Cloud quota is not the only door.** Hetzner's Server Auction (Robot) has no vCPU-quota
+system, **no setup fee, no minimum term**, immediate cancellation, and — the part that changes the maths —
+**billing exact to the hour and pro-rata, "you will never pay more than the monthly price"**. So the monthly
+figure is a *ceiling*, not a commitment, and boxes must be compared by **day rate**: a 32c/64t EPYC 7502P with
+128 GB + 1.9 TB is ~$9.67/day against cloud ccx33's $6.27/day for 8c/240 GB. I had framed €333.70/mo as
+"blows the whole cap in a month", which was wrong for a run that lasts days (F97). (2) **Sized the 4-2 run
+properly from live data instead of guessing** (F98): the S1 ladder at deadline 149 (2 frames of slack) plateaus
+at ~1.4×10⁷ states/layer and *turns over*, 131 s/layer on **two threads**, 90 layers in 41 minutes — fifty
+times smaller than run 4's layers. Frontier per layer spans 3 orders of magnitude on the bound's slack, so the
+machine decision is premature until P2.3c-2c reports; wrote a decision rule into STATUS so the next session
+applies it mechanically. Also fixed a fact-ID collision I created (my F92/F93 → F95/F96; P2.3c-2c had already
+taken F92–F94 in the same working tree).
+**Learned.** Price the *terms*, not the sticker: pro-rata hourly billing on bare metal makes a "€334/month"
+box a $12/day box, which is a completely different decision. And when two agents share a working tree, append
+to `docs/facts.md` only after re-reading it — `tail -3` at the start of a unit is stale by the end of it.
+**Next.** Unchanged and not blocked on cloud: S1 d149 finishes within the hour (layer 95 of 149 at the time of
+writing), then S2–S4 chain per the P2.3c-2c checkpoint. Run 4 at layer 143/238, ETA ~2026-08-24. Apply the F98
+decision rule when the full-level frontier is known. Worth de-risking early: whether Robot gates new accounts
+the way Cloud does (user action; ordering flow, no purchase needed).
