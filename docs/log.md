@@ -392,3 +392,16 @@ minutes (`tools/ram_trace.py` on `VRAM_Buffer1`/`AddrCtrl`/`AreaParserTaskNum`).
 one mod-168 counter keeps per-layer-deterministic state out of the dedup cost.
 **Next.** P2.3c-1: generalise the external-memory engine (`bfs11c` + `bfs11c-path`) to any case + hook (`bfscx`),
 then the staged bounds (P2.3c-2); the big runs wait for the cloud decision. Run 4 ETA ~2026-08-24 early morning.
+## 2026-08-22 — Session 7 (late): P2.3c-1 done — `bfscx`, the external-memory engine for any case
+**Did.** Generalised `bfs11c`/`bfs11c-path` into `bfscx`/`bfscx-path` (any `SmbSearchCase`, object hook + ext in
+24-byte records, the case's `SearchGoal` as bound and goal, `--check-path` by binary search in the sorted layer files).
+Controls under `systemd-run` caps: 4-2 WR suffix (prefix 575, deadline 587) — layer counts identical to `bfsc`, the WR in
+the frontier at every layer, goal at layer 10, path reconstructed and **replayed on the core: pipe entry at frame 7166,
+3 frames before HappyLee** (F88; framerule-absorbed); 1-1 room 1 (deadline 368, 40 layers) identical from layer 22 on,
+earlier layers differ by per-layer vs global dedup. `tools/replay_check.py` replays any reconstructed path on the core.
+**Learned.** The generic engine costs nothing over `bfs11c` (21 s either way on the control); per-layer dedup is the
+right semantics for frame-indexed searches and makes resumed runs checkable to the digit. The first "better than the WR"
+search result came out of a 12-frame plumbing control — HappyLee brakes before the 4-2 pipe.
+**Next.** P2.3c-2: staged admissible bounds per segment (warp zone: overshoot/return; main area: pipe-A/brick/pipe-B
+gates) in the cases' `SearchGoal`, each checked with `--check-path` on the WR and the F68-style audit; then the runs
+(cloud decision pending).
