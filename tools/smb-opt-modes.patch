@@ -403,10 +403,10 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..495a2c4
+index 0000000..0f782b9
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,269 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -563,6 +563,7 @@ index 0000000..495a2c4
 +  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
 +    Some(self.h.get_steps_until_x_pos_at_least(s, 0x54400))
 +  }
++  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
 +  fn is_goal_state(&self, _: &State, emu_result: &EmuResult) -> bool {
 +    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
 +      cx == 84 && cy == 8
@@ -1059,10 +1060,10 @@ index 947eef3..3a0dc08 100644
      } else if self.s.is_on_ground() && self.s.facing_dir == Dir::RIGHT && (cv == 0x6c || cv == 0x1f) {
        return EmuResult::StateChangeSidePipe(cx, cy); // sideways pipe entry
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
-index 39e4b06..4e9e175 100644
+index 39e4b06..9ce3e1d 100644
 --- a/src/heuristics/mod.rs
 +++ b/src/heuristics/mod.rs
-@@ -7,9 +7,32 @@ use state::{Dist, State};
+@@ -7,9 +7,34 @@ use state::{Dist, State};
  use std::cmp::{max, min};
  use std::marker::PhantomData;
  
@@ -1092,6 +1093,8 @@ index 39e4b06..4e9e175 100644
    fn distance_to_goal_heuristic(&self, s: &mut State, steps_already_taken: Dist) -> Option<Dist>;
 +  /// P2.3c-2: the bound may use the search's ext word (object hook state / route phase); default = the plain bound.
 +  fn distance_to_goal_heuristic_ext(&self, s: &mut State, _ext: u16, steps_already_taken: Dist) -> Option<Dist> { self.distance_to_goal_heuristic(s, steps_already_taken) }
++  /// P2.3c-2c: x-only lower bound on the steps until x_pos >= x (segment searches, `bfscx --goal-x`); None = unsupported.
++  fn steps_until_x_at_least(&self, _s: &mut State, _x: i32) -> Option<Dist> { None }
    fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool;
  
    fn track_metric(&mut self, _: &State) -> () {}
@@ -1299,7 +1302,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..6eed9c0 100644
+index 350d469..092ebd6 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1310,7 +1313,7 @@ index 350d469..6eed9c0 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,268 @@ mod state;
+@@ -22,6 +23,271 @@ mod state;
  mod store;
  
  fn main() {
@@ -1342,6 +1345,7 @@ index 350d469..6eed9c0 100644
 +    let mut out: Option<String> = None; let mut check_path: usize = 0; let mut threads: usize = 4;
 +    let mut lift = false; let mut aptn0: u16 = 0; let mut layer_dir: Option<String> = None; let mut resume: Option<usize> = None;
 +    let mut acc_mb: usize = 64; let mut stop_step: usize = ::std::usize::MAX; let mut stage = false;
++    let mut goal_x: Option<i32> = None; let mut goal_y: Option<i32> = None; // P2.3c-2c: position goal override (px)
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
@@ -1353,13 +1357,15 @@ index 350d469..6eed9c0 100644
 +      else if args[i] == "--resume" { resume = Some(args[i + 1].parse().unwrap()); i += 2; }
 +      else if args[i] == "--acc-mb" { acc_mb = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--stop-step" { stop_step = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--goal-x" { goal_x = Some(args[i + 1].parse::<i32>().unwrap() << 8); i += 2; } // goal = x_pos >= PX (after a Success step)
++      else if args[i] == "--goal-y" { goal_y = Some(((args[i + 1].parse::<i32>().unwrap() + 0x100) << 8) | 0xff); i += 2; } // and Player_Y <= PY
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    let hook: Option<Hook> = if lift { Some(w42_lift as Hook) } else { None };
 +    match args[2].as_str() {
-+      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step),
-+      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step),
-+      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step),
++      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y)),
++      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y)),
++      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y)),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1579,7 +1585,7 @@ index 350d469..6eed9c0 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +309,1058 @@ fn calc_prng() {
+@@ -46,4 +312,1069 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1927,8 +1933,19 @@ index 350d469..6eed9c0 100644
 +  }
 +  false
 +}
-+fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize)
++/// P2.3c-2c: goal test / bound with the optional position-goal override (see bfscx_run).
++fn xy_goal<G: heuristics::SearchGoal>(g: &G, ns: &State, res: &emu::EmuResult, gx: Option<i32>, gy: Option<i32>) -> bool {
++  match gx { Some(gx) => *res == emu::EmuResult::Success && ns.x_pos >= gx && gy.map_or(true, |gy| ns.y_pos <= gy), None => g.is_goal_state(ns, res) }
++}
++fn xy_h<G: heuristics::SearchGoal>(g: &G, st: &State, e: u16, step: usize, gx: Option<i32>) -> Option<usize> {
++  let mut c = st.clone();
++  match gx { Some(gx) => g.steps_until_x_at_least(&mut c, gx).map(|d| d as usize), None => g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize) }
++}
++fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>))
 +    where C::SearchGoal: Send + Sync {
++  // P2.3c-2c: `--goal-x PX [--goal-y PY]` replaces the case's goal by "x_pos >= PX (and Player_Y <= PY) after a Success step" and its
++  // bound by the case's x-only table to PX (SearchGoal::steps_until_x_at_least) — segment searches whose results chain into a reference path.
++  let (goal_x, goal_y) = goal_xy;
 +  use emu::{Emu, EmuResult};
 +  use heuristics::SearchGoal;
 +  use state::{CompressedState, StateCompressor};
@@ -1955,7 +1972,8 @@ index 350d469..6eed9c0 100644
 +  println!("object hook {} (root ext {:#x}); key {} bytes (+2 ext, {}-byte records); threads {}; layer dir {}; acc {} MB/thread; resume {:?}; inputs: all 16 A/B/L/R combinations", hook.is_some(), e0, klen, XREC, threads, ldir, acc_mb, resume);
 +  let t0 = time::precise_time_ns();
 +  let goal = Arc::new(C::SearchGoal::new());
-+  let hval = |g: &C::SearchGoal, st: &State, e: u16, step: usize| -> Option<usize> { let mut c = st.clone(); g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize) };
++  let hval = |g: &C::SearchGoal, st: &State, e: u16, step: usize| -> Option<usize> { xy_h(g, st, e, step, goal_x) };
++  if let Some(gx) = goal_x { println!("position goal: x_pos >= {:#x} (X {}){}; bound = x-only table to that x", gx, gx >> 8, match goal_y { Some(gy) => format!(", y_pos <= {:#x} (Y <= {})", gy, (gy >> 8) - 0x100), None => String::new() }); assert!(hval(&goal, &s, e0, 0).is_some(), "this case has no x-only table for --goal-x"); }
 +  println!("heuristic built in {:.1}s; at root: {:?} steps (deadline {} steps)", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&goal, &s, e0, 0), max_steps);
 +  // reference path (--check-path): (state, ext, record) per step
 +  let mut refpath: Vec<(State, u16, XRec)> = Vec::new();
@@ -1965,7 +1983,7 @@ index 350d469..6eed9c0 100644
 +    for k in 0..check_path {
 +      let input = nes_to_model(data[first + prefix + k]);
 +      let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs.clone(), input);
-+      let g = goal.is_goal_state(&ns, &res);
++      let g = xy_goal(&*goal, &ns, &res, goal_x, goal_y);
 +      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&rs, &mut ns, &mut re); if ev != LiftEvent::Nothing { println!("reference path: step {} object event {:?} ext {:#x}", k + 1, ev, re); } } }
 +      let hv = hval(&goal, &ns, re, k + 1);
 +      // admissibility check against the reference path itself: h(state after step k+1) must not exceed the steps the reference still needs
@@ -2043,16 +2061,15 @@ index 350d469..6eed9c0 100644
 +            let ps = key.decompress();
 +            for &ib in &inputs {
 +              let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+              if goal.is_goal_state(&ns, &res) { goals += 1; if first_goal.is_none() { first_goal = Some((rec, ib, ns.clone())); } continue; }
++              if xy_goal(&*goal, &ns, &res, goal_x, goal_y) { goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
 +              match res {
 +                EmuResult::Success => {
 +                  let mut ne = pe;
 +                  if let Some(h) = hook { h(&ps, &mut ns, &mut ne); }
 +                  if ns.y_pos >= 0x1d000 { dead += 1; continue; }
-+                  let mut c = ns.clone();
-+                  match goal.distance_to_goal_heuristic_ext(&mut c, ne, (step + 1) as state::Dist) {
++                  match xy_h(&*goal, &ns, ne, step + 1, goal_x) {
 +                    None => { pruned += 1; continue; }
-+                    Some(hh) => { if step + 1 + hh as usize > max_steps { pruned += 1; continue; } }
++                    Some(hh) => { if step + 1 + hh > max_steps { pruned += 1; continue; } }
 +                  }
 +                  if ns.x_pos > max_x { max_x = ns.x_pos; }
 +                  let k = Key::<C, A>::from_state(&ns);
@@ -2092,7 +2109,7 @@ index 350d469..6eed9c0 100644
 +      gen += g1; pruned += p1; dead += d1; other += o1; goals += go1;
 +      if mx > max_x { max_x = mx; }
 +      runs.append(&mut r1);
-+      if let Some((rec, ib, gs)) = fg { if goal_first.is_none() { goal_first = Some((step + 1, rec, ib, gs)); } }
++      if let Some((rec, ib, gs)) = fg { if goal_first.as_ref().map_or(true, |g| (gs.x_spd, gs.x_pos) > (g.3.x_spd, g.3.x_pos)) { goal_first = Some((step + 1, rec, ib, gs)); } }
 +    }
 +    let t2 = time::precise_time_ns();
 +    let mut readers: Vec<BufReader<File>> = runs.iter().map(|p| BufReader::with_capacity(1 << 22, File::open(p).unwrap())).collect();
@@ -2129,7 +2146,7 @@ index 350d469..6eed9c0 100644
 +  println!("total {:.1}s", (time::precise_time_ns() - t0) as f64 / 1e9);
 +  match goal_first {
 +    Some((gstep, prec, pib, ref gs)) => {
-+      println!("earliest goal: step {} (records {} .. {}), state {}", gstep, first + prefix, first + prefix + gstep - 1, gs);
++      println!("earliest goal: step {} (records {} .. {}), best of the layer by (x speed, x): state {}", gstep, first + prefix, first + prefix + gstep - 1, gs);
 +      println!("goal parent record: {:?} input {:#x}", &prec[..klen + 2], pib);
 +      println!("reconstruct with: smb-opt bfscx-path CASE {} {} \"{:?}\" {:#x} [--lift N] --out FILE", ldir, gstep - 1, &prec[..klen + 2], pib);
 +      if out.is_some() { println!("(--out: pass it to bfscx-path to write the reconstructed inputs)"); }
