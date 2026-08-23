@@ -403,10 +403,10 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..78d0030
+index 0000000..ea6deec
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,281 @@
+@@ -0,0 +1,292 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -415,7 +415,7 @@ index 0000000..78d0030
 +#[allow(unused_imports)] use emu::inputs::*;
 +use heuristics::SearchGoal;
 +use heuristics::xpos::XPosHeuristic;
-+use heuristics::ygate::{surfaces_from_blocks, YGate};
++use heuristics::ygate::{surfaces_from_blocks, Surface, YGate};
 +use options::*;
 +use state::{CompressedState, Dir, Dist, PlayerState, State};
 +
@@ -521,6 +521,8 @@ index 0000000..78d0030
 +  /// P2.3c-2c: y-coupled bound for a `--goal-x/--goal-y` position goal (surfaces = every standable cell top of
 +  /// BB42 with its foot-point x intervals; see heuristics::ygate).
 +  goal_gate: Option<(i32, YGate)>,
++  /// P2.5c-2: enemy-aware search — the gate carries the bounce band (see `set_bounce_band`).
++  bounce_band: bool,
 +}
 +impl Options for W42Main {
 +  type CoinHandler = W42MainCoins;
@@ -563,14 +565,23 @@ index 0000000..78d0030
 +  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
 +}
 +impl SearchGoal for W42Main {
-+  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()), goal_gate: None }; }
++  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()), goal_gate: None, bounce_band: false }; }
++  fn set_bounce_band(&mut self, on: bool) -> () { self.bounce_band = on; }
 +  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
 +    Some(self.h.get_steps_until_x_pos_at_least(s, 0x54400))
 +  }
 +  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
 +  fn set_position_goal(&mut self, gx: i32, gy: i32) -> () {
-+    let gate = YGate::new::<NTSC>((gy >> 8) - 0x100, surfaces_from_blocks::<BB42>(98));
-+    println!("W42Main position goal x >= {} Y <= {}: {}", gx >> 8, (gy >> 8) - 0x100, gate.describe());
++    let mut surf = surfaces_from_blocks::<BB42>(98);
++    if self.bounce_band {
++      // the highest a stompable 4-2 enemy can be under Mario: a goomba of the $3A group on the Y-112 floor (enemy y
++      // 120, Mario's box bottom Y+32 >= its box top y+14 -> Y >= 102); every other stompable object (the goombas
++      // after falling, the koopa, the beetle, kicked shells) is lower. Existence needs the group's spawn
++      // (ScreenLeft >= 433, F99), and ScreenLeft <= Mario's x -> x_pos >= 433 px.
++      surf.push(Surface { y: 102, xs: vec![(433 << 8, ::std::i32::MAX)], bounce: true });
++    }
++    let gate = YGate::new::<NTSC>((gy >> 8) - 0x100, surf);
++    println!("W42Main position goal x >= {} Y <= {}{}: {}", gx >> 8, (gy >> 8) - 0x100, if self.bounce_band { " (enemy-aware: bounce band)" } else { "" }, gate.describe());
 +    self.goal_gate = Some((gy, gate));
 +  }
 +  fn steps_until_xy(&self, s: &mut State, gx: i32, gy: i32) -> Option<Dist> {
@@ -1098,7 +1109,7 @@ index 947eef3..fc94a87 100644
      } else if self.s.is_on_ground() && self.s.facing_dir == Dir::RIGHT && (cv == 0x6c || cv == 0x1f) {
        return EmuResult::StateChangeSidePipe(cx, cy); // sideways pipe entry
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
-index 39e4b06..97805d0 100644
+index 39e4b06..d883213 100644
 --- a/src/heuristics/mod.rs
 +++ b/src/heuristics/mod.rs
 @@ -1,4 +1,5 @@
@@ -1107,7 +1118,7 @@ index 39e4b06..97805d0 100644
  pub mod ypos;
  
  use emu::EmuResult;
-@@ -7,9 +8,39 @@ use state::{Dist, State};
+@@ -7,9 +8,42 @@ use state::{Dist, State};
  use std::cmp::{max, min};
  use std::marker::PhantomData;
  
@@ -1142,6 +1153,9 @@ index 39e4b06..97805d0 100644
 +  /// P2.3c-2c: install a position goal `x_pos >= gx && y_pos <= gy` (gy in y_pos units) so the case can build a
 +  /// y-coupled bound for it (ygate); default: nothing (the x-only table is used).
 +  fn set_position_goal(&mut self, _gx: i32, _gy: i32) -> () {}
++  /// P2.5c-2: enemy-aware searches — the position-goal bound must admit stomp bounces (ygate bounce band); call
++  /// before set_position_goal. Default: nothing.
++  fn set_bounce_band(&mut self, _on: bool) -> () {}
 +  /// P2.3c-2c: lower bound on the steps until `x_pos >= gx && y_pos <= gy` hold at the same step; default = x-only.
 +  fn steps_until_xy(&self, s: &mut State, gx: i32, _gy: i32) -> Option<Dist> { self.steps_until_x_at_least(s, gx) }
    fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool;
@@ -1315,10 +1329,10 @@ index c9bbf89..279368f 100644
      let len = max_dists.len();
 diff --git a/src/heuristics/ygate.rs b/src/heuristics/ygate.rs
 new file mode 100644
-index 0000000..82bccbb
+index 0000000..f7bc203
 --- /dev/null
 +++ b/src/heuristics/ygate.rs
-@@ -0,0 +1,234 @@
+@@ -0,0 +1,268 @@
 +//! P2.3c-2c — a sound y-coupled lower bound ("y gate") for position goals `x_pos >= gx && Player_Y <= gy`.
 +//!
 +//! Relaxation (a superset of the model's vertical behaviour, x handled only through MrWint's x table):
@@ -1343,6 +1357,16 @@ index 0000000..82bccbb
 +//! (same jumps, each milestone reached no later), so T is non-decreasing in Ys and a chain that lands at or below
 +//! its own start is never faster than the best chain that does not. The x-aware per-state query does NOT use that
 +//! shortcut: every surface (above or below the state) is considered with its own x charge.
++//!
++//! Bounce band (P2.5c-2, enemy-aware searches): a stomp sets y_spd = -4 px with the fall gravity kept and no A
++//! boost (F59/F101: it needs Mario descending onto an enemy box on an even frame). The relaxation adds a pseudo-
++//! surface `bounce: true` at the highest Y at which any stompable enemy of the level can be under Mario (4-2 main:
++//! a goomba on the Y-112 floor, enemy y 120 -> Mario Y >= 102): Mario "lands" on it at any descending frame with
++//! Y >= its y (no snap: he is credited the band's Y, a superset), may wait on it (chained bounces), and leaves it
++//! only by bounce arcs (v0 = -4 px, gravity = each fall gravity). Its x interval is the enemies' existence
++//! condition (4-2: the group spawns once ScreenLeft >= 433, and ScreenLeft <= Mario's x, so x_pos >= 433 px is
++//! a necessary condition for any stomp). Parity, the enemies' own positions and their being alive are ignored
++//! (superset). Real surfaces below the band may chain through it (T top-down as before).
 +use blockbuffer::BlockBuffer;
 +use blockbuffer::util::{is_climb, is_coin};
 +use heuristics::xpos::XPosHeuristic;
@@ -1356,7 +1380,7 @@ index 0000000..82bccbb
 +/// A standable cell top: Mario standing on it has pixel Y `y`; `xs` = merged inclusive x_pos intervals in which
 +/// one of his foot points is inside a cell of that row.
 +#[derive(Clone, Debug)]
-+pub struct Surface { pub y: i32, pub xs: Vec<(i32, i32)> }
++pub struct Surface { pub y: i32, pub xs: Vec<(i32, i32)>, pub bounce: bool }
 +
 +#[derive(Clone, Copy, Debug)]
 +struct Air { y: i32, v: i16, g: u8, gd: u8 }
@@ -1367,6 +1391,7 @@ index 0000000..82bccbb
 +  t_surf: Vec<Dist>,          // y-only T(surface)
 +  max_y_spd: i16,
 +  jumps: [(i16, u8, u8); 3],  // (y_spd0, jump gravity, fall gravity): running, walking, standing
++  bounces: [(i16, u8, u8); 3], // the stomp bounce (-4 px, fall gravity kept) under each fall gravity
 +  fall_g: u8,                 // the largest fall gravity (fastest walk-off descent)
 +}
 +
@@ -1392,7 +1417,7 @@ index 0000000..82bccbb
 +      if let Some(last) = merged.last_mut() { if lo <= last.1 + 1 { if hi > last.1 { last.1 = hi; } continue; } }
 +      merged.push((lo, hi));
 +    }
-+    out.push(Surface { y, xs: merged });
++    out.push(Surface { y, xs: merged, bounce: false });
 +  }
 +  out
 +}
@@ -1403,14 +1428,18 @@ index 0000000..82bccbb
 +      jumps: [(P::JUMP_VELOCITY_FAST, P::V_FORCE_JUMP_RUNNING, P::V_FORCE_FALL_RUNNING),
 +              (P::JUMP_VELOCITY_SLOW, P::V_FORCE_JUMP_WALKING, P::V_FORCE_FALL_WALKING),
 +              (P::JUMP_VELOCITY_SLOW, P::V_FORCE_JUMP_STANDING, P::V_FORCE_FALL_STANDING)],
++      bounces: [(-0x400, P::V_FORCE_FALL_RUNNING, P::V_FORCE_FALL_RUNNING),
++                (-0x400, P::V_FORCE_FALL_WALKING, P::V_FORCE_FALL_WALKING),
++                (-0x400, P::V_FORCE_FALL_STANDING, P::V_FORCE_FALL_STANDING)],
 +      fall_g: P::V_FORCE_FALL_RUNNING };
++    g.surf.sort_by_key(|sf| sf.y);
 +    for i in 0..g.surf.len() { let t = g.t_ground_yonly(g.surf[i].y, i); g.t_surf.push(t); }
 +    g
 +  }
 +  pub fn describe(&self) -> String {
 +    let mut s = format!("y gate: Y <= {}; {} surface rows:", self.y_max, self.surf.len());
 +    for (i, sf) in self.surf.iter().enumerate() {
-+      s.push_str(&format!(" Y{}:T={}", sf.y, if self.t_surf[i] >= Y_NEVER { "never".to_string() } else { self.t_surf[i].to_string() }));
++      s.push_str(&format!(" Y{}{}:T={}", sf.y, if sf.bounce { "(bounce band)" } else { "" }, if self.t_surf[i] >= Y_NEVER { "never".to_string() } else { self.t_surf[i].to_string() }));
 +      s.push_str(&format!("[{}]", sf.xs.iter().map(|&(lo, hi)| format!("{}..{}", lo >> 8, hi >> 8)).collect::<Vec<_>>().join(",")));
 +    }
 +    s
@@ -1461,14 +1490,17 @@ index 0000000..82bccbb
 +      }
 +    }
 +  }
-+  /// y-only T(Ys): min steps from standing at pixel Y `y` to Y <= y_max using only surfaces with index < n_above.
++  /// y-only T(Ys): min steps from standing at pixel Y `y` to Y <= y_max using only surfaces with index < n_above;
++  /// from a bounce band the only take-offs are the stomp bounces.
 +  fn t_ground_yonly(&self, y: i32, n_above: usize) -> Dist {
 +    if y <= self.y_max { return 0; }
 +    let mut best = Y_NEVER;
 +    let mut k1 = vec![Y_NEVER; self.surf.len()];
-+    for &(v0, gj, gd) in &self.jumps {
++    let bounce = n_above < self.surf.len() && self.surf[n_above].y == y && self.surf[n_above].bounce;
++    for &(v0, gj, gd) in (if bounce { &self.bounces } else { &self.jumps }) {
 +      let mut a = Air { y: (y + 0x100) << 8, v: v0, g: gj, gd };
 +      a.y += a.v as i32; a.v += gj as i16; // the jump's first frame (fraction cleared, then the move)
++      if px(a.y) <= self.y_max { best = dmin(best, 1); } // the first frame alone may reach the goal height (bounce arcs: 102 -> 98)
 +      for v in k1.iter_mut() { *v = Y_NEVER; }
 +      let (kd, _) = self.hold_terms(a, n_above, 1, &mut k1);
 +      best = dmin(best, kd);
@@ -1501,6 +1533,7 @@ index 0000000..82bccbb
 +      for &(v0, gj, gd) in &self.jumps {
 +        let mut a = Air { y: (y + 0x100) << 8, v: v0, g: gj, gd };
 +        a.y += a.v as i32; a.v += gj as i16;
++        if px(a.y) <= self.y_max { kd = dmin(kd, 1); } // first frame of the jump already at the goal height
 +        let (d, _) = self.hold_terms(a, n_above, 1, &mut k1);
 +        kd = dmin(kd, d);
 +      }
@@ -1518,6 +1551,21 @@ index 0000000..82bccbb
 +      let (d, de) = self.hold_terms(a, n_above, 0, &mut k1);
 +      if kd == 0 { kde = if d == 1 { de } else { 0 }; } else { kd = d; kde = de; }
 +      self.descent_terms(a, n_above, 0, &mut land);
++    }
++    // bounce bands whose top is at or above the state: Mario is already inside the band region (Y >= y_b), so a
++    // stomp is possible at his first descending frame — now if y_spd >= 0, else after the apex under the fastest
++    // descent (A released: fall gravity from the next frame). Standing states go through a jump (k1) as usual.
++    if s.player_state != PlayerState::STANDING {
++      for i in 0..n {
++        if !self.surf[i].bounce || self.surf[i].y > y { continue; }
++        let kb: Dist = if s.y_spd >= 0 { 0 } else {
++          let mut a = Air { y: s.y_pos, v: s.y_spd, g: s.v_force_down, gd: s.v_force_down };
++          let mut k = 0;
++          while a.v < 0 && k < HORIZON { self.mv(&mut a, false); k += 1; }
++          k as Dist
++        };
++        land[i] = dmin(land[i], kb);
++      }
 +    }
 +    let mut tr = Y_NEVER;
 +    for i in 0..n {
@@ -1596,7 +1644,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..2c41815 100644
+index 350d469..22032d6 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1607,7 +1655,7 @@ index 350d469..2c41815 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,299 @@ mod ida;
+@@ -20,8 +21,304 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -1640,18 +1688,19 @@ index 350d469..2c41815 100644
 +    // checks admissibility on these traces (P2.3c-2c).
 +    let first: usize = args[3].parse().unwrap();
 +    let n: usize = args[4].parse().unwrap();
-+    let (mut lift, mut aptn0, mut gx, mut gy) = (false, 0u16, None, None);
++    let (mut lift, mut enemies, mut aptn0, mut gx, mut gy) = (false, false, 0u16, None, None);
 +    let mut files: Vec<String> = Vec::new();
 +    let mut i = 5;
 +    while i < args.len() {
 +      if args[i] == "--lift" { lift = true; i += 1; if i < args.len() && !args[i].starts_with("--") && args[i].parse::<u16>().is_ok() { aptn0 = args[i].parse().unwrap(); i += 1; } }
++      else if args[i] == "--enemies" { enemies = true; i += 1; if i < args.len() && !args[i].starts_with("--") && args[i].parse::<u16>().is_ok() { aptn0 = args[i].parse().unwrap(); i += 1; } } // P2.5c-2: lift + enemies, bounce band in the bound
 +      else if args[i] == "--goal-x" { gx = Some(args[i + 1].parse::<i32>().unwrap() << 8); i += 2; }
 +      else if args[i] == "--goal-y" { gy = Some(((args[i + 1].parse::<i32>().unwrap() + 0x100) << 8) | 0xff); i += 2; }
 +      else { files.push(args[i].clone()); i += 1; }
 +    }
 +    let (gx, gy) = (gx.expect("--goal-x"), gy.expect("--goal-y"));
 +    match args[2].as_str() {
-+      "W42Main" => traceh_run::<case::w42::W42Main>(&files, first, n, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, gx, gy),
++      "W42Main" => traceh_run::<case::w42::W42Main>(&files, first, n, if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, gx, gy),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1700,19 +1749,23 @@ index 350d469..2c41815 100644
 +    let rec: Vec<u8> = args[5].trim_matches(|c| c == '[' || c == ']').split(',').map(|t| t.trim().parse().unwrap()).collect();
 +    let goal_input: u8 = u8::from_str_radix(args[6].trim_left_matches("0x"), 16).unwrap();
 +    let mut threads = 4usize; let mut out: Option<String> = None; let mut lift = false; let mut stage = false;
++    let mut enemies = false; let mut stride: usize = XREC; // --stride: bytes per record in the LAYER FILES (older runs wrote 24-byte records: 20-byte key + 2-byte lift ext; they are zero-padded on read)
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--lift" { lift = true; i += 2; }
++      else if args[i] == "--enemies" { enemies = true; i += 2; }
 +      else if args[i] == "--stage" { stage = true; i += 1; }
++      else if args[i] == "--stride" { stride = args[i + 1].parse().unwrap(); i += 2; }
 +      else { panic!("unknown option {}", args[i]); }
 +    }
-+    let hook: Option<Hook> = if lift { Some(w42_lift as Hook) } else if stage { Some(w42_warp_stage as Hook) } else { None };
++    assert!(stride <= XREC, "--stride larger than the compiled record");
++    let hook: Option<Hook> = if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else if stage { Some(w42_warp_stage as Hook) } else { None };
 +    match args[2].as_str() {
-+      "W42Main" => bfscx_path::<case::w42::W42Main, [u8; 20]>(&layer_dir, step, &rec, goal_input, hook, threads, out),
-+      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, hook, threads, out),
-+      "W11VertPipeEntry" => bfscx_path::<case::w11::W11VertPipeEntry, [u8; 10]>(&layer_dir, step, &rec, goal_input, None, threads, out),
++      "W42Main" => bfscx_path::<case::w42::W42Main, [u8; 20]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
++      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
++      "W11VertPipeEntry" => bfscx_path::<case::w11::W11VertPipeEntry, [u8; 10]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1907,7 +1960,7 @@ index 350d469..2c41815 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +338,1188 @@ fn calc_prng() {
+@@ -46,4 +343,1192 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2273,6 +2326,7 @@ index 350d469..2c41815 100644
 +  use case::SmbSearchCase;
 +  use heuristics::SearchGoal;
 +  let mut goal = C::SearchGoal::new();
++  goal.set_bounce_band(hook.map_or(false, |h| h as usize == w42_enemies as usize));
 +  goal.set_position_goal(gx, gy);
 +  let hof = |g: &C::SearchGoal, st: &State| -> String { match g.steps_until_xy(&mut st.clone(), gx, gy) { Some(d) => d.to_string(), None => "?".to_string() } };
 +  for f in files {
@@ -2285,11 +2339,13 @@ index 350d469..2c41815 100644
 +    for i in 0..n {
 +      let input = nes_to_model(data[first + i]);
 +      let (mut ns, res) = <C as SmbSearchCase>::Emu::run_step(s.clone(), input);
-+      let g = res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy;
-+      if let Some(h) = hook { if res == EmuResult::Success { h(&s, &mut ns, &mut ext); } }
-+      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {} {} {:?}", i + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hof(&goal, &ns), g as u8, res);
++      let mut dead = false;
++      let mut bump = false;
++      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&s, &mut ns, &mut ext); dead = ev == LiftEvent::Death; bump = ev == LiftEvent::ItemBump; } }
++      let g = !dead && res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy;
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {} {} {:?}{}{}", i + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hof(&goal, &ns), g as u8, res, if dead { " DEAD" } else { "" }, if bump { " ITEMBUMP" } else { "" });
 +      s = ns;
-+      if res != EmuResult::Success { break; }
++      if res != EmuResult::Success || dead { break; }
 +    }
 +  }
 +}
@@ -2411,6 +2467,7 @@ index 350d469..2c41815 100644
 +  println!("object hook {} (root ext {:x}); key {} bytes (+{} ext, {}-byte records); threads {}; layer dir {}; acc {} MB/thread; resume {:?}; inputs: all 16 A/B/L/R combinations", hook.is_some(), e0, klen, EXTN, XREC, threads, ldir, acc_mb, resume);
 +  let t0 = time::precise_time_ns();
 +  let mut goal0 = C::SearchGoal::new();
++  goal0.set_bounce_band(hook.map_or(false, |h| h as usize == w42_enemies as usize)); // P2.5c-2: enemy-aware -> the y bound admits stomp bounces
 +  if let (Some(gx), Some(gy)) = (goal_x, goal_y) { goal0.set_position_goal(gx, gy); }
 +  let goal = Arc::new(goal0);
 +  let hval = |g: &C::SearchGoal, st: &State, e: &Ext, step: usize| -> Option<usize> { xy_h(g, st, e.u16(), step, goal_x, goal_y) };
@@ -2598,7 +2655,7 @@ index 350d469..2c41815 100644
 +
 +/// Backward path reconstruction from bfscx layer files (full scan of each layer, threaded, hook applied as in
 +/// bfscx_run): for the target record of layer l, find any record of layer l-1 and input whose child equals it.
-+fn bfscx_path<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(layer_dir: &str, step: usize, rec_in: &[u8], goal_input: u8, hook: Option<Hook>, threads: usize, out: Option<String>) {
++fn bfscx_path<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(layer_dir: &str, step: usize, rec_in: &[u8], goal_input: u8, hook: Option<Hook>, threads: usize, out: Option<String>, stride: usize) {
 +  use emu::{Emu, EmuResult};
 +  use state::{CompressedState, StateCompressor};
 +  use std::sync::Arc;
@@ -2614,7 +2671,7 @@ index 350d469..2c41815 100644
 +  while l > 0 {
 +    let t1 = time::precise_time_ns();
 +    let path = format!("{}/layer_{:03}.bin", layer_dir, l - 1);
-+    let n = (::std::fs::metadata(&path).unwrap().len() / XREC as u64) as usize;
++    let n = (::std::fs::metadata(&path).unwrap().len() / stride as u64) as usize;
 +    let per = (n + threads - 1) / threads;
 +    let mut handles = Vec::new();
 +    for t in 0..threads {
@@ -2624,14 +2681,14 @@ index 350d469..2c41815 100644
 +      handles.push(::std::thread::spawn(move || -> Option<(XRec, u8)> {
 +        const BLOCK: usize = 1 << 16;
 +        let file = ::std::fs::File::open(&path).unwrap();
-+        let mut rbuf: Vec<u8> = vec![0u8; BLOCK * XREC];
++        let mut rbuf: Vec<u8> = vec![0u8; BLOCK * stride];
 +        let mut pos = lo;
 +        while pos < hi {
 +          let cnt = ::std::cmp::min(BLOCK, hi - pos);
-+          xread_full_at(&file, &mut rbuf[..cnt * XREC], (pos * XREC) as u64).unwrap();
++          xread_full_at(&file, &mut rbuf[..cnt * stride], (pos * stride) as u64).unwrap();
 +          for i in 0..cnt {
 +            let mut r: XRec = XRec::zero();
-+            r.copy_from_slice(&rbuf[i * XREC..(i + 1) * XREC]);
++            r[..stride].copy_from_slice(&rbuf[i * stride..(i + 1) * stride]);
 +            let ps = Key::<C, A>::from_bytes(&r[..klen]).decompress();
 +            let pe: Ext = rec_ext(&r, klen);
 +            for &ib in &inputs {

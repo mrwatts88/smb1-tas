@@ -535,3 +535,25 @@ it is a fact about the game. Region prefixes + model-filtered continuations give
 inputs from the root for the same core time.
 **Next.** P2.5c-2 steps 4–5: the ygate bounce relaxation (stomps give −4 y speed: the y-bound must admit them),
 then the enemy-aware S1→S4 chain / main-area run; d149 (enemy-free S1) still running under its watchdog.
+
+## 2026-08-23 — Session 10 (cont.): the bounce relaxation (P2.5c-2 step 4), and S1 solved = 149
+**Did.** (1) The ygate bounce relaxation: a bounce band pseudo-surface at Y 102 (the highest a stompable 4-2 enemy
+can be under Mario), x-gated on the group-spawn condition (ScreenLeft ≥ 433 ⇒ x ≥ 433), take-offs = −4 px arcs with
+the fall gravity (the asm keeps the down force after a stomp), enabled only under `--enemies`. The audit caught two
+bugs before it was right: states already inside the band region couldn't "land" on it, and a latent first-frame
+off-by-one in the y-only T tables (any goal within 4 px under a surface top; enemy-free goals never hit it).
+Final audits: 0 violations over ~1.6M checks incl. 200k+ stomp-dense ones; the enemy-free S1 bound byte-identical.
+`traceh --enemies` added (death stops; ITEMBUMP marks but does not stop — the koopa/beetle prefixes carry the WR's
+harmless mushroom bump; the first audit round on those prefixes was silently vacuous because of that stop — read
+"reached 0" as suspicious, not as "goal hard"). (2) **The d149 search finished: S1 = 149 exactly** (F103) — goal at
+layer 149 with 45.5M transitions, nothing earlier, endgame frontier collapse as designed; `bfscx-path --stride 24`
+added (the run's layers predate the 96-byte records; the reconstruction first failed reading 24-byte records as
+96), path chained and **core-verified 149/149**. Run 4 was SIGSTOPped 12:28–14:55 at the user's request (the 4-2
+work got the CPU) and resumed losslessly. MacBook access confirmed available (`ssh mac`, global CLAUDE.md) — a
+horizontal option for parallel segment ladders when wanted.
+**Learned.** The audit keeps earning its keep: three real bugs in one afternoon (in-band landing, first-frame
+off-by-one, the vacuous-audit trap), all found by reading zeros and violation shapes rather than by difftests.
+A paused 12-thread search is a perfectly good way to lend a laptop to a second workload for 2.5 h.
+**Next.** The enemy-aware S2 ladder from `chain_s1.bin` (prefix 149): `--enemies 0 --goal-x 755 --goal-y 112`,
+8 threads, capped — the first search through the goomba group, and the next piece of the H36 answer; then S3/S4
+and the top-route total vs 575.

@@ -14,8 +14,11 @@ records of FILE from --first (a known goal path, e.g. a bfscx-path result) and f
 probability PM — trajectories close to the optimum, where the bound is tightest and an unsound term bites.
 Model alignment/semantics as in tools/model_difftest.py --case.
 
-Usage: tools/ygate_audit.py --case W42Main --first 6584 --gx 339 --gy 112 [--lift 0] [--n 200] [--len 220]
+Usage: tools/ygate_audit.py --case W42Main --first 6584 --gx 339 --gy 112 [--lift 0 | --enemies 0] [--n 200] [--len 220]
   [--seed 1] [--pr .85 --pl .05 --pa .2 --amax 30 --pb .8] [--mutate FILE K PM] [--batch 50] [--keep DIR] [--verbose]
+  [--prefix-dir DIR]   trajectories = each *.bin prefix of DIR (records 0..; tools/w42_prefix_gen.py) + --n random
+                       continuations of --len records (enemy-dense audits, P2.5c-2); --enemies 0 = the enemy module
+                       with the bounce band in the bound; a trajectory stops at a death/item bump (no goal there)
 """
 import os, random, re, subprocess, sys, tempfile
 
@@ -48,10 +51,11 @@ def gen_mutate(rng, base, pm):
     return bytes(out)
 
 
-def run_traces(case, paths, first, n, lift, gx, gy):
+def run_traces(case, paths, first, n, lift, gx, gy, enemies=None):
     """One traceh process over many input files -> {path: rows}."""
     cmd = [SMBOPT, "traceh", case, str(first), str(n)]
-    if lift is not None: cmd += ["--lift", str(lift)]
+    if enemies is not None: cmd += ["--enemies", str(enemies)]
+    elif lift is not None: cmd += ["--lift", str(lift)]
     cmd += ["--goal-x", str(gx), "--goal-y", str(gy)] + paths
     out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
     traces, cur = {}, None
@@ -68,15 +72,15 @@ def run_traces(case, paths, first, n, lift, gx, gy):
 
 
 def main():
-    opt = dict(case="W42Main", first=6584, gx=None, gy=None, lift=None, n=200, len=220, seed=1,
-               pr=.85, pl=.05, pa=.2, amax=30, pb=.8, mutate=None, keep=None, verbose=False, batch=50)
+    opt = dict(case="W42Main", first=6584, gx=None, gy=None, lift=None, enemies=None, n=200, len=220, seed=1,
+               pr=.85, pl=.05, pa=.2, amax=30, pb=.8, mutate=None, keep=None, verbose=False, batch=50, prefix_dir=None)
     args = sys.argv[1:]; i = 0
     while i < len(args):
-        k = args[i].lstrip("-")
+        k = args[i].lstrip("-").replace("-", "_")
         if k == "verbose": opt[k] = True; i += 1; continue
         if k == "mutate": opt[k] = (args[i + 1], int(args[i + 2]), float(args[i + 3])); i += 4; continue
         v = args[i + 1]
-        if k in ("case", "keep"): opt[k] = v
+        if k in ("case", "keep", "prefix_dir"): opt[k] = v
         elif k in ("pr", "pl", "pa", "pb"): opt[k] = float(v)
         else: opt[k] = int(v)
         i += 2
@@ -96,18 +100,27 @@ def main():
     hmax, hist = 0, {}
     never_but_reached = 0
     paths = []
-    for t in range(opt["n"]):
-        if base is not None:
-            rec = gen_mutate(rng, base, opt["mutate"][2])
-            if len(rec) < opt["len"]: rec += gen_random(rng, opt["len"] - len(rec), opt["pr"], opt["pl"], opt["pa"], opt["amax"], opt["pb"])
-        else:
-            rec = gen_random(rng, opt["len"], opt["pr"], opt["pl"], opt["pa"], opt["amax"], opt["pb"])
-        p = os.path.join(tmpdir, "trial_%04d.bin" % t)
-        open(p, "wb").write(prefix + rec)
-        paths.append(p)
+    prefixes = [prefix]
+    if opt["prefix_dir"]:
+        names = sorted(f for f in os.listdir(opt["prefix_dir"]) if f.endswith(".bin"))
+        prefixes = [open(os.path.join(opt["prefix_dir"], f), "rb").read() for f in names]
+    groups = []   # (paths, n_steps) per prefix: one traceh batch per prefix (equal lengths)
+    for pi, pfx in enumerate(prefixes):
+        gp = []
+        for t in range(opt["n"]):
+            if base is not None:
+                rec = gen_mutate(rng, base, opt["mutate"][2])
+                if len(rec) < opt["len"]: rec += gen_random(rng, opt["len"] - len(rec), opt["pr"], opt["pl"], opt["pa"], opt["amax"], opt["pb"])
+            else:
+                rec = gen_random(rng, opt["len"], opt["pr"], opt["pl"], opt["pa"], opt["amax"], opt["pb"])
+            p = os.path.join(tmpdir, "trial_%03d_%04d.bin" % (pi, t))
+            open(p, "wb").write(pfx + rec)
+            gp.append(p); paths.append(p)
+        groups.append((gp, len(pfx) - opt["first"] + opt["len"]))
     traces = {}
-    for b in range(0, len(paths), opt["batch"]):
-        traces.update(run_traces(opt["case"], paths[b:b + opt["batch"]], opt["first"], opt["len"], opt["lift"], opt["gx"], opt["gy"]))
+    for gp, nsteps in groups:
+        for b in range(0, len(gp), opt["batch"]):
+            traces.update(run_traces(opt["case"], gp[b:b + opt["batch"]], opt["first"], nsteps, opt["lift"], opt["gx"], opt["gy"], opt["enemies"]))
     for t, p in enumerate(paths):
         rows = traces.get(p, [])
         goal_steps = [r["step"] for r in rows if r["goal"]]
@@ -132,7 +145,7 @@ def main():
             print("trial %d: %d rows, goal steps %s, last %s" % (t, len(rows), goal_steps[:3], rows[-1]["result"] if rows else "-"))
         if not opt["keep"]: os.remove(p)
     print("trials %d, reached the goal %d, admissibility checks %d, violations %d (never-bound on a goal path: %d)" % (
-        opt["n"], reached, checks, viol, never_but_reached))
+        len(paths), reached, checks, viol, never_but_reached))
     if checks:
         print("slack t'-t-h: min %d, mean %.2f over %d checks" % (slack_min, slack_sum / max(1, checks - viol), checks))
     print("h max %d; h histogram (h: count): %s" % (hmax, " ".join("%d:%d" % kv for kv in sorted(hist.items())[:40])))
