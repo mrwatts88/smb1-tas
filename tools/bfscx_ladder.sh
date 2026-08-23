@@ -2,6 +2,7 @@
 # P2.3c-2c: run one `bfscx` segment search per deadline, tight first, until a goal is found (a position-goal BFS only
 # stays small when the deadline is near the segment optimum). Each attempt runs under a cgroup cap with a frontier
 # watchdog (killed if a layer exceeds MAXREC records); the log of each attempt is LOGBASE_dD.log.
+# MEMCAP=4G env overrides the default 2G MemoryMax cap.
 #   tools/bfscx_ladder.sh LOGBASE D0 STEP DMAX MAXREC LAYERDIR -- smb-opt bfscx args without MAX_STEPS
 # (args: CASE INPUTS FIRST PREFIX then options; MAX_STEPS is inserted after PREFIX). Absolute paths only.
 set -u
@@ -11,12 +12,14 @@ BIN=/home/mattwatts/Documents/smb1-tas/third_party/smb-opt/target/release/smb-op
 while [ "$D" -le "$DMAX" ]; do
   LOG="${LOGBASE}_d${D}.log"
   rm -rf "$LAYERDIR"
-  systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 --quiet nice -n 10 "$BIN" bfscx "$CASE" "$INPUTS" "$FIRST" "$PREFIX" "$D" "$@" --layer-dir "$LAYERDIR" > "$LOG" 2>&1 &
+  systemd-run --user --scope -p MemoryMax=${MEMCAP:-2G} -p MemorySwapMax=0 --quiet nice -n 10 "$BIN" bfscx "$CASE" "$INPUTS" "$FIRST" "$PREFIX" "$D" "$@" --layer-dir "$LAYERDIR" > "$LOG" 2>&1 &
   PID=$!
   while kill -0 "$PID" 2>/dev/null; do
     sleep 3
     BIG=$(grep -o 'unique [0-9]*' "$LOG" | awk -v m="$MAXREC" '{ if ($2 > m) print $2 }' | head -1)
     if [ -n "$BIG" ]; then pkill -P "$PID" 2>/dev/null; kill "$PID" 2>/dev/null; echo "deadline $D: frontier $BIG > $MAXREC records, killed" | tee -a "$LOG"; break; fi
+    FREE=$(df -BG --output=avail /home | tail -1 | tr -dc '0-9')
+    if [ "$FREE" -lt 40 ]; then pkill -P "$PID" 2>/dev/null; kill "$PID" 2>/dev/null; echo "deadline $D: disk guard (<40G free on /home), killed" | tee -a "$LOG"; break; fi
   done
   wait "$PID" 2>/dev/null
   if grep -q 'goal reached' "$LOG"; then echo "deadline $D: GOAL — $(grep 'earliest goal' "$LOG" | cut -c1-60)"; exit 0; fi
