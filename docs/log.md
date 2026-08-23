@@ -645,3 +645,21 @@ to time, so F106's proxy (~2.8x/thread) is all we have. That is P0.11b.
 
 **Next.** P0.11b (throughput), then start using the Mac for difftest/ladder fan-out per
 PROCESS "Parallel work on the second host".
+
+## 2026-08-23 — Session 11 (cont.): S2′ = 184 (chain-safe boundary, F113); S3′ running; first Mac fan-out post-mortem
+**Did.** The S3-from-x-755 dead end diagnosed (airborne S2 arrival → col-50 wall; the greedy-boundary trap, in the
+experiment file) → S2′ with the boundary at x ≥ 800 ∧ Y ≤ 112: **first rung d184 GOAL at layer 184, proof-grade —
+184 = the movement bound again** (F113). Goal print still truncated (the widened print slices an already-short rec,
+`main.rs:987`; proper fix queued) — recovery-by-prefix from `layer_183.bin` worked again (10 matches). `chain_s2p.bin`
+(6,917) **core-verified 333/333, 2 stomps in stride**; arrival is the designed chain-safe one (lands x ≈ 865, full
+speed, 47 px before the pit lip). **Chain: root → x ≥ 800 = 333; enemies still 0 frames over the bound.** S3′
+(x ≥ 1005 ∧ Y ≤ 112, the pit) probed at **82** and its ladder is running. First Mac fan-out ran end-to-end (sync →
+gate → rung) but the d186/d188 insurance rungs were economically wrong (slack-2 rungs are 10⁷-scale by the frontier
+law; 41M records by layer 27, killed) and exposed real setup gaps — all ten items in the P0.11d loose end (STATUS),
+incl. a silently-dying macOS watchdog and the first real throughput datum (~0.84×/thread in-container, not the 2.8×
+proxy). Merged the Mac agent's P0.11a push mid-session (F111 = Mac operational; my S2 fact renumbered F112).
+**Learned.** Chain boundaries must force a grounded-or-landing arrival — and checking the arrival *state* against
+the geometry before chaining beats finding out from the next segment's dead rungs. Cross-box ladder parallelism
+only makes sense above the cheap end; the ladder is sequential by nature.
+**Next.** S3′ verdict → S4 (the pipe; the F100 plant is the open cost question) → full-chain `replay_check`, slack
+accounting vs 577, the staged-bound plan. Then the P0.11d doc fold-in, engine truncation fix, run 4 resume.
