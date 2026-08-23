@@ -403,10 +403,10 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..19ab434
+index 0000000..495a2c4
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,205 @@
+@@ -0,0 +1,268 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -572,9 +572,53 @@ index 0000000..19ab434
 +
 +/// 4-2 warp zone: entrance to the world-8 pipe entry (page 3 col 2 row 8 = column 50): X in [804, 812],
 +/// x_pos >= 0x32400 (the WR enters at X 810).
++///
++/// Staged bound (P2.3c-2, F83/F89): the pipes sit under the roof (row 2, cols 48..59) whose only way down is the
++/// gap at cols 60..61 (x 960..991) before the right wall; falling through it needs both foot points (x+3, x+12)
++/// over the gap, i.e. X >= 957 = WARP_DROP_X. With ext = 0 (the drop x not yet reached, `--stage` hook) the bound is
++/// max(x-steps to X >= 957 + C_RET, ceil((Y-32)/5) + 22): C_RET = the x-table's minimum over reachable classes at
++/// X 957 moving right of the steps back to X <= 812, and a 96 px descent from the roof level (Y <= 32, needed to
++/// pass over the roof) to the pipe top (Y 128) at <= 4.5 px/frame takes >= 22 frames, the climb <= 5 px/frame.
++/// With ext = 1 the bound is max(x-steps to X <= 812, ceil((128-Y)/4.5)). Without ext (plain bfsc) the phase is
++/// unknown and the weaker ext = 1 form is used.
++pub const WARP_DROP_X: i32 = 957 << 8;
++const WARP_PIPE_XMAX: i32 = (812 << 8) | 0xff;
++const WARP_PIPE_XMIN: i32 = 804 << 8;
 +#[allow(dead_code)]
 +pub struct W42Warp {
 +  h: XPosHeuristic,
++  c_ret: Dist,
++}
++impl W42Warp {
++  /// Minimum steps from any reachable x class at X 957 moving right (x speed >= 1 px/frame: the crossing step) back to X <= 812.
++  fn compute_c_ret(h: &XPosHeuristic) -> Dist {
++    let mut best: Option<Dist> = None;
++    let mut classes = 0;
++    for spd4 in (0x100 / 4)..=(0x2800 / 4) { let spd = spd4 * 4;
++      for &run in &[false, true] {
++        for &st in &[PlayerState::STANDING, PlayerState::JUMPING, PlayerState::FALLING] {
++          for &fd in &[Dir::LEFT, Dir::RIGHT] {
++            let mut s = w42_warp_start::<W42Warp>();
++            s.x_pos = WARP_DROP_X; s.x_spd = spd as i16; s.moving_dir = Dir::RIGHT; s.facing_dir = fd; s.player_state = st; s.running_speed = run;
++            s.set_x_spd_abs::<NTSC>((spd >> 8) as u8);
++            if !h.has_class(&s) { continue; }
++            classes += 1;
++            let d = h.get_steps_until_x_pos_at_most(&s, WARP_PIPE_XMAX);
++            if best.map_or(true, |b| d < b) { best = Some(d); }
++          }
++        }
++      }
++    }
++    println!("W42Warp staged bound: C_RET = {:?} steps (min over {} reachable x classes at X 957 moving right)", best, classes);
++    best.unwrap_or(0)
++  }
++  fn y_part(s: &State, staged: bool) -> Dist {
++    let y = s.y_pos >> 8; // 0x100 = Y 0 (y_pos 0x10000 = Y 0)
++    if staged {
++      let up = if y > 0x120 { ((y - 0x120) + 4) / 5 } else { 0 }; // climb to Y <= 32 at <= 5 px/frame
++      (up + 22) as Dist
++    } else if y < 0x180 { (((0x180 - y) * 2 + 8) / 9) as Dist } else { 0 } // descent to Y 128 at <= 4.5 px/frame
++  }
 +}
 +impl Options for W42Warp {
 +  type CoinHandler = W42WarpCoins;
@@ -602,9 +646,28 @@ index 0000000..19ab434
 +  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
 +}
 +impl SearchGoal for W42Warp {
-+  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()) }; }
++  fn new() -> Self {
++    let mut h = XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states());
++    let c_ret = Self::compute_c_ret(&h);
++    h.build_overshoot_bound(WARP_DROP_X, WARP_PIPE_XMAX, 96);
++    Self { h, c_ret }
++  }
++  /// Phase unknown: the ext = 1 form (sound in both phases; before the drop it is weaker than the x-only bound only
++  /// when X > 812, where steps-to-X>=804 is 0 anyway).
 +  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
-+    Some(self.h.get_steps_until_x_pos_at_least(s, 0x32400))
++    let hx = if s.x_pos < WARP_PIPE_XMIN { self.h.get_steps_until_x_pos_at_least(s, WARP_PIPE_XMIN) } else { self.h.get_steps_until_x_pos_at_most(s, WARP_PIPE_XMAX) };
++    Some(::std::cmp::max(hx, Self::y_part(s, false)))
++  }
++  fn distance_to_goal_heuristic_ext(&self, s: &mut State, ext: u16, _: Dist) -> Option<Dist> {
++    if ext == 0 {
++      let hx_dec = self.h.get_steps_until_x_pos_at_least(s, WARP_DROP_X) + self.c_ret; // decoupled (approach + best return)
++      let hx_cpl = self.h.get_steps_overshoot(s, WARP_DROP_X); // coupled: approach ending in class a + R(a)
++      let hx = ::std::cmp::max(hx_dec, hx_cpl);
++      Some(::std::cmp::max(hx, Self::y_part(s, true)))
++    } else {
++      let hx = self.h.get_steps_until_x_pos_at_most(s, WARP_PIPE_XMAX);
++      Some(::std::cmp::max(hx, Self::y_part(s, false)))
++    }
 +  }
 +  fn is_goal_state(&self, _: &State, emu_result: &EmuResult) -> bool {
 +    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
@@ -996,10 +1059,10 @@ index 947eef3..3a0dc08 100644
      } else if self.s.is_on_ground() && self.s.facing_dir == Dir::RIGHT && (cv == 0x6c || cv == 0x1f) {
        return EmuResult::StateChangeSidePipe(cx, cy); // sideways pipe entry
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
-index 39e4b06..d7dac02 100644
+index 39e4b06..4e9e175 100644
 --- a/src/heuristics/mod.rs
 +++ b/src/heuristics/mod.rs
-@@ -7,6 +7,27 @@ use state::{Dist, State};
+@@ -7,9 +7,32 @@ use state::{Dist, State};
  use std::cmp::{max, min};
  use std::marker::PhantomData;
  
@@ -1027,11 +1090,16 @@ index 39e4b06..d7dac02 100644
  pub trait SearchGoal {
    fn new() -> Self;
    fn distance_to_goal_heuristic(&self, s: &mut State, steps_already_taken: Dist) -> Option<Dist>;
++  /// P2.3c-2: the bound may use the search's ext word (object hook state / route phase); default = the plain bound.
++  fn distance_to_goal_heuristic_ext(&self, s: &mut State, _ext: u16, steps_already_taken: Dist) -> Option<Dist> { self.distance_to_goal_heuristic(s, steps_already_taken) }
+   fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool;
+ 
+   fn track_metric(&mut self, _: &State) -> () {}
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..748d3f7 100644
+index c9bbf89..1b01909 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
-@@ -6,15 +6,15 @@ use std::io::Write;
+@@ -6,22 +6,100 @@ use std::io::Write;
  use std::marker::PhantomData;
  
  pub struct XPosHeuristic {
@@ -1040,6 +1108,10 @@ index c9bbf89..748d3f7 100644
 +  max_distance: ::heuristics::FxMap<XPosState, Vec<i32>>,
 +  min_distance: ::heuristics::FxMap<XPosState, Vec<i32>>,
    max_x_distance: i32,
++  state_map: HashMap<XPosState, Vec<(XPosState, i32)>>, // kept for the two-phase (overshoot-and-return) bound, P2.3c-2
++  /// Two-phase bound tables (build_overshoot_bound): for each distinct return cost r (ascending), per class the max
++  /// displacement in k = 1..K steps over class paths that END in a class whose return cost is <= r.
++  overshoot: Vec<(Dist, ::heuristics::FxMap<XPosState, Vec<i32>>)>,
  }
  impl XPosHeuristic {
    pub fn new<O: Options>(initial_states: &Vec<State>) -> XPosHeuristic {
@@ -1049,9 +1121,100 @@ index c9bbf89..748d3f7 100644
 +      max_distance: ::heuristics::FxMap::default(),
 +      min_distance: ::heuristics::FxMap::default(),
        max_x_distance: ((if O::Swim::IS_SWIMMING { O::Platform::MAX_X_SPD_WALK } else { O::Platform::MAX_X_SPD_RUN } >> 8) << 4) as i32,
++      state_map: HashMap::new(),
++      overshoot: Vec::new(),
      };
      let state_map = Self::build_state_map::<O>(initial_states.iter().map(|s| Self::to_x_pos_state(s)).collect());
-@@ -60,7 +60,7 @@ impl XPosHeuristic {
+     println!("total number of XPosState: {}; total size of state map: {}", state_map.len(), state_map.values().map(|v| v.len()).sum::<usize>());
+-    h.precompute_distances(state_map);
++    h.precompute_distances(state_map.clone());
++    h.state_map = state_map;
+     h
+   }
++  /// P2.3c-2 coupled overshoot-and-return bound. A route that must first reach x >= T (threshold) and then come back
++  /// to x <= G (G < T) costs, for a path arriving at T in class a, at least (steps to reach T ending in a) + R(a),
++  /// R(a) = this table's min steps from class a at x = T to x <= G (admissible: arriving beyond T only lengthens the
++  /// return, the min-distance lookup is monotone in the distance). For every distinct R value r this builds, per
++  /// class c, the max displacement in k = 1..horizon steps over class paths ending in {a : R(a) <= r} (the same DP
++  /// as the plain table with a restricted base case); beyond the horizon the gain is extrapolated at max_x_distance
++  /// per step (an upper bound on any gain, so truncation only loosens). Query: overshoot_steps(c, D) =
++  /// min over r of (min k with table_r(c, k) >= D) + r, D = T - x. Classes whose R is None (cannot return) are excluded.
++  pub fn build_overshoot_bound(&mut self, threshold_x: i32, return_x_max: i32, horizon: usize) -> () {
++    let t0 = ::std::time::Instant::now();
++    // index the class graph
++    let classes: Vec<XPosState> = self.state_map.keys().cloned().collect();
++    let index: ::heuristics::FxMap<XPosState, usize> = classes.iter().enumerate().map(|(i, c)| (c.clone(), i)).collect();
++    let adj: Vec<Vec<(usize, i32)>> = classes.iter().map(|c| self.state_map.get(c).unwrap().iter().filter_map(|&(ref n, dx)| index.get(n).map(|&j| (j, dx))).collect()).collect();
++    // R(a) per class: steps from x = threshold_x in class a to x <= return_x_max. Only classes moving right by
++    // >= 1 px/frame can be the class of the FIRST crossing of the threshold (x advances by x_spd >> 8 px), so only
++    // those are end candidates; the others get None.
++    let distance = return_x_max - threshold_x; // negative
++    let ret: Vec<Option<Dist>> = classes.iter().map(|c| {
++      if c.x_spd < 0x100 { return None; }
++      let min_dists = self.min_distance.get(c).unwrap();
++      let len = min_dists.len();
++      Some(if len == 0 { ((-distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
++        else if min_dists[len-1] > distance { (len as i32 + (min_dists[len-1] - distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
++        else { min_dists.iter().position(|d| *d <= distance).unwrap() as Dist + 1 })
++    }).collect();
++    let mut rvals: Vec<Dist> = ret.iter().filter_map(|r| *r).collect();
++    rvals.sort(); rvals.dedup();
++    println!("overshoot bound: threshold x {:#x}, return to x <= {:#x}; {} end classes (moving right >= 1 px/frame), {} distinct return costs {:?}", threshold_x, return_x_max, ret.iter().filter(|r| r.is_some()).count(), rvals.len(), rvals);
++    self.overshoot.clear();
++    const NEG: i32 = ::std::i32::MIN / 4;
++    let n = classes.len();
++    for &r in &rvals {
++      let mut prev: Vec<i32> = ret.iter().map(|rc| if rc.map_or(false, |v| v <= r) { 0 } else { NEG }).collect();
++      let mut rows: Vec<Vec<i32>> = vec![Vec::with_capacity(horizon); n];
++      for _k in 1..=horizon {
++        let mut cur: Vec<i32> = vec![NEG; n];
++        for i in 0..n {
++          let mut best = NEG;
++          for &(j, dx) in &adj[i] { let v = prev[j]; if v > NEG && v + dx > best { best = v + dx; } }
++          cur[i] = best;
++        }
++        for i in 0..n { rows[i].push(cur[i]); }
++        prev = cur;
++      }
++      let mut table: ::heuristics::FxMap<XPosState, Vec<i32>> = ::heuristics::FxMap::default();
++      for (i, c) in classes.iter().enumerate() { table.insert(c.clone(), ::std::mem::replace(&mut rows[i], Vec::new())); }
++      self.overshoot.push((r, table));
++    }
++    println!("overshoot bound built in {:.1}s ({} tables x {} classes x {} steps)", t0.elapsed().as_secs() as f64, rvals.len(), n, horizon);
++  }
++  /// Steps needed to reach x >= threshold and come back (see build_overshoot_bound); 0 if the class is unknown.
++  pub fn get_steps_overshoot(&self, s: &State, threshold_x: i32) -> Dist {
++    let distance = threshold_x - s.x_pos; // may be <= 0: then phase 0 is "free" only if the state is past the threshold, which the caller handles via ext
++    let c = Self::to_x_pos_state(s);
++    let mut best: Option<Dist> = None;
++    for &(r, ref table) in &self.overshoot {
++      if let Some(v) = table.get(&c) {
++        // min k with v[k-1] >= distance; beyond the horizon extrapolate at max_x_distance per step
++        let k: Dist = if distance <= 0 { 0 } else {
++          match v.iter().position(|d| *d >= distance) {
++            Some(p) => p as Dist + 1,
++            None => { let len = v.len(); let last = if len == 0 { 0 } else { v[len - 1] }; if last <= ::std::i32::MIN / 8 { continue; } (len as i32 + (distance - last + self.max_x_distance - 1) / self.max_x_distance) as Dist }
++          }
++        };
++        let tot = k + r;
++        if best.map_or(true, |b| tot < b) { best = Some(tot); }
++      }
++    }
++    best.unwrap_or(0)
++  }
+   fn build_state_map<O: Options>(initial_states: Vec<XPosState>) -> HashMap<XPosState, Vec<(XPosState, i32)>> {
+     let mut state_map: HashMap<XPosState, Vec<(XPosState, i32)>> = HashMap::new();
+ 
+@@ -51,6 +129,8 @@ impl XPosHeuristic {
+       running_speed: s.running_speed,
+     }
+   }
++  /// Whether the state's x class is in the precomputed table (queries on unknown classes return 0).
++  pub fn has_class(&self, s: &State) -> bool { self.max_distance.contains_key(&Self::to_x_pos_state(s)) }
+   pub fn get_steps_until_x_pos_at_least(&self, s: &State, target_x_pos: i32) -> Dist {
+     if target_x_pos <= s.x_pos { return 0; }
+     let distance = target_x_pos - s.x_pos;
+@@ -60,7 +140,7 @@ impl XPosHeuristic {
        if len == 0 { ((distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if max_dists[len-1] < distance { (len as i32 + (distance - max_dists[len-1] + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else { max_dists.iter().position(|d| *d >= distance).unwrap() as Dist + 1 }
@@ -1060,7 +1223,7 @@ index c9bbf89..748d3f7 100644
    }
    pub fn get_steps_until_x_pos_at_most(&self, s: &State, target_x_pos: i32) -> Dist {
      if target_x_pos >= s.x_pos { return 0; }
-@@ -71,7 +71,7 @@ impl XPosHeuristic {
+@@ -71,7 +151,7 @@ impl XPosHeuristic {
        if len == 0 { ((-distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if min_dists[len-1] > distance { (len as i32 + (min_dists[len-1] - distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else { min_dists.iter().position(|d| *d <= distance).unwrap() as Dist + 1 }
@@ -1069,7 +1232,7 @@ index c9bbf89..748d3f7 100644
    }
    pub fn get_steps_until_x_pos_between(&self, s: &State, min_x_pos: i32, max_x_pos: i32) -> Dist {
      if s.x_pos < min_x_pos { self.get_steps_until_x_pos_at_least(s, min_x_pos) }
-@@ -117,6 +117,23 @@ impl XPosHeuristic {
+@@ -117,6 +197,23 @@ impl XPosHeuristic {
    pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
      s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
    }
@@ -1136,7 +1299,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..b27846b 100644
+index 350d469..6eed9c0 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1147,7 +1310,7 @@ index 350d469..b27846b 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,266 @@ mod state;
+@@ -22,6 +23,268 @@ mod state;
  mod store;
  
  fn main() {
@@ -1178,13 +1341,14 @@ index 350d469..b27846b 100644
 +    let max_steps: usize = args[6].parse().unwrap();
 +    let mut out: Option<String> = None; let mut check_path: usize = 0; let mut threads: usize = 4;
 +    let mut lift = false; let mut aptn0: u16 = 0; let mut layer_dir: Option<String> = None; let mut resume: Option<usize> = None;
-+    let mut acc_mb: usize = 64; let mut stop_step: usize = ::std::usize::MAX;
++    let mut acc_mb: usize = 64; let mut stop_step: usize = ::std::usize::MAX; let mut stage = false;
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--check-path" { check_path = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--lift" { lift = true; aptn0 = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--stage" { stage = true; i += 1; } // W42Warp: route-phase hook + staged bound (P2.3c-2)
 +      else if args[i] == "--layer-dir" { layer_dir = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--resume" { resume = Some(args[i + 1].parse().unwrap()); i += 2; }
 +      else if args[i] == "--acc-mb" { acc_mb = args[i + 1].parse().unwrap(); i += 2; }
@@ -1194,7 +1358,7 @@ index 350d469..b27846b 100644
 +    let hook: Option<Hook> = if lift { Some(w42_lift as Hook) } else { None };
 +    match args[2].as_str() {
 +      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step),
-+      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step),
++      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step),
 +      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step),
 +      other => panic!("unknown case {}", other),
 +    }
@@ -1207,18 +1371,19 @@ index 350d469..b27846b 100644
 +    let step: usize = args[4].parse().unwrap();
 +    let rec: Vec<u8> = args[5].trim_matches(|c| c == '[' || c == ']').split(',').map(|t| t.trim().parse().unwrap()).collect();
 +    let goal_input: u8 = u8::from_str_radix(args[6].trim_left_matches("0x"), 16).unwrap();
-+    let mut threads = 4usize; let mut out: Option<String> = None; let mut lift = false;
++    let mut threads = 4usize; let mut out: Option<String> = None; let mut lift = false; let mut stage = false;
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--threads" { threads = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
 +      else if args[i] == "--lift" { lift = true; i += 2; }
++      else if args[i] == "--stage" { stage = true; i += 1; }
 +      else { panic!("unknown option {}", args[i]); }
 +    }
-+    let hook: Option<Hook> = if lift { Some(w42_lift as Hook) } else { None };
++    let hook: Option<Hook> = if lift { Some(w42_lift as Hook) } else if stage { Some(w42_warp_stage as Hook) } else { None };
 +    match args[2].as_str() {
 +      "W42Main" => bfscx_path::<case::w42::W42Main, [u8; 20]>(&layer_dir, step, &rec, goal_input, hook, threads, out),
-+      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, None, threads, out),
++      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, hook, threads, out),
 +      "W11VertPipeEntry" => bfscx_path::<case::w11::W11VertPipeEntry, [u8; 10]>(&layer_dir, step, &rec, goal_input, None, threads, out),
 +      other => panic!("unknown case {}", other),
 +    }
@@ -1414,7 +1579,7 @@ index 350d469..b27846b 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +307,1050 @@ fn calc_prng() {
+@@ -46,4 +309,1058 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1694,6 +1859,9 @@ index 350d469..b27846b 100644
 +  ev
 +}
 +type Hook = fn(&State, &mut State, &mut u16) -> LiftEvent;
++/// P2.3c-2: route-phase hook for the 4-2 warp zone (`--stage`): ext = 1 once X >= 957 (the drop through the gap at
++/// cols 60..61 is the only way under the roof), so W42Warp's staged bound can add the forced return.
++fn w42_warp_stage(_pre: &State, s: &mut State, ext: &mut u16) -> LiftEvent { if s.x_pos >= case::w42::WARP_DROP_X { *ext = 1; } LiftEvent::Nothing }
 +
 +/// Generic replay (P2.3a): run a case's model from start_states()[0] through `n` NES-order records starting at
 +/// `first`, optionally tracing each step in the trace11pipe row format. Returns (state, alive).
@@ -1787,18 +1955,23 @@ index 350d469..b27846b 100644
 +  println!("object hook {} (root ext {:#x}); key {} bytes (+2 ext, {}-byte records); threads {}; layer dir {}; acc {} MB/thread; resume {:?}; inputs: all 16 A/B/L/R combinations", hook.is_some(), e0, klen, XREC, threads, ldir, acc_mb, resume);
 +  let t0 = time::precise_time_ns();
 +  let goal = Arc::new(C::SearchGoal::new());
-+  let hval = |g: &C::SearchGoal, st: &State, step: usize| -> Option<usize> { let mut c = st.clone(); g.distance_to_goal_heuristic(&mut c, step as state::Dist).map(|d| d as usize) };
-+  println!("heuristic built in {:.1}s; at root: {:?} steps (deadline {} steps)", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&goal, &s, 0), max_steps);
++  let hval = |g: &C::SearchGoal, st: &State, e: u16, step: usize| -> Option<usize> { let mut c = st.clone(); g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize) };
++  println!("heuristic built in {:.1}s; at root: {:?} steps (deadline {} steps)", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&goal, &s, e0, 0), max_steps);
 +  // reference path (--check-path): (state, ext, record) per step
 +  let mut refpath: Vec<(State, u16, XRec)> = Vec::new();
 +  if check_path > 0 {
 +    let (mut rs, mut re) = (s.clone(), e0);
++    let mut hmax_viol = 0usize;
 +    for k in 0..check_path {
 +      let input = nes_to_model(data[first + prefix + k]);
 +      let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs.clone(), input);
 +      let g = goal.is_goal_state(&ns, &res);
 +      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&rs, &mut ns, &mut re); if ev != LiftEvent::Nothing { println!("reference path: step {} object event {:?} ext {:#x}", k + 1, ev, re); } } }
-+      println!("reference path: step {} x {:#x} y {:#x} xspd {:#x} yspd {:#x} {:?} h {:?} result {:?}{}", k + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hval(&goal, &ns, k + 1), res, if g { " GOAL" } else { "" });
++      let hv = hval(&goal, &ns, re, k + 1);
++      // admissibility check against the reference path itself: h(state after step k+1) must not exceed the steps the reference still needs
++      if let Some(hh) = hv { if k + 1 + hh > check_path { hmax_viol += 1; println!("reference path: step {} BOUND VIOLATION h {} > {} remaining", k + 1, hh, check_path - (k + 1)); } }
++      println!("reference path: step {} x {:#x} y {:#x} xspd {:#x} yspd {:#x} {:?} ext {:#x} h {:?} result {:?}{}", k + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, re, hv, res, if g { " GOAL" } else { "" });
++      if g || res != EmuResult::Success { println!("reference path: {} bound violations over {} steps (reference length {})", hmax_viol, k + 1, check_path); }
 +      if res != EmuResult::Success { break; }
 +      let rec = mk_rec(&Key::<C, A>::from_state(&ns), re);
 +      refpath.push((ns.clone(), re, rec));
@@ -1877,7 +2050,7 @@ index 350d469..b27846b 100644
 +                  if let Some(h) = hook { h(&ps, &mut ns, &mut ne); }
 +                  if ns.y_pos >= 0x1d000 { dead += 1; continue; }
 +                  let mut c = ns.clone();
-+                  match goal.distance_to_goal_heuristic(&mut c, (step + 1) as state::Dist) {
++                  match goal.distance_to_goal_heuristic_ext(&mut c, ne, (step + 1) as state::Dist) {
 +                    None => { pruned += 1; continue; }
 +                    Some(hh) => { if step + 1 + hh as usize > max_steps { pruned += 1; continue; } }
 +                  }
@@ -1946,7 +2119,7 @@ index 350d469..b27846b 100644
 +    if step < refpath.len() {
 +      let (ref rs, re, ref rrec) = refpath[step];
 +      if xlayer_contains(&layer_path(step + 1), rrec) { println!("  reference path step {} in the frontier", step + 1); }
-+      else { println!("  reference path step {} NOT in the frontier (x {:#x} y {:#x} ext {:#x} h {:?})", step + 1, rs.x_pos, rs.y_pos, re, hval(&goal, rs, step + 1)); }
++      else { println!("  reference path step {} NOT in the frontier (x {:#x} y {:#x} ext {:#x} h {:?})", step + 1, rs.x_pos, rs.y_pos, re, hval(&goal, rs, re, step + 1)); }
 +    }
 +    ::std::io::stdout().flush().ok();
 +    if goals > 0 { println!("goal reached at layer {} ({} goal transitions)", step + 1, goals); break; }

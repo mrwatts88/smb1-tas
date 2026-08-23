@@ -405,3 +405,16 @@ search result came out of a 12-frame plumbing control — HappyLee brakes before
 **Next.** P2.3c-2: staged admissible bounds per segment (warp zone: overshoot/return; main area: pipe-A/brick/pipe-B
 gates) in the cases' `SearchGoal`, each checked with `--check-path` on the WR and the F68-style audit; then the runs
 (cloud decision pending).
+## 2026-08-22 — Session 7 (end): P2.3c-2 — the warp-zone bound: 329 → 461 of the WR's 476; the proof still needs the cloud
+**Did.** Ext-aware bounds (`SearchGoal::distance_to_goal_heuristic_ext`, `--stage` phase hook: ext = 1 once X ≥ 957,
+the only way under the roof); `W42Warp`'s staged bound (approach + C_RET return, speed-cap y parts) and the coupled
+two-phase x bound (`build_overshoot_bound`: end-class-restricted max-displacement DP, 11 s to build after indexing the
+class graph). Root bound 461 (0 violations along the WR); the WR's slack (15) sits entirely in the final ~100 steps.
+Exhaustive controls from the WR's drop state: 76 optimal, 75 impossible (F90). Frontier growth still ×1.25/layer at
+layer 24 (9.2M) — F91. One mistaken run (deadline counted from the prefix root) reached 102M states before I killed
+it; two `pkill -f` self-kills (the pattern was in the same command line — isolate kills, as the memory note says).
+**Learned.** An x-only table cannot see the drop/fall/landing coupling; the y-table is unsound for descents (bonks).
+Even a zero-slack phase carries 2×10⁷ states/layer here, so bounds alone never make 4-2 laptop-sized: the proof runs
+are cloud jobs, and the bound's job is only to keep the layers flat.
+**Next.** P2.3c-2b (end-game (x,y) bound or the Phase-B multi-root search, H35) and P2.3c-2c (main-area gates); then
+the cloud decision for the runs. Run 4 ETA ~2026-08-24 early morning.
