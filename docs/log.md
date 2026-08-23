@@ -375,3 +375,20 @@ to the pipe (F83) — the x-bound's 147-frame slack is structural; a staged land
 **Next.** P2.3c-1: generalise `bfs11c` (external memory + `bfs11c-path`) to any case + hook; P2.3c-2: staged bounds per
 segment (warp: overshoot/return; main: pipe-A/brick/pipe-B gates); then P2.3b-2 block states and the enemy models (piranhas,
 goombas, koopa) before any 4-2 bound is claimed.
+## 2026-08-22 — Session 7: P2.3b-2 done — block states in the 4-2 model; an uncapped control OOM-killed the session
+**Did.** Read `PlayerHeadCollision`/`BumpBlock`/`BlockObjectsCore`/`BlockObjMT_Updater`, the NMI flush, `ColorRotation`,
+`RunGameTimer` and the parser task table; measured on the dump: `$23` for 14 frames, restore on the 14th only when
+`VRAM_Buffer1` is empty, which the column renderer (`AddrCtrl` 6), coin erases, the palette rotation and the game-timer
+digits can block (F84–F86). Added `Options::BlockStates` (56-bit `State.blocks`: bounce cell, `$c4` mask, coin-brick
+timer, a mod-168 frame phase, parser task/column, VRAM flags) with `W42MainBlocks` (16 cells). `tools/block_state_check.py`
+compares every bookkeeping field with the dump: 0 mismatches on 587 rows; difftest: WR + 100 random + 240 mutated
+block-bumping trials, 0 block-related differences (F87). The WR itself bumps the mushroom brick, a question block and the
+vine brick. H34 (item routes) recorded. Capped `bfsc` control: WR suffix in the frontier, 20-byte key OK.
+**Crash.** The first plumbing control (`bfsc … 540 587 --check-path 47`, in-memory frontier, uncapped) was OOM-killed at
+20:09 and took the Claude Code session with it; run 4 survived (its own cgroup). Rule added to STATUS and memory: every
+search — controls included — runs under `systemd-run --user --scope -p MemoryMax=…` with absolute paths.
+**Learned.** "When does the block come back" is a VRAM-scheduling question, not a physics one; the dump answers it in
+minutes (`tools/ram_trace.py` on `VRAM_Buffer1`/`AddrCtrl`/`AreaParserTaskNum`). Combining the 8/21/24-frame phases into
+one mod-168 counter keeps per-layer-deterministic state out of the dedup cost.
+**Next.** P2.3c-1: generalise the external-memory engine (`bfs11c` + `bfs11c-path`) to any case + hook (`bfscx`),
+then the staged bounds (P2.3c-2); the big runs wait for the cloud decision. Run 4 ETA ~2026-08-24 early morning.

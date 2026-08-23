@@ -53,14 +53,14 @@ index b60525c..88713eb 100644
  pub mod w62;
  pub mod w71;
 diff --git a/src/case/w11.rs b/src/case/w11.rs
-index e0e1804..7e823a4 100644
+index e0e1804..4a9f2bc 100644
 --- a/src/case/w11.rs
 +++ b/src/case/w11.rs
 @@ -29,6 +29,7 @@ fn w11_start<O: Options>() -> State {
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false, block_bounce_timer: 0,
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
    }
  }
  
@@ -68,7 +68,7 @@ index e0e1804..7e823a4 100644
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false, block_bounce_timer: 0,
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
    })
  }
  
@@ -81,7 +81,7 @@ index e0e1804..7e823a4 100644
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false, block_bounce_timer: 0,
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
    }
  }
  
@@ -153,7 +153,7 @@ index e0e1804..7e823a4 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // let s = Self::Emu::run_steps_nr(s, &[B|R; 12]);
      vec![s]
@@ -161,19 +161,19 @@ index e0e1804..7e823a4 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
        vec![s]
 diff --git a/src/case/w12.rs b/src/case/w12.rs
-index 32f4877..32d0d42 100644
+index 32f4877..1d5947e 100644
 --- a/src/case/w12.rs
 +++ b/src/case/w12.rs
 @@ -29,6 +29,7 @@ fn w12_start<O: Options>() -> State {
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false, block_bounce_timer: 0,
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
    })
  }
  
@@ -181,7 +181,7 @@ index 32f4877..32d0d42 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      }]
    }
    const INITIAL_SEARCH_DISTANCE: Dist = 68;
@@ -189,19 +189,19 @@ index 32f4877..32d0d42 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      let s = Self::Emu::run_steps_nr(s, &[L|R, A|R]);
      let s = Self::Emu::run_steps_nr(s, &[R; 19]);
 diff --git a/src/case/w13.rs b/src/case/w13.rs
-index 910f335..2772f10 100644
+index 910f335..1b76d9e 100644
 --- a/src/case/w13.rs
 +++ b/src/case/w13.rs
 @@ -57,6 +57,7 @@ impl super::SmbSearchCase for W13PowerupSmall {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      }]
      // )), 10)
    }
@@ -209,7 +209,7 @@ index 910f335..2772f10 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      println!("start state {}", s);
      // super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
@@ -217,7 +217,7 @@ index 910f335..2772f10 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      let s = Self::Emu::run_steps_nr(s, &[A; 14]); // 15xA
      let s = Self::Emu::run_steps_nr(s, &[NIL]);
@@ -225,7 +225,7 @@ index 910f335..2772f10 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -233,7 +233,7 @@ index 910f335..2772f10 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      let s = Self::Emu::run_steps_nr(s, &[B|R; 120]);
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
@@ -241,19 +241,19 @@ index 910f335..2772f10 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      let h = ::heuristics::xpos::XPosHeuristic::new::<Self>(&vec![s.clone()]);
  
 diff --git a/src/case/w14.rs b/src/case/w14.rs
-index aa7fae8..a048e83 100644
+index aa7fae8..5b50192 100644
 --- a/src/case/w14.rs
 +++ b/src/case/w14.rs
 @@ -29,6 +29,7 @@ fn w14_start<O: Options>() -> State {
      powerup_block_hit: false,
      powerup_collected: false,
      parity: 0,
-+    a_held: false, block_bounce_timer: 0,
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
    }
  }
  
@@ -261,19 +261,19 @@ index aa7fae8..a048e83 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      println!("start state {}", s);
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
 diff --git a/src/case/w21.rs b/src/case/w21.rs
-index 019a53c..05f7d73 100644
+index 019a53c..5c189de 100644
 --- a/src/case/w21.rs
 +++ b/src/case/w21.rs
 @@ -57,6 +57,7 @@ impl super::SmbSearchCase for W21ScreenScrollRightCollision {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -281,7 +281,7 @@ index 019a53c..05f7d73 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -289,7 +289,7 @@ index 019a53c..05f7d73 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -297,7 +297,7 @@ index 019a53c..05f7d73 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -305,7 +305,7 @@ index 019a53c..05f7d73 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      let s = Self::Emu::run_steps_nr(s, &[A; 11-5]);
      super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
@@ -313,7 +313,7 @@ index 019a53c..05f7d73 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -321,31 +321,31 @@ index 019a53c..05f7d73 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w22.rs b/src/case/w22.rs
-index 197995e..61b2400 100644
+index 197995e..0bd9429 100644
 --- a/src/case/w22.rs
 +++ b/src/case/w22.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W22Speedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      vec![s]
    }
 diff --git a/src/case/w23.rs b/src/case/w23.rs
-index ca06051..2822fd1 100644
+index ca06051..6965eff 100644
 --- a/src/case/w23.rs
 +++ b/src/case/w23.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W23FloorClip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // State { // created by jump x 11
      //   x_pos: 0xcdd10,
@@ -353,43 +353,43 @@ index ca06051..2822fd1 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w31.rs b/src/case/w31.rs
-index 9d6ce19..eedc7c4 100644
+index 9d6ce19..4a1d188 100644
 --- a/src/case/w31.rs
 +++ b/src/case/w31.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W31ScreenScrollBlock3PipeClip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      let s = Self::Emu::run_steps_nr(s, &[A; 1]);
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
 diff --git a/src/case/w32.rs b/src/case/w32.rs
-index 1318bee..6b3bc1b 100644
+index 1318bee..9f3b0c0 100644
 --- a/src/case/w32.rs
 +++ b/src/case/w32.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W32FloorClipSpeedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(//super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w33.rs b/src/case/w33.rs
-index e254ce8..9d401fc 100644
+index e254ce8..177f74e 100644
 --- a/src/case/w33.rs
 +++ b/src/case/w33.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W33FloorClipSpeedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(//super::with_all_x_spd_subpixels(
      vec![s]
@@ -397,16 +397,16 @@ index e254ce8..9d401fc 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // let s = Self::Emu::run_steps_nr(s, &[B|R; 120]);
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..1e33765
+index 0000000..19ab434
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,205 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -421,7 +421,7 @@ index 0000000..1e33765
 +/// 4-2 main-area start: Mario drops in at x 40 from the top (same pattern as w12_start; the WR's control row
 +/// 6585 is x 40, y 48, y speed 2, FALLING).
 +fn w42_start<O: Options>() -> State {
-+  SmbEmu::<O, BB42>::iterate_entrance(State {
++  let mut s = SmbEmu::<O, BB42>::iterate_entrance(State {
 +    x_pos: 0x2800,
 +    y_pos: 0x12000,
 +    x_spd: 0x0,
@@ -443,8 +443,15 @@ index 0000000..1e33765
 +    powerup_block_hit: false,
 +    powerup_collected: false,
 +    parity: 0,
-+    a_held: false, block_bounce_timer: 0,
-+  })
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
++  });
++  // Block-state bookkeeping as of the WR dump's row 6585 (the state before record 6584 acts; the entrance iteration
++  // above does not know these): IntervalTimerControl 4, FrameCounter 41, AreaParserTaskNum 0, CurrentPageLoc 1 /
++  // CurrentColumnPos 8, GameTimerCtrlTimer 24, VRAM_Buffer1 non-empty with VRAM_Buffer_AddrCtrl 0 (flushed by the next NMI), BrickCoinTimer/Flag 0.
++  if O::BlockStates::ON {
++    s.blocks = ::state::BlockStateData { parser_col: O::BlockStates::PARSER_COL0, vbuf1: true, ..Default::default() };
++  }
++  s
 +}
 +
 +/// 4-2 warp-zone start: Mario standing at x 24, y 176 (the WR's control row 7248).
@@ -471,7 +478,7 @@ index 0000000..1e33765
 +    powerup_block_hit: false,
 +    powerup_collected: false,
 +    parity: 0,
-+    a_held: false, block_bounce_timer: 0,
++    a_held: false, block_bounce_timer: 0, blocks: Default::default(),
 +  }
 +}
 +
@@ -523,10 +530,26 @@ index 0000000..1e33765
 +  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U84, ::typenum::U8>;
 +  type YPosFractionalBehavior = KeepYPosFractionals;
 +  type BlockBounce = WithBlockBounceTimer;
++  type BlockStates = W42MainBlocks;
++}
++/// 4-2 main area block states (P2.3b-2): the 16 cells of BB42 that change after a bounce — question blocks $c0
++/// (50,3) (51,3) (50,7) (51,7) (54,7) (56,7), the powerup block $c1 (55,7), hidden coin blocks $5f (64,5) (63,6)
++/// (65,6) (66,7), item bricks $5a (28,7) (mushroom), $5b (64,3) (vine), $5c (81,7) (star), and the coin bricks $5d
++/// (43,2) (77,7). The 269 plain bricks $52 only bounce. The spawned items (mushroom/star/vine) are NOT modeled: a
++/// route that bumps (28,7)/(55,7)/(81,7)/(64,3) is outside the model (STATUS "Model omissions"). The parser starts at
++/// absolute column 24 (CurrentPageLoc 1, CurrentColumnPos 8 on row 6585).
++#[allow(dead_code)]
++pub enum W42MainBlocks {}
++impl BlockStates for W42MainBlocks {
++  const ON: bool = true;
++  const BITS: usize = 56;
++  const CELLS: &'static [(usize, usize, bool)] = &[(43, 2, true), (50, 3, false), (51, 3, false), (64, 3, false), (64, 5, false), (63, 6, false), (65, 6, false), (28, 7, false), (50, 7, false), (51, 7, false), (54, 7, false), (55, 7, false), (56, 7, false), (66, 7, false), (77, 7, true), (81, 7, false)];
++  const PARSER_COL0: u8 = 24;
++  const IP0: u8 = 4; const FC0: u8 = 41; const GT0: u8 = 24;
 +}
 +impl super::SmbSearchCase for W42Main {
 +  type SearchGoal = Self;
-+  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 13]>, Dist>;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 20]>, Dist>;
 +
 +  type BlockBuffer = BB42;
 +
@@ -565,6 +588,7 @@ index 0000000..1e33765
 +  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U50, ::typenum::U8>;
 +  type YPosFractionalBehavior = KeepYPosFractionals;
 +  type BlockBounce = WithBlockBounceTimer;
++  type BlockStates = NoBlockStates;
 +}
 +impl super::SmbSearchCase for W42Warp {
 +  type SearchGoal = Self;
@@ -589,14 +613,14 @@ index 0000000..1e33765
 +  }
 +}
 diff --git a/src/case/w44.rs b/src/case/w44.rs
-index eac77cd..b2b467b 100644
+index eac77cd..6e3ad4c 100644
 --- a/src/case/w44.rs
 +++ b/src/case/w44.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W44Speedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      }]
    }
    const SEARCH_SPACE_SIZE_HINT: usize = 0;
@@ -604,19 +628,19 @@ index eac77cd..b2b467b 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // State {
      //   x_pos: 0x5a3f0 - 0x30,
 diff --git a/src/case/w62.rs b/src/case/w62.rs
-index 9d841af..022400e 100644
+index 9d841af..c42db6b 100644
 --- a/src/case/w62.rs
 +++ b/src/case/w62.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W62Vine {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      println!("start state {}", s);
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
@@ -624,19 +648,19 @@ index 9d841af..022400e 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      }]
    }
    const INITIAL_SEARCH_DISTANCE: Dist = 58;
 diff --git a/src/case/w71.rs b/src/case/w71.rs
-index 6e9ab65..7dfe2eb 100644
+index 6e9ab65..8f12d47 100644
 --- a/src/case/w71.rs
 +++ b/src/case/w71.rs
 @@ -59,6 +59,7 @@ impl super::SmbSearchCase for W71Launcher2Clip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -644,7 +668,7 @@ index 6e9ab65..7dfe2eb 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // let s = Self::Emu::run_steps_nr(s, &[A|R; 1]);
      // let s = Self::Emu::run_steps_nr(s, &[A; 3]);
@@ -652,19 +676,19 @@ index 6e9ab65..7dfe2eb 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w73.rs b/src/case/w73.rs
-index ec41e4c..0c3e87d 100644
+index ec41e4c..0f33b0c 100644
 --- a/src/case/w73.rs
 +++ b/src/case/w73.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W73FloorClip {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -672,31 +696,31 @@ index ec41e4c..0c3e87d 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_and_lr_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w82.rs b/src/case/w82.rs
-index 84463c9..db4595f 100644
+index 84463c9..d254e1e 100644
 --- a/src/case/w82.rs
 +++ b/src/case/w82.rs
 @@ -54,6 +54,7 @@ impl super::SmbSearchCase for W82PiranhaPass {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w84.rs b/src/case/w84.rs
-index 3f1c53b..be05133 100644
+index 3f1c53b..fc1d170 100644
 --- a/src/case/w84.rs
 +++ b/src/case/w84.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W84Speedup {
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      vec![s]
    }
@@ -704,7 +728,7 @@ index 3f1c53b..be05133 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      vec![s]
    }
@@ -712,7 +736,7 @@ index 3f1c53b..be05133 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -720,7 +744,7 @@ index 3f1c53b..be05133 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      vec![s]
    }
@@ -728,7 +752,7 @@ index 3f1c53b..be05133 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
@@ -736,12 +760,12 @@ index 3f1c53b..be05133 100644
        powerup_block_hit: false,
        powerup_collected: false,
        parity: 0,
-+      a_held: false, block_bounce_timer: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
      };
      vec![s]
    }
 diff --git a/src/emu.rs b/src/emu.rs
-index 947eef3..453ad57 100644
+index 947eef3..3a0dc08 100644
 --- a/src/emu.rs
 +++ b/src/emu.rs
 @@ -3,6 +3,11 @@ use blockbuffer::util::*;
@@ -756,33 +780,121 @@ index 947eef3..453ad57 100644
  
  
  bitflags! {
-@@ -96,6 +101,7 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
+@@ -96,11 +101,90 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
    started_jump: bool,
    started_on_ground: bool,
    x_scroll: i8, // only for scroll
 +  x_before: i32, // x_pos before this frame's horizontal movement (Player_Pos_ForScroll is last frame's relative x), only for scroll
    side_collision: bool, // only for scroll
++  vbuf1_busy: bool, // BlockStates: VRAM_Buffer1 non-empty so far this frame (blocks BlockObjMT_Updater)
++  addrctrl6_now: bool, // BlockStates: VRAM_Buffer_AddrCtrl set to 6 so far this frame (coin erase / column render)
++  sl_prev_abs: i32, // BlockStates: absolute ScreenLeft before this frame's scroll
++  sl_abs: i32, // BlockStates: absolute ScreenLeft after this frame's scroll
    options: PhantomData<O>,
    block_buffer: PhantomData<B>,
-@@ -113,6 +119,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+ }
++/// Absolute ScreenLeft from Mario's absolute x (px) and the 8-bit ScreenLeft_X_Pos (Mario is never left of the
++/// screen edge and less than 256 px right of it).
++pub fn screen_left_abs(x_px: i32, sl8: u8) -> i32 {
++  let sl = sl8 as i32;
++  let page = if sl <= (x_px & 0xff) { x_px >> 8 } else { (x_px >> 8) - 1 };
++  (page << 8) | sl
++}
++/// Key of a block-buffer cell for State.blocks.bounce_cell (0 = none).
++pub fn block_cell_id(cx: usize, cy: usize) -> u16 { 1 + ((cx as u16) << 4 | cy as u16) }
++
+ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
++  // ---- Options::BlockStates (P2.3b-2): block objects, VRAM_Buffer1 occupancy and the area-parser schedule ----
++  /// NMI part: interval timers (IntervalTimerControl wraps 0 -> 20 and ticks BrickCoinTimer), FrameCounter, and the
++  /// VRAM buffer flush: VRAM_Buffer1 is transferred and cleared unless VRAM_Buffer_AddrCtrl was 6 (then it is left
++  /// alone and still blocks BlockObjMT_Updater this frame).
++  fn block_states_nmi(&mut self) -> () {
++    let b = &mut self.s.blocks;
++    b.frame = if b.frame == 167 { 0 } else { b.frame + 1 };
++    // IntervalTimerControl was 0 before this NMI (it then wraps to 20 and the interval timers tick)
++    if ((O::BlockStates::IP0 as i32 - b.frame as i32 + 1) % 21 + 21) % 21 == 0 && b.coin_brick_timer > 0 { b.coin_brick_timer -= 1; }
++    self.vbuf1_busy = b.vbuf1 && b.addrctrl6;
++    self.addrctrl6_now = false;
++  }
++  /// AwardTouchedCoin: the coin tally/score digits go to VRAM_Buffer1 and HandleCoinMetatile -> RemoveCoin_Axe sets
++  /// VRAM_Buffer_AddrCtrl = 6 (the erase goes through $0341), which also pauses the parser this frame (F78).
++  fn note_coin_award(&mut self) -> () {
++    if O::BlockStates::ON { self.vbuf1_busy = true; self.addrctrl6_now = true; }
++  }
++  /// PlayerHeadCollision for a fresh bump (BlockBounceTimer was 0, small Mario): writes $23 into the block buffer,
++  /// DestroyBlockMetatile into VRAM_Buffer1, and decides Block_Metatile for the restore: $c4 for question/hidden/
++  /// item bricks; coin bricks $58/$5d stay coin bricks while BrickCoinTimer runs (first bump: flag set, timer 11)
++  /// and become $c4 once the flag is set and the timer has expired; plain bricks come back as themselves.
++  fn fresh_bump(&mut self, cx: usize, cy: usize) -> () {
++    self.vbuf1_busy = true;
++    if self.s.blocks.bounce_cell != 0 { self.s.blocks.bounce_cell = 0; } // a second block slot would be used; its restore (still pending here) is approximated as done (see docs/experiments/P2.3b-2-block-states.md)
++    self.s.blocks.bounce_cell = block_cell_id(cx, cy);
++    if let Some(i) = O::BlockStates::index(cx, cy) {
++      if O::BlockStates::CELLS[i].2 {
++        let b = &mut self.s.blocks;
++        if !b.coin_brick_flag { b.coin_brick_flag = true; b.coin_brick_timer = 11; }
++        else if b.coin_brick_timer == 0 { b.used |= 1u16 << i; }
++      } else { self.s.blocks.used |= 1u16 << i; }
++    }
++  }
++  /// GameEngine after the player: BlockObjMT_Updater (restores the bumped cell once the block object has returned,
++  /// 13 frames after the bump, i.e. from the frame on which BlockBounceTimer reads 2 — if VRAM_Buffer1 is free),
++  /// ColorRotation (palette write every 8th frame), then UpdScrollVar / the area parser (F78: a burst of 8 tasks per
++  /// 32 px of scroll; RenderAreaGraphics / RenderAttributeTables set VRAM_Buffer_AddrCtrl = 6; AreaParserCore on a
++  /// coin brick's column clears BrickCoinTimerFlag; paused on frames with AddrCtrl already 6).
++  fn block_states_game_engine(&mut self) -> () {
++    let mut busy = self.vbuf1_busy;
++    if self.s.blocks.bounce_cell != 0 && self.s.block_bounce_timer <= 2 && !busy { self.s.blocks.bounce_cell = 0; busy = true; }
++    let f = self.s.blocks.frame as i32;
++    if (O::BlockStates::FC0 as i32 + f) & 7 == 0 { busy = true; } // ColorRotation: palette write every 8th frame
++    if ((f - O::BlockStates::GT0 as i32) % 24 + 24) % 24 == 0 { busy = true; } // RunGameTimer: the timer digits every 24 frames
++    if O::ScrollPos::TRACK_SCROLL_POS && (self.sl_abs >> 5) != (self.sl_prev_abs >> 5) { self.s.blocks.burst_pending = true; }
++    if !self.addrctrl6_now {
++      let b = &mut self.s.blocks;
++      if b.aptn > 0 {
++        let task = b.aptn - 1; // AreaParserTasks index: 7/3 AreaParserCore, 6/5/2/1 RenderAreaGraphics, 4/0 IncrementColumnPos
++        b.aptn -= 1;
++        match task {
++          3 => { if O::BlockStates::CELLS.iter().any(|c| c.2 && c.0 == b.parser_col as usize) { b.coin_brick_flag = false; } }
++          6 | 5 | 2 | 1 => { self.addrctrl6_now = true; }
++          _ => { b.parser_col = b.parser_col.wrapping_add(1); }
++        }
++        if b.aptn == 0 { self.addrctrl6_now = true; } // RenderAttributeTables after the last task
++      } else if b.burst_pending {
++        b.burst_pending = false; b.aptn = 7; // task 7: AreaParserCore on parser_col (no VRAM write)
++        if O::BlockStates::CELLS.iter().any(|c| c.2 && c.0 == b.parser_col as usize) { b.coin_brick_flag = false; }
++      }
++    }
++    self.s.blocks.vbuf1 = busy;
++    self.s.blocks.addrctrl6 = self.addrctrl6_now;
++  }
+   fn new(s: State, joypad: Input) -> Self {
+     SmbEmu {
+       s,
+@@ -113,16 +197,22 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        started_jump: false,
        started_on_ground: false,
        x_scroll: 0,
 +      x_before: 0,
        side_collision: false,
++      vbuf1_busy: false, addrctrl6_now: false, sl_prev_abs: 0, sl_abs: 0,
        options: PhantomData,
        block_buffer: PhantomData,
-@@ -120,7 +127,9 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+     }
    }
    fn run_step(mut self) -> (State, EmuResult) {
      self.started_on_ground = self.s.is_on_ground();
 +    let raw_a_pressed = self.joypad.contains(Input::A);
      if O::RunningTimer::USE_RUNNING_TIMER && self.s.running_timer > 0 { self.s.running_timer -= 1; }
 +    if O::BlockBounce::BITS > 0 && self.s.block_bounce_timer > 0 { self.s.block_bounce_timer -= 1; } // frame timer decrement (NMI)
++    if O::BlockStates::ON { self.block_states_nmi(); }
  
      let result = self.player_ctrl_routine();
++    if O::BlockStates::ON { self.block_states_game_engine(); }
  
-@@ -136,11 +145,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+     if O::ScrollPos::TRACK_SCROLL_POS && self.side_collision { self.s.side_collision_timer = 0xf; }
+     else if O::ScrollPos::TRACK_SCROLL_POS && self.s.side_collision_timer > 0 { self.s.side_collision_timer -= 1; }
+@@ -136,11 +226,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        return (self.s, EmuResult::InvalidStateFallingWithClearedYposFractionals);
      }
      self.s.parity = (self.s.parity + 1) % O::Parity::PARITY;
@@ -796,7 +908,7 @@ index 947eef3..453ad57 100644
      self.joypad_lr = Dir::from_bits_truncate(self.joypad.bits());
      self.joypad_ud = self.joypad & (inputs::U | inputs::D);
      if self.joypad.contains(Input::DOWN) && self.s.is_on_ground() && !self.joypad_lr.is_empty() {
-@@ -194,7 +204,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -194,7 +285,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn player_physics_sub(&mut self) -> () {
      // handle starting jumps
@@ -805,7 +917,7 @@ index 947eef3..453ad57 100644
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
-@@ -283,6 +293,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -283,6 +374,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      self.s.x_pos = self.s.x_pos + ((self.s.x_spd as i32 >> 8) << 4);
      if O::ScrollPos::TRACK_SCROLL_POS {
        self.x_scroll = ((self.s.x_pos >> 8) - (old_x_pos >> 8)) as i8;
@@ -813,9 +925,15 @@ index 947eef3..453ad57 100644
      }
    }
    fn move_vertically(&mut self) -> () {
-@@ -292,7 +303,9 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -291,8 +383,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+     if self.s.y_spd >= O::Platform::MAX_Y_SPD && (self.s.y_spd & 0xff) >= 0x80 { self.s.y_spd = O::Platform::MAX_Y_SPD; }
    }
    fn scroll_handler(&mut self) -> () {
++    if O::BlockStates::ON { self.sl_prev_abs = screen_left_abs(self.x_before >> 8, self.s.left_screen_edge_pos); }
++    self.scroll_handler_inner();
++    if O::BlockStates::ON { self.sl_abs = screen_left_abs(self.s.x_pos >> 8, self.s.left_screen_edge_pos); }
++  }
++  fn scroll_handler_inner(&mut self) -> () {
      if O::ScrollPos::TRACK_SCROLL_POS {
 -      let rel_x_pos = ((self.s.x_pos >> 8) - self.s.left_screen_edge_pos as i32) & 0xff;
 +      // ScrollHandler tests Player_Pos_ForScroll = the relative x computed at the end of the previous frame
@@ -824,8 +942,23 @@ index 947eef3..453ad57 100644
        if rel_x_pos < 0x50 || self.s.side_collision_timer > 0 || self.x_scroll <= 0 { return; }
        if rel_x_pos < 0x70 && self.x_scroll >= 2 { self.x_scroll -= 1; }
        self.s.left_screen_edge_pos = self.s.left_screen_edge_pos.wrapping_add(self.x_scroll as u8);
-@@ -326,13 +339,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
-           O::CoinHandler::collect_coin(&mut self.s, cx, cy);
+@@ -310,6 +409,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+ 
+     if is_coin(cv) && O::CoinHandler::is_coin_collected(&self.s, cx, cy) { cv = 0; } // ignore collected coins
+     if /* is_question_block(cv) && */ O::PowerupHandler::is_activated_powerup_block(&self.s, cx, cy) { cv = 0xc4; } // question block changed to solid block
++    if O::BlockStates::ON {
++      if self.s.blocks.bounce_cell == block_cell_id(cx, cy) { cv = 0x23; } // block object in flight: PlayerHeadCollision wrote $23
++      else if let Some(i) = O::BlockStates::index(cx, cy) { if self.s.blocks.used & (1u16 << i) != 0 { cv = 0xc4; } } // Block_Metatile $c4 restored
++    }
+     if cv == 0 { CollisionResult::NoCollision } else { CollisionResult::Collision(cv, cx, cy) }
+   }
+   fn player_bg_collision(&mut self) -> EmuResult {
+@@ -323,16 +426,19 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+     if self.s.y_pos >= (if O::PlayerSize::is_big(&self.s) && !self.s.is_crouching { 0x12000 } else { 0x11000 }) { // HeadChk
+       if let CollisionResult::Collision(cv, cx, cy) = self.block_buffer_collision(0) {
+         if is_coin(cv) {
+-          O::CoinHandler::collect_coin(&mut self.s, cx, cy);
++          O::CoinHandler::collect_coin(&mut self.s, cx, cy); self.note_coin_award();
            return EmuResult::Success; // exit (no feet or side checks)
          } else if self.s.y_spd < 0 && (self.s.y_pos & 0x0f00) >= 0x400 {
 -          if is_solid(cv) || O::Swim::IS_SWIMMING {
@@ -839,10 +972,29 @@ index 947eef3..453ad57 100644
 +            if O::BlockBounce::BITS > 0 { self.s.block_bounce_timer = 16; } // PlayerHeadCollision sets BlockBounceTimer = $10
              /* if is_question_block(cv) */ { O::PowerupHandler::activate_powerup_block(&mut self.s, cx, cy); }
 -            self.s.y_spd &= 0xff; // bump block
++            if O::BlockStates::ON { self.fresh_bump(cx, cy); }
 +            self.s.y_spd &= 0xff; // bump block (BumpBlock: Player_Y_Speed = 0)
            }
          }
        }
+@@ -353,7 +459,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+ 
+       if let CollisionResult::Collision(cv, cx, cy) = foot_collision {
+         if is_coin(cv) {
+-          O::CoinHandler::collect_coin(&mut self.s, cx, cy);
++          O::CoinHandler::collect_coin(&mut self.s, cx, cy); self.note_coin_award();
+           return EmuResult::Success; // exit (no side checks)
+         } else if !is_climb(cv) && !is_hidden_block(cv) && self.s.y_spd >= 0 {
+           if cv == 0xc5 { // axe hit
+@@ -406,7 +512,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+         }
+       }
+     } else if is_coin(cv) {
+-      O::CoinHandler::collect_coin(&mut self.s, cx, cy);
++      O::CoinHandler::collect_coin(&mut self.s, cx, cy); self.note_coin_award();
+       return EmuResult::Success; // grab coin
+     } else if self.s.is_on_ground() && self.s.facing_dir == Dir::RIGHT && (cv == 0x6c || cv == 0x1f) {
+       return EmuResult::StateChangeSidePipe(cx, cy); // sideways pipe entry
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
 index 39e4b06..d7dac02 100644
 --- a/src/heuristics/mod.rs
@@ -984,7 +1136,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..b730e00 100644
+index 350d469..5df4c30 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1042,7 +1194,7 @@ index 350d469..b730e00 100644
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    match args[2].as_str() {
-+      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 13]>(&data, first, prefix, max_steps, out, check_path, threads, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, reduced),
++      "W42Main" => bfsc_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, reduced),
 +      "W42Warp" => bfsc_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, reduced),
 +      "W11VertPipeEntry" => bfsc_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, reduced),
 +      other => panic!("unknown case {}", other),
@@ -1207,7 +1359,7 @@ index 350d469..b730e00 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +252,738 @@ fn calc_prng() {
+@@ -46,4 +252,739 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1506,6 +1658,7 @@ index 350d469..b730e00 100644
 +    if trace {
 +      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}{}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res, evs);
 +      if <<C as options::Options>::ScrollPos as options::ScrollPos>::TRACK_SCROLL_POS { println!("scroll: {} sct {}", ns.left_screen_edge_pos, ns.side_collision_timer); }
++      if <<C as options::Options>::BlockStates as options::BlockStates>::ON { let b = &ns.blocks; println!("blocks: bounce {} used {:#x} cbt {}/{} f {} aptn {} bp {} col {} vb1 {} a6 {}", b.bounce_cell, b.used, b.coin_brick_flag, b.coin_brick_timer, b.frame, b.aptn, b.burst_pending, b.parser_col, b.vbuf1, b.addrctrl6); }
 +    }
 +    s = ns;
 +    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, ext, false); }
@@ -1949,10 +2102,10 @@ index 350d469..b730e00 100644
 +  }
 +}
 diff --git a/src/options.rs b/src/options.rs
-index fba80ad..7f7755e 100644
+index fba80ad..c267e55 100644
 --- a/src/options.rs
 +++ b/src/options.rs
-@@ -15,6 +15,24 @@ pub trait Options {
+@@ -15,6 +15,64 @@ pub trait Options {
    type Parity: Parity;
    type VerticalPipeHandler: VerticalPipeHandler;
    type YPosFractionalBehavior: YPosFractionalBehavior;
@@ -1960,7 +2113,47 @@ index fba80ad..7f7755e 100644
 +  /// progress sets Y speed 1 (NYSpd) instead of 0 (BumpBlock) and does not start a new bounce. Default off (no
 +  /// state bits) so existing cases and layer-file key layouts are unchanged.
 +  type BlockBounce: BlockBounceTimer = NoBlockBounceTimer;
++  /// Block states after a head bump (P2.3b-2): the bumped cell reads $23 (solid) while the block object bounces
++  /// and is restored 14 frames after the bump — or later while VRAM_Buffer1 is busy (coin award this frame, or a
++  /// leftover the NMI could not flush because the column renderer / a coin erase had VRAM_Buffer_AddrCtrl = 6);
++  /// question/hidden/item bricks restore as $c4, coin bricks by the BrickCoinTimer rule (interval timer), plain
++  /// bricks as themselves. Needs Options::BlockBounce and Options::ScrollPos (the parser schedule follows the scroll).
++  /// Default off (no state bits).
++  type BlockStates: BlockStates = NoBlockStates;
 +}
++
++pub trait BlockStates {
++  const ON: bool;
++  const BITS: usize;
++  /// Cells whose metatile changes permanently after a bounce: (column, row, is_coin_brick). Index = bit in
++  /// State.blocks.used. Question blocks $c0/$c1, hidden $5f/$60 and item bricks $55-$5c/$5e become $c4 after the
++  /// first bounce; coin bricks $58/$5d become $c4 only when BrickCoinTimerFlag is set and BrickCoinTimer expired.
++  const CELLS: &'static [(usize, usize, bool)];
++  /// Absolute level column the area parser processes first after the case's start state (CurrentPageLoc*16 +
++  /// CurrentColumnPos at that time); the parser renders two columns per 32 px of scroll (F78) and processing a
++  /// coin brick's column clears BrickCoinTimerFlag (BrickWithCoins).
++  const PARSER_COL0: u8;
++  /// Timer phases at the case's start state: IntervalTimerControl (IP0, 0..20), FrameCounter (FC0) and
++  /// GameTimerCtrlTimer (GT0, 1..24). State.blocks.frame counts frames since the start modulo 168 = lcm(8, 21, 24).
++  const IP0: u8;
++  const FC0: u8;
++  const GT0: u8;
++  fn index(cx: usize, cy: usize) -> Option<usize> {
++    for (i, c) in Self::CELLS.iter().enumerate() { if c.0 == cx && c.1 == cy { return Some(i); } }
++    None
++  }
++}
++#[allow(dead_code)]
++pub enum NoBlockStates {}
++impl BlockStates for NoBlockStates {
++  const ON: bool = false;
++  const BITS: usize = 0;
++  const CELLS: &'static [(usize, usize, bool)] = &[];
++  const PARSER_COL0: u8 = 0;
++  const IP0: u8 = 0; const FC0: u8 = 0; const GT0: u8 = 24;
++}
++#[allow(dead_code)]
++pub enum WithBlockStates {}
 +
 +pub trait BlockBounceTimer {
 +  const BITS: usize;
@@ -1977,7 +2170,7 @@ index fba80ad..7f7755e 100644
  }
  #[allow(dead_code)]
  pub struct SmbOptions<Size: PlayerSize, Swi: Swim, RunT: RunningTimer, YPFB: YPosFractionalBehavior, ScrP: ScrollPos, Par: Parity, Plat: Platform, CoiH: CoinHandler, PowH: PowerupHandler, VerP: VerticalPipeHandler> {
-@@ -296,6 +314,11 @@ pub trait Platform {
+@@ -296,6 +354,11 @@ pub trait Platform {
      }
      0
    }
@@ -1990,31 +2183,47 @@ index fba80ad..7f7755e 100644
      if v_force == Self::V_FORCE_SWIM_TOO_HIGH { 0 }
      else if v_force == Self::V_FORCE_AREA_INIT { 1 }
 diff --git a/src/state.rs b/src/state.rs
-index e8c4d09..58096bf 100644
+index e8c4d09..0d62041 100644
 --- a/src/state.rs
 +++ b/src/state.rs
 @@ -1,6 +1,6 @@
  use bitpack::BitPack;
  use core::array::FixedSizeArray;
 -use options::{CoinHandler, Options, Parity, Platform, PlayerSize, Swim, PowerupHandler, RunningTimer, ScrollPos};
-+use options::{BlockBounceTimer, CoinHandler, Options, Parity, Platform, PlayerSize, Swim, PowerupHandler, RunningTimer, ScrollPos};
++use options::{BlockBounceTimer, BlockStates, CoinHandler, Options, Parity, Platform, PlayerSize, Swim, PowerupHandler, RunningTimer, ScrollPos};
  use std::hash::{Hash, Hasher};
  use std::marker::PhantomData;
  
-@@ -55,6 +55,8 @@ pub struct State {
+@@ -55,6 +55,23 @@ pub struct State {
    pub powerup_block_hit: bool, // only for powerup collection
    pub powerup_collected: bool, // only for powerup collection
    pub parity: u8,
 +  pub a_held: bool, // A was pressed on the previous frame (PreviousA_B_Buttons): a jump needs a fresh press
 +  pub block_bounce_timer: u8, // BlockBounceTimer ($0784), only when Options::BlockBounce is enabled
++  pub blocks: BlockStateData, // only when Options::BlockStates is enabled (P2.3b-2)
++}
++/// Block-object / VRAM / area-parser bookkeeping for Options::BlockStates (all values are end-of-frame values).
++#[derive(Clone,Debug,Eq,Hash,Ord,PartialEq,PartialOrd,Default)]
++pub struct BlockStateData {
++  pub bounce_cell: u16,     // 0 = none, else 1 + (column << 4 | row) of the cell currently holding $23
++  pub used: u16,            // bit i: BlockStates::CELLS[i] has become $c4
++  pub coin_brick_flag: bool, // BrickCoinTimerFlag ($06bc)
++  pub coin_brick_timer: u8, // BrickCoinTimer ($079d, interval timer: ticks every 21 frames)
++  pub frame: u8,            // frames since the case start mod 168: IntervalTimerControl / FrameCounter & 7 / GameTimerCtrlTimer phases
++  pub aptn: u8,             // AreaParserTaskNum ($071f)
++  pub burst_pending: bool,  // ScrollThirtyTwo >= 32 while a burst is still running (the next burst starts when it ends)
++  pub parser_col: u8,       // absolute level column the next AreaParserCore task processes
++  pub vbuf1: bool,          // VRAM_Buffer1 non-empty at the end of the frame
++  pub addrctrl6: bool,      // VRAM_Buffer_AddrCtrl == 6 at the end of the frame (the NMI then leaves VRAM_Buffer1 alone)
  }
  impl State {
    pub fn is_on_ground(&self) -> bool { self.player_state == PlayerState::STANDING }
-@@ -82,10 +84,12 @@ impl ::std::fmt::Display for State {
+@@ -82,10 +99,13 @@ impl ::std::fmt::Display for State {
      writeln!(f, "  running_timer: {:?}", self.running_timer)?;
      writeln!(f, "  left_screen_edge_pos: {:#x}", self.left_screen_edge_pos)?;
      writeln!(f, "  side_collision_timer: {:?}", self.side_collision_timer)?;
 +    writeln!(f, "  block_bounce_timer: {:?}", self.block_bounce_timer)?;
++    writeln!(f, "  blocks: {:?}", self.blocks)?;
      writeln!(f, "  collected_coins: {:?}", self.collected_coins)?;
      writeln!(f, "  powerup_block_hit: {:?}", self.powerup_block_hit)?;
      writeln!(f, "  powerup_collected: {:?}", self.powerup_collected)?;
@@ -2023,7 +2232,7 @@ index e8c4d09..58096bf 100644
      write!(f, "}}")
    }
  }
-@@ -105,6 +109,10 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
+@@ -105,6 +125,13 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
  impl StateArray for [u8; 10] { fn new() -> Self { [0; 10] } }
  impl StateArray for [u8; 11] { fn new() -> Self { [0; 11] } }
  impl StateArray for [u8; 12] { fn new() -> Self { [0; 12] } }
@@ -2031,10 +2240,13 @@ index e8c4d09..58096bf 100644
 +impl StateArray for [u8; 14] { fn new() -> Self { [0; 14] } }
 +impl StateArray for [u8; 15] { fn new() -> Self { [0; 15] } }
 +impl StateArray for [u8; 16] { fn new() -> Self { [0; 16] } }
++impl StateArray for [u8; 19] { fn new() -> Self { [0; 19] } }
++impl StateArray for [u8; 20] { fn new() -> Self { [0; 20] } }
++impl StateArray for [u8; 21] { fn new() -> Self { [0; 21] } }
  pub struct CompressedState<O: Options, A: StateArray> {
    buf: A,
    _options: PhantomData<O>,
-@@ -129,6 +137,47 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
+@@ -129,6 +156,55 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
      CompressedState { buf: A::new(), _options: PhantomData }
    }
  }
@@ -2065,7 +2277,7 @@ index e8c4d09..58096bf 100644
 +      running_speed: rs != 0,
 +      collision_bits: Dir::from_bits_truncate(cb as u8),
 +      is_crouching: false, jump_swim_timer: 0, running_timer: 0, left_screen_edge_pos: 0, side_collision_timer: 0,
-+      collected_coins: 0, powerup_block_hit: false, powerup_collected: false, parity: 0, block_bounce_timer: 0,
++      collected_coins: 0, powerup_block_hit: false, powerup_collected: false, parity: 0, block_bounce_timer: 0, blocks: Default::default(),
 +      a_held: ah != 0,
 +    };
 +    if O::PlayerSize::CROUCH_BITS > 0 { s.is_crouching = bp.read(1).unwrap() != 0; }
@@ -2076,13 +2288,21 @@ index e8c4d09..58096bf 100644
 +    if O::Parity::PARITY_BITS > 0 { s.parity = bp.read(O::Parity::PARITY_BITS).unwrap() as u8; }
 +    if O::CoinHandler::COIN_HANDLER_BITS > 0 { s.collected_coins = bp.read(O::CoinHandler::COIN_HANDLER_BITS).unwrap(); }
 +    if O::PowerupHandler::POWERUP_HANDLER_BITS > 0 { s.powerup_block_hit = bp.read(1).unwrap() != 0; s.powerup_collected = bp.read(1).unwrap() != 0; }
++    if O::BlockStates::ON {
++      let b = &mut s.blocks;
++      b.bounce_cell = bp.read(11).unwrap() as u16; b.used = bp.read(16).unwrap() as u16;
++      b.coin_brick_flag = bp.read(1).unwrap() != 0; b.coin_brick_timer = bp.read(4).unwrap() as u8;
++      b.frame = bp.read(8).unwrap() as u8;
++      b.aptn = bp.read(4).unwrap() as u8; b.burst_pending = bp.read(1).unwrap() != 0; b.parser_col = bp.read(7).unwrap() as u8;
++      b.vbuf1 = bp.read(1).unwrap() != 0; b.addrctrl6 = bp.read(1).unwrap() != 0; bp.read(2).unwrap();
++    }
 +    s
 +  }
 +}
  impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
    fn from_state(s: &State) -> CompressedState<O, A> {
      const Y_POS_OFFSET: u32 = 0xd000;
-@@ -136,9 +185,10 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -136,13 +212,15 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
      let mut buf = A::new();
  
      let bytes_available = buf.as_slice().len();
@@ -2094,7 +2314,13 @@ index e8c4d09..58096bf 100644
          + O::ScrollPos::SCROLL_POS_BITS
          + O::Parity::PARITY_BITS
          + O::CoinHandler::COIN_HANDLER_BITS
-@@ -159,6 +209,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+-        + O::PowerupHandler::POWERUP_HANDLER_BITS) >> 3;
++        + O::PowerupHandler::POWERUP_HANDLER_BITS
++        + O::BlockStates::BITS) >> 3;
+     assert!(bytes_needed == bytes_available, "bytes_needed {} != bytes_available {}", bytes_needed, bytes_available);
+ 
+     {
+@@ -159,6 +237,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        bitpack.write(O::Platform::get_x_spd_abs_cutoff(s.x_spd_abs) as u32, 3).unwrap();
        bitpack.write(if s.running_speed { 1 } else { 0 }, 1).unwrap();
        bitpack.write(s.collision_bits.bits() as u32, 2).unwrap();
@@ -2102,7 +2328,7 @@ index e8c4d09..58096bf 100644
  
        if O::PlayerSize::CROUCH_BITS > 0 {
          bitpack.write(if s.is_crouching { 1 } else { 0 }, 1).unwrap();
-@@ -169,6 +220,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -169,6 +248,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        if O::RunningTimer::RUNNING_TIMER_BITS > 0 {
          bitpack.write(s.running_timer as u32, 4).unwrap();
        }
@@ -2112,3 +2338,18 @@ index e8c4d09..58096bf 100644
        if O::ScrollPos::SCROLL_POS_BITS > 0 {
          bitpack.write(s.left_screen_edge_pos as u32, 8).unwrap();
          bitpack.write(s.side_collision_timer as u32, 4).unwrap();
+@@ -183,6 +265,14 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+         bitpack.write(if s.powerup_block_hit { 1 } else { 0 }, 1).unwrap();
+         bitpack.write(if s.powerup_collected { 1 } else { 0 }, 1).unwrap();
+       }
++      if O::BlockStates::ON { // 56 bits (BlockStates::BITS), 2 of them padding
++        let b = &s.blocks;
++        bitpack.write(b.bounce_cell as u32, 11).unwrap(); bitpack.write(b.used as u32, 16).unwrap();
++        bitpack.write(if b.coin_brick_flag { 1 } else { 0 }, 1).unwrap(); bitpack.write(b.coin_brick_timer as u32, 4).unwrap();
++        bitpack.write(b.frame as u32, 8).unwrap();
++        bitpack.write(b.aptn as u32, 4).unwrap(); bitpack.write(if b.burst_pending { 1 } else { 0 }, 1).unwrap(); bitpack.write(b.parser_col as u32, 7).unwrap();
++        bitpack.write(if b.vbuf1 { 1 } else { 0 }, 1).unwrap(); bitpack.write(if b.addrctrl6 { 1 } else { 0 }, 1).unwrap(); bitpack.write(0, 2).unwrap();
++      }
+     }
+     CompressedState { buf, _options: PhantomData }
+   }
