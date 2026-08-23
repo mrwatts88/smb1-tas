@@ -441,3 +441,20 @@ irrelevant, so P2.3c-3 (parallel merge) is parked rather than queued.
 hour); check whether shared tiers are quota-limited too. Run 4 stays on the laptop (ETA ~2026-08-24 early
 morning). Re-request the Hetzner limits increase once the account has history — that is the gate on the 4-2
 main-area proof run. Unchanged: P2.3c-2c is still the in-progress unit.
+## 2026-08-22 — Session 8 (alongside run 4): P2.3c-2c started — where the 4-2 main-area bound is loose; top-route reference via segment searches
+**Did.** Run 4 checked (layer 142, ~1000–1400 s/layer, ETA 2026-08-24 morning). Measured the x-only `W42Main` bound along
+the WR (`--check-path 588`): root 540 vs 588; slack 46 → 36 in the entrance fall, 35 → 4 in the col-30 wall entry
+(steps 201–221), tight elsewhere (F94). Read the geometry exactly (F92: the pillar is rows 7–9 with an open row 10 — the WR
+runs *under* it; pipe B is a floor-to-row-4 wall) and the wall-entry mechanics from the model trace + disassembly (F93: a
+Left press turns the foot-check impede into a +1 px push into the wall). Decoded the enemy data: `$3A` at col 46 = **3
+goombas on the Y-112 top floor**, the route HappyLee calls 2 frames short — they are not in the model. Added `bfscx
+--goal-x PX [--goal-y PY]` (position goals, x-table bound, best-of-layer goal pick; regression control identical),
+`tools/bfscx_ladder.sh` (deadline ladder: a position-goal BFS only stays small at the segment optimum — deadline +28
+doubled the frontier per layer), `tools/chain_inputs.py`. Segment S1 (root → x ≥ 339, Y ≤ 112): deadline 147 dies at
+layer 29; 149 running (~9M states/layer, ~100 s/layer at nice 10, 2 threads, 2 GB cap).
+**Learned.** The WR's main-area deficit is two localized costs (entrance fall 10, wall entry 31), so the enemy-free top route
+should be ≈ 550–555 — and the thing that can make it 577 is the goomba group, which means 4-2 needs the P2.5-style enemy
+module before any proof run is meaningful. The x-only bound's remaining looseness is y-variety (heights), not x.
+**Next.** S1 verdict → `bfscx-path … --out` → `tools/chain_inputs.py` → S2 (x ≥ 755, Y ≤ 112) → S3 (x ≥ 1005) → S4 (pipe
+entry, case goal) → model length vs 577 → `tools/replay_check.py --case W42Main --first 6584 --prefix 0 --path CHAIN --lift 0
+--down` on the core (expect a goomba death) → bound design + the 4-2 goomba port plan. Then the cloud decision.
