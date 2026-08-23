@@ -557,3 +557,42 @@ A paused 12-thread search is a perfectly good way to lend a laptop to a second w
 **Next.** The enemy-aware S2 ladder from `chain_s1.bin` (prefix 149): `--enemies 0 --goal-x 755 --goal-y 112`,
 8 threads, capped — the first search through the goomba group, and the next piece of the H36 answer; then S3/S4
 and the top-route total vs 575.
+
+## 2026-08-23 (session 11, Mac) — P0.11: the Mac as an overflow host
+
+**Did.** Brought the Mac clone up to date (it was 67 commits behind) and confirmed the Fedora
+box pushes every commit (`main == origin/main`; only ~7 min of in-flight engine edits at the
+time of the check). Measured the Mac as a second host (F105–F110). Designed and documented the
+two-machine work protocol as an *addition* to the loop rather than a new topology
+(PROCESS.md "Parallel work on the second host", `docs/decisions.md` 2026-08-23). Wrote
+`tools/Dockerfile.smbopt`, `tools/mac_run.sh`, `tools/watchdog.sh`; made `tools/build_core.sh`
+find `cargo` on PATH (the container's CARGO_HOME is `/opt/cargo`, not `~/.cargo`, so it used
+to silently skip the engine build). Synced the five gitignored data files to the Mac.
+
+**Learned.**
+- The Mac cannot run `smb-opt` natively and this is a hard wall, not a config error (F107):
+  no `aarch64-apple-darwin` build of `nightly-2018-06-01`, and the x86_64 toolchain compiles
+  under Rosetta but cannot link — Apple's 2026 linker rejects the 2018 rlib metadata layout.
+  `-ld_classic`, `-C prefer-dynamic` and `arch -x86_64` were all tried and all fail.
+- The right shape is an arm64 Linux container (F108): native speed, the project's Linux-only
+  scripts work unchanged, and `docker run --memory` gives a real cgroup cap — which is the
+  Mac's answer to the "never start a search without a cgroup cap" rule.
+- **The real hazard of two boxes is not STATUS.md conflicts but `third_party/smb-opt`** — an
+  untracked third-party tree whose only channel into the repo is a hand-regenerated patch.
+  Hence the single-engine-editor rule. Framing the Mac as opportunistic overflow (rather than
+  a co-equal machine with a parent/worker protocol) makes the single-writer property fall out
+  for free.
+- Cross-machine BFS is not worth building: the LAN is 96.9 MB/s (F110), ~33 min per 190 GB
+  layer.
+
+**Blocked.** `docker build` fails on the Mac in every variant tried, including with the base
+image local and an empty context (F109). `docker run`, `docker load` and container networking
+all work, so this is image *creation* specifically. Two of the four ways out need the user
+(Docker Desktop GUI, or `dnf install qemu-user-static` on the Fedora box).
+
+**Next.** P0.11a (unblock the image — needs a user decision), then the control run.
+
+**Note on this session's commits.** Done on branch `p0.11-mac-overflow`, not `main`, because a
+Fedora session was working concurrently. Merge deliberately: `docs/facts.md` (F105–F110),
+`STATUS.md` and `docs/log.md` are the likely conflicts, and the fact numbers may need shifting
+if the other session also appended.

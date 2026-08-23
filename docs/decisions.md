@@ -14,3 +14,13 @@ STATUS "Needs user input" and keep working on other units.
 
 - **2026-08-22 — Big searches go to the cloud, not the laptop.** Multi-hour/multi-day exhaustive searches (whole-room runs, P2.3c segment proofs) must run on a cloud box; the laptop is for the model, tools, short validations, and reading the code. Run 4 (P2.1b-m3) is the last laptop-hosted long search. Needed from the user before the next big search: a provider + authentication from this box (see STATUS "Blocked / Needs user input").
 - **2026-08-22 — Priority: 4-2 before 1-1 room 1.** The next big (cloud) run is the 4-2 main area with the top route allowed (H36: "2 frames short" − the pipe-entry frame = 1 short, ending unexamined), then the 4-2 warp zone (≤ 15 frames, H35). The 1-1 room-1 bounce search (H29, low prior: a stomp adds no height) is queued behind the 4-2 work.
+- **2026-08-23 — Local capacity is two boxes; the Mac is opportunistic overflow.** The
+  2026-08-22 "big searches go to the cloud" decision was taken when the only local box was the
+  i5-1335U. The Mac is ~2.8x that box per thread natively and has 3.3x the free disk
+  (F105/F106), so multi-hour validation, ladder and segment work may run locally across both.
+  It is an *addition* to the loop, not a new topology: normal process on the primary box, and
+  when a unit contains independent work, a subagent starts it on the Mac (PROCESS.md "Parallel
+  work on the second host"). Subagents report numbers and never write docs or commit, so there
+  is a single writer. Exactly one machine edits the engine (the primary box). A single giant
+  run still goes to the cloud — F110's 96.9 MB/s LAN rules out splitting one BFS across
+  machines. The 2026-08-22 decision stands for that case.
