@@ -11,7 +11,7 @@ BIN=/home/mattwatts/Documents/smb1-tas/third_party/smb-opt/target/release/smb-op
 while [ "$D" -le "$DMAX" ]; do
   LOG="${LOGBASE}_d${D}.log"
   rm -rf "$LAYERDIR"
-  systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 -p Nice=10 --quiet "$BIN" bfscx "$CASE" "$INPUTS" "$FIRST" "$PREFIX" "$D" "$@" --layer-dir "$LAYERDIR" > "$LOG" 2>&1 &
+  systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 --quiet nice -n 10 "$BIN" bfscx "$CASE" "$INPUTS" "$FIRST" "$PREFIX" "$D" "$@" --layer-dir "$LAYERDIR" > "$LOG" 2>&1 &
   PID=$!
   while kill -0 "$PID" 2>/dev/null; do
     sleep 3

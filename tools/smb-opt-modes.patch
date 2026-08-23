@@ -403,10 +403,10 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..0f782b9
+index 0000000..78d0030
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,269 @@
+@@ -0,0 +1,281 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -415,6 +415,7 @@ index 0000000..0f782b9
 +#[allow(unused_imports)] use emu::inputs::*;
 +use heuristics::SearchGoal;
 +use heuristics::xpos::XPosHeuristic;
++use heuristics::ygate::{surfaces_from_blocks, YGate};
 +use options::*;
 +use state::{CompressedState, Dir, Dist, PlayerState, State};
 +
@@ -517,6 +518,9 @@ index 0000000..0f782b9
 +#[allow(dead_code)]
 +pub struct W42Main {
 +  h: XPosHeuristic,
++  /// P2.3c-2c: y-coupled bound for a `--goal-x/--goal-y` position goal (surfaces = every standable cell top of
++  /// BB42 with its foot-point x intervals; see heuristics::ygate).
++  goal_gate: Option<(i32, YGate)>,
 +}
 +impl Options for W42Main {
 +  type CoinHandler = W42MainCoins;
@@ -559,11 +563,19 @@ index 0000000..0f782b9
 +  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
 +}
 +impl SearchGoal for W42Main {
-+  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()) }; }
++  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()), goal_gate: None }; }
 +  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
 +    Some(self.h.get_steps_until_x_pos_at_least(s, 0x54400))
 +  }
 +  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
++  fn set_position_goal(&mut self, gx: i32, gy: i32) -> () {
++    let gate = YGate::new::<NTSC>((gy >> 8) - 0x100, surfaces_from_blocks::<BB42>(98));
++    println!("W42Main position goal x >= {} Y <= {}: {}", gx >> 8, (gy >> 8) - 0x100, gate.describe());
++    self.goal_gate = Some((gy, gate));
++  }
++  fn steps_until_xy(&self, s: &mut State, gx: i32, gy: i32) -> Option<Dist> {
++    match self.goal_gate { Some((g, ref gate)) if g == gy => Some(gate.steps_xy(s, &self.h, gx)), _ => Some(self.h.get_steps_until_x_pos_at_least(s, gx)) }
++  }
 +  fn is_goal_state(&self, _: &State, emu_result: &EmuResult) -> bool {
 +    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
 +      cx == 84 && cy == 8
@@ -1060,10 +1072,16 @@ index 947eef3..3a0dc08 100644
      } else if self.s.is_on_ground() && self.s.facing_dir == Dir::RIGHT && (cv == 0x6c || cv == 0x1f) {
        return EmuResult::StateChangeSidePipe(cx, cy); // sideways pipe entry
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
-index 39e4b06..9ce3e1d 100644
+index 39e4b06..97805d0 100644
 --- a/src/heuristics/mod.rs
 +++ b/src/heuristics/mod.rs
-@@ -7,9 +7,34 @@ use state::{Dist, State};
+@@ -1,4 +1,5 @@
+ pub mod xpos;
++pub mod ygate;
+ pub mod ypos;
+ 
+ use emu::EmuResult;
+@@ -7,9 +8,39 @@ use state::{Dist, State};
  use std::cmp::{max, min};
  use std::marker::PhantomData;
  
@@ -1095,11 +1113,16 @@ index 39e4b06..9ce3e1d 100644
 +  fn distance_to_goal_heuristic_ext(&self, s: &mut State, _ext: u16, steps_already_taken: Dist) -> Option<Dist> { self.distance_to_goal_heuristic(s, steps_already_taken) }
 +  /// P2.3c-2c: x-only lower bound on the steps until x_pos >= x (segment searches, `bfscx --goal-x`); None = unsupported.
 +  fn steps_until_x_at_least(&self, _s: &mut State, _x: i32) -> Option<Dist> { None }
++  /// P2.3c-2c: install a position goal `x_pos >= gx && y_pos <= gy` (gy in y_pos units) so the case can build a
++  /// y-coupled bound for it (ygate); default: nothing (the x-only table is used).
++  fn set_position_goal(&mut self, _gx: i32, _gy: i32) -> () {}
++  /// P2.3c-2c: lower bound on the steps until `x_pos >= gx && y_pos <= gy` hold at the same step; default = x-only.
++  fn steps_until_xy(&self, s: &mut State, gx: i32, _gy: i32) -> Option<Dist> { self.steps_until_x_at_least(s, gx) }
    fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool;
  
    fn track_metric(&mut self, _: &State) -> () {}
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..1b01909 100644
+index c9bbf89..279368f 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
 @@ -6,22 +6,100 @@ use std::io::Write;
@@ -1208,16 +1231,21 @@ index c9bbf89..1b01909 100644
    fn build_state_map<O: Options>(initial_states: Vec<XPosState>) -> HashMap<XPosState, Vec<(XPosState, i32)>> {
      let mut state_map: HashMap<XPosState, Vec<(XPosState, i32)>> = HashMap::new();
  
-@@ -51,6 +129,8 @@ impl XPosHeuristic {
+@@ -51,6 +129,13 @@ impl XPosHeuristic {
        running_speed: s.running_speed,
      }
    }
 +  /// Whether the state's x class is in the precomputed table (queries on unknown classes return 0).
 +  pub fn has_class(&self, s: &State) -> bool { self.max_distance.contains_key(&Self::to_x_pos_state(s)) }
++  /// P2.3c-2c: the class's max-displacement vector (index k-1 = max gain in exactly k steps) and the per-step
++  /// extrapolation beyond it, for callers that scan several k (ygate); None for an unknown class.
++  pub fn class_tables(&self, s: &State) -> Option<(&Vec<i32>, i32)> {
++    self.max_distance.get(&Self::to_x_pos_state(s)).map(|v| (v, self.max_x_distance))
++  }
    pub fn get_steps_until_x_pos_at_least(&self, s: &State, target_x_pos: i32) -> Dist {
      if target_x_pos <= s.x_pos { return 0; }
      let distance = target_x_pos - s.x_pos;
-@@ -60,7 +140,7 @@ impl XPosHeuristic {
+@@ -60,7 +145,7 @@ impl XPosHeuristic {
        if len == 0 { ((distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if max_dists[len-1] < distance { (len as i32 + (distance - max_dists[len-1] + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else { max_dists.iter().position(|d| *d >= distance).unwrap() as Dist + 1 }
@@ -1226,7 +1254,7 @@ index c9bbf89..1b01909 100644
    }
    pub fn get_steps_until_x_pos_at_most(&self, s: &State, target_x_pos: i32) -> Dist {
      if target_x_pos >= s.x_pos { return 0; }
-@@ -71,7 +151,7 @@ impl XPosHeuristic {
+@@ -71,7 +156,7 @@ impl XPosHeuristic {
        if len == 0 { ((-distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if min_dists[len-1] > distance { (len as i32 + (min_dists[len-1] - distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else { min_dists.iter().position(|d| *d <= distance).unwrap() as Dist + 1 }
@@ -1235,7 +1263,7 @@ index c9bbf89..1b01909 100644
    }
    pub fn get_steps_until_x_pos_between(&self, s: &State, min_x_pos: i32, max_x_pos: i32) -> Dist {
      if s.x_pos < min_x_pos { self.get_steps_until_x_pos_at_least(s, min_x_pos) }
-@@ -117,6 +197,23 @@ impl XPosHeuristic {
+@@ -117,6 +202,23 @@ impl XPosHeuristic {
    pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
      s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
    }
@@ -1259,6 +1287,246 @@ index c9bbf89..1b01909 100644
    fn get_max_distance(&self, s: &XPosState, steps: usize) -> i32 {
      let max_dists = self.max_distance.get(s).unwrap();
      let len = max_dists.len();
+diff --git a/src/heuristics/ygate.rs b/src/heuristics/ygate.rs
+new file mode 100644
+index 0000000..82bccbb
+--- /dev/null
++++ b/src/heuristics/ygate.rs
+@@ -0,0 +1,234 @@
++//! P2.3c-2c — a sound y-coupled lower bound ("y gate") for position goals `x_pos >= gx && Player_Y <= gy`.
++//!
++//! Relaxation (a superset of the model's vertical behaviour, x handled only through MrWint's x table):
++//! * vertical dynamics exactly as in `emu.rs`: a jump starts at JUMP_VELOCITY_FAST/SLOW with the jump gravity
++//!   `v_force` (kept only while A is held and y_spd < 0; releasing is irreversible), `y_pos += y_spd; y_spd +=
++//!   v_force` with the MAX_Y_SPD clamp, a head bump sets `y_spd = 0x100 | frac` (allowed here on ANY frame with
++//!   y_spd < 0 — the model also needs Y mod 16 >= 4 and a block, so this is a superset), a landing needs
++//!   `y_spd >= 0` and `Y in [Ys, Ys + 5)` (BLOCK_SURFACE_THICKNESS) on a standable cell top and snaps Y to Ys;
++//! * the surfaces are EVERY standable cell top of the block buffer (solid, pipe, brick, question, hidden — a
++//!   one-frame landing inside a wall face is the SMB1 wall jump, and the floor-level wall walk (F80) makes cell
++//!   rows inside a solid run standable too), each with the x_pos interval in which one of Mario's foot points
++//!   (x+3, x+12) is inside the cell's column; a landing on a surface is charged max(vertical arrival lower
++//!   bound, x-table steps to bring x into one of its intervals);
++//! * T(Ys) = the y-only minimum steps from standing at Ys to Y <= gy over jump / landing chains (surfaces above
++//!   only — landing lower never helps in the y-only relaxation, see the monotonicity note), precomputed top-down.
++//! Per state the bound is the first step k at which BOTH `x_pos >= gx` is x-feasible (x table: max gain in k
++//! steps >= gx - x) AND `Y <= gy` is y-feasible: k inside the hold-A trajectory's window of Y <= gy (the hold-A
++//! trajectory is pointwise the highest one — every release or bump only lowers it) or k >= the earliest
++//! (landing + T) over all surfaces. Standing states may wait, so their y-feasibility is "k >= t".
++//!
++//! Monotonicity note (y-only): from a higher surface every chain of a lower one can be shadowed step by step
++//! (same jumps, each milestone reached no later), so T is non-decreasing in Ys and a chain that lands at or below
++//! its own start is never faster than the best chain that does not. The x-aware per-state query does NOT use that
++//! shortcut: every surface (above or below the state) is considered with its own x charge.
++use blockbuffer::BlockBuffer;
++use blockbuffer::util::{is_climb, is_coin};
++use heuristics::xpos::XPosHeuristic;
++use options::Platform;
++use state::{Dist, PlayerState, State};
++
++pub const Y_NEVER: Dist = 0x7ff0;
++const HORIZON: usize = 96;
++const SCAN_MAX: usize = 4000;
++
++/// A standable cell top: Mario standing on it has pixel Y `y`; `xs` = merged inclusive x_pos intervals in which
++/// one of his foot points is inside a cell of that row.
++#[derive(Clone, Debug)]
++pub struct Surface { pub y: i32, pub xs: Vec<(i32, i32)> }
++
++#[derive(Clone, Copy, Debug)]
++struct Air { y: i32, v: i16, g: u8, gd: u8 }
++
++pub struct YGate {
++  y_max: i32,                 // pixel Y
++  surf: Vec<Surface>,         // ascending y (highest first)
++  t_surf: Vec<Dist>,          // y-only T(surface)
++  max_y_spd: i16,
++  jumps: [(i16, u8, u8); 3],  // (y_spd0, jump gravity, fall gravity): running, walking, standing
++  fall_g: u8,                 // the largest fall gravity (fastest walk-off descent)
++}
++
++#[inline] fn px(y_pos: i32) -> i32 { (y_pos >> 8) - 0x100 }
++#[inline] fn dmin(a: Dist, b: Dist) -> Dist { if a < b { a } else { b } }
++#[inline] fn dmax(a: Dist, b: Dist) -> Dist { if a > b { a } else { b } }
++
++/// Every standable cell top of a block buffer of `width` columns (cells != 0 that are not coins or climbables;
++/// hidden blocks are included — bumped they become platforms), merged into per-Y x intervals.
++pub fn surfaces_from_blocks<B: BlockBuffer>(width: usize) -> Vec<Surface> {
++  let mut by_y: ::std::collections::BTreeMap<i32, Vec<(i32, i32)>> = ::std::collections::BTreeMap::new();
++  for c in 0..width { for r in 0..13 {
++    let cv = B::get_block_at(c, r);
++    if cv == 0 || is_coin(cv) || is_climb(cv) { continue; }
++    let lo = ((16 * c as i32) - 12) << 8; let hi = (((16 * c as i32) + 12) << 8) | 0xff;
++    by_y.entry(16 * r as i32).or_insert_with(Vec::new).push((if lo < 0 { 0 } else { lo }, hi));
++  } }
++  let mut out = Vec::new();
++  for (y, mut xs) in by_y {
++    xs.sort();
++    let mut merged: Vec<(i32, i32)> = Vec::new();
++    for (lo, hi) in xs {
++      if let Some(last) = merged.last_mut() { if lo <= last.1 + 1 { if hi > last.1 { last.1 = hi; } continue; } }
++      merged.push((lo, hi));
++    }
++    out.push(Surface { y, xs: merged });
++  }
++  out
++}
++
++impl YGate {
++  pub fn new<P: Platform>(y_max: i32, surf: Vec<Surface>) -> YGate {
++    let mut g = YGate { y_max, surf, t_surf: Vec::new(), max_y_spd: P::MAX_Y_SPD,
++      jumps: [(P::JUMP_VELOCITY_FAST, P::V_FORCE_JUMP_RUNNING, P::V_FORCE_FALL_RUNNING),
++              (P::JUMP_VELOCITY_SLOW, P::V_FORCE_JUMP_WALKING, P::V_FORCE_FALL_WALKING),
++              (P::JUMP_VELOCITY_SLOW, P::V_FORCE_JUMP_STANDING, P::V_FORCE_FALL_STANDING)],
++      fall_g: P::V_FORCE_FALL_RUNNING };
++    for i in 0..g.surf.len() { let t = g.t_ground_yonly(g.surf[i].y, i); g.t_surf.push(t); }
++    g
++  }
++  pub fn describe(&self) -> String {
++    let mut s = format!("y gate: Y <= {}; {} surface rows:", self.y_max, self.surf.len());
++    for (i, sf) in self.surf.iter().enumerate() {
++      s.push_str(&format!(" Y{}:T={}", sf.y, if self.t_surf[i] >= Y_NEVER { "never".to_string() } else { self.t_surf[i].to_string() }));
++      s.push_str(&format!("[{}]", sf.xs.iter().map(|&(lo, hi)| format!("{}..{}", lo >> 8, hi >> 8)).collect::<Vec<_>>().join(",")));
++    }
++    s
++  }
++  /// One frame of vertical movement (PlayerMovementSubs JUMPING/FALLING + MoveVertically), `hold` = A held.
++  #[inline] fn mv(&self, a: &mut Air, hold: bool) {
++    let keep = hold && a.v < 0;
++    if !keep { a.g = a.gd; }
++    a.y += a.v as i32;
++    a.v += a.g as i16;
++    if a.v >= self.max_y_spd && (a.v & 0xff) >= 0x80 { a.v = self.max_y_spd; }
++  }
++  /// The hold-A trajectory from `a0` (frame 1 = the first step): (first k with Y <= y_max, last such k, and per
++  /// surface index < n_above the first k with Y <= Ys + 4 — the earliest frame a landing on it can happen).
++  /// `off` is added to every k (a jump's first frame already taken).
++  fn hold_terms(&self, a0: Air, n_above: usize, off: Dist, k1: &mut [Dist]) -> (Dist, Dist) {
++    let mut a = a0;
++    let (mut kd, mut kde) = (Y_NEVER, Y_NEVER);
++    let mut idx = n_above; // surfaces ascending by y: indices < n_above are above the start; scan from the lowest of them upward
++    for k in 1..=HORIZON {
++      self.mv(&mut a, true);
++      let y = px(a.y);
++      if y <= self.y_max { if kd == Y_NEVER { kd = k as Dist + off; } kde = k as Dist + off; }
++      while idx > 0 && self.surf[idx - 1].y + 4 >= y { idx -= 1; k1[idx] = dmin(k1[idx], k as Dist + off); }
++      if a.v >= 0 && y > self.y_max { break; }
++    }
++    if kd != Y_NEVER && kde == (HORIZON as Dist + off) { kde = Y_NEVER; } // window still open at the horizon: leave it open (weaker, sound)
++    (kd, kde)
++  }
++  /// Fastest descents from `a0`: per surface index >= i_from (surfaces at or below the start), the first k with
++  /// Y_k >= Ys (the landing window [Ys, Ys+5) cannot be skipped at <= 4.5 px/frame), over the policies
++  /// bump-at-frame-1 (hold or released gravity for the fraction) and release-only; `off` added to every k.
++  fn descent_terms(&self, a0: Air, i_from: usize, off: Dist, land: &mut [Dist]) {
++    for policy in 0..3 {
++      let mut a = a0;
++      let mut idx = i_from;
++      let n = self.surf.len();
++      for k in 1..=HORIZON {
++        if k == 1 {
++          self.mv(&mut a, policy == 0);
++          if policy < 2 && a.v < 0 { a.v = 0x100 | (a.v & 0xff); a.g = a.gd; }
++        } else { self.mv(&mut a, false); }
++        if a.v >= 0 {
++          let y = px(a.y);
++          while idx < n && self.surf[idx].y <= y { land[idx] = dmin(land[idx], k as Dist + off); idx += 1; }
++          if idx >= n { break; }
++        }
++      }
++    }
++  }
++  /// y-only T(Ys): min steps from standing at pixel Y `y` to Y <= y_max using only surfaces with index < n_above.
++  fn t_ground_yonly(&self, y: i32, n_above: usize) -> Dist {
++    if y <= self.y_max { return 0; }
++    let mut best = Y_NEVER;
++    let mut k1 = vec![Y_NEVER; self.surf.len()];
++    for &(v0, gj, gd) in &self.jumps {
++      let mut a = Air { y: (y + 0x100) << 8, v: v0, g: gj, gd };
++      a.y += a.v as i32; a.v += gj as i16; // the jump's first frame (fraction cleared, then the move)
++      for v in k1.iter_mut() { *v = Y_NEVER; }
++      let (kd, _) = self.hold_terms(a, n_above, 1, &mut k1);
++      best = dmin(best, kd);
++      for i in 0..n_above { if k1[i] != Y_NEVER && self.t_surf[i] != Y_NEVER { best = dmin(best, k1[i] + self.t_surf[i]); } }
++    }
++    best
++  }
++  /// Steps to bring x_pos into one of the surface's intervals (0 if inside one), by the x table.
++  fn x_part(&self, s: &State, h: &XPosHeuristic, sf: &Surface) -> Dist {
++    let mut best = Y_NEVER;
++    for &(lo, hi) in &sf.xs {
++      let d = if s.x_pos < lo { h.get_steps_until_x_pos_at_least(s, lo) } else if s.x_pos > hi { h.get_steps_until_x_pos_at_most(s, hi) } else { 0 };
++      best = dmin(best, d);
++    }
++    best
++  }
++  /// y-feasibility structure of a state: (kd, kde, tr) — Y <= y_max is possible at step k iff kd <= k <= kde or
++  /// k >= tr (tr = earliest landing + T over all surfaces, with the x charge; standing states may wait, so for
++  /// them kde = infinity).
++  pub fn terms(&self, s: &State, h: &XPosHeuristic) -> (Dist, Dist, Dist) {
++    let y = px(s.y_pos);
++    if s.player_state == PlayerState::CLIMBING { return (0, Y_NEVER, 0); }
++    let n = self.surf.len();
++    let n_above = self.surf.iter().position(|sf| sf.y >= y).unwrap_or(n); // surfaces with Ys < y
++    let mut k1 = vec![Y_NEVER; n];
++    let mut land = vec![Y_NEVER; n];
++    let (mut kd, mut kde) = (Y_NEVER, Y_NEVER);
++    if s.player_state == PlayerState::STANDING {
++      if y <= self.y_max { return (0, Y_NEVER, 0); }
++      for &(v0, gj, gd) in &self.jumps {
++        let mut a = Air { y: (y + 0x100) << 8, v: v0, g: gj, gd };
++        a.y += a.v as i32; a.v += gj as i16;
++        let (d, _) = self.hold_terms(a, n_above, 1, &mut k1);
++        kd = dmin(kd, d);
++      }
++      kde = if kd == Y_NEVER { Y_NEVER } else { Y_NEVER }; // may wait on the ground: open-ended
++      // walk-off descent (FALLING with y_spd 0 at the fastest fall gravity) onto lower surfaces
++      let a = Air { y: s.y_pos, v: 0, g: self.fall_g, gd: self.fall_g };
++      let i_from = self.surf.iter().position(|sf| sf.y > y).unwrap_or(n);
++      self.descent_terms(a, i_from, 0, &mut land);
++    } else {
++      if y <= self.y_max {
++        // still up: the window starts now (k = 0 is the current state; the search asks about future steps)
++        kd = 0;
++      }
++      let a = Air { y: s.y_pos, v: s.y_spd, g: s.v_force, gd: s.v_force_down };
++      let (d, de) = self.hold_terms(a, n_above, 0, &mut k1);
++      if kd == 0 { kde = if d == 1 { de } else { 0 }; } else { kd = d; kde = de; }
++      self.descent_terms(a, n_above, 0, &mut land);
++    }
++    let mut tr = Y_NEVER;
++    for i in 0..n {
++      let t = self.t_surf[i];
++      if t == Y_NEVER { continue; }
++      let jy = dmin(k1[i], land[i]);
++      if jy == Y_NEVER { continue; }
++      if self.surf[i].y == y && s.player_state == PlayerState::STANDING { continue; }
++      let jx = self.x_part(s, h, &self.surf[i]);
++      if jx == Y_NEVER { continue; }
++      let j = dmax(jy, jx);
++      if j + t < tr { tr = j + t; }
++    }
++    (kd, kde, tr)
++  }
++  /// The joint bound: first k >= 1 with x-feasible(k) (x table) and y-feasible(k); Y_NEVER if none.
++  pub fn steps_xy(&self, s: &State, h: &XPosHeuristic, gx: i32) -> Dist {
++    let dx = gx - s.x_pos;
++    let tables = match h.class_tables(s) { Some(t) => t, None => return 0 }; // unknown class: never prune
++    let (maxd, mxd) = tables;
++    let gain = |k: usize| -> i32 { let len = maxd.len(); if k == 0 { 0 } else if len == 0 { mxd * k as i32 } else if len >= k { maxd[k - 1] } else { maxd[len - 1] + mxd * (k - len) as i32 } };
++    let (kd, kde, tr) = self.terms(s, h);
++    let ystart = dmin(kd, tr);
++    if ystart == Y_NEVER { return Y_NEVER; }
++    let mut k = if ystart == 0 { 1 } else { ystart as usize };
++    while k < SCAN_MAX {
++      let kk = k as Dist;
++      let yok = (kk >= kd && kk <= kde) || kk >= tr;
++      if yok && (dx <= 0 || gain(k) >= dx) { return kk; }
++      if !yok && kk > kde && kk < tr { k = tr as usize; continue; }
++      k += 1;
++    }
++    Y_NEVER
++  }
++}
 diff --git a/src/heuristics/ypos.rs b/src/heuristics/ypos.rs
 index 4de780d..9d8fcf7 100644
 --- a/src/heuristics/ypos.rs
@@ -1302,7 +1570,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..092ebd6 100644
+index 350d469..72f8395 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1313,7 +1581,7 @@ index 350d469..092ebd6 100644
  
  mod blockbuffer;
  mod case;
-@@ -22,6 +23,271 @@ mod state;
+@@ -22,6 +23,294 @@ mod state;
  mod store;
  
  fn main() {
@@ -1331,6 +1599,29 @@ index 350d469..092ebd6 100644
 +      "W42Main" => { replayce::<case::w42::W42Main>(&data, first, n, true, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0); }
 +      "W42Warp" => { replayc::<case::w42::W42Warp>(&data, first, n, true); }
 +      "W11VertPipeEntry" => { replayc::<case::w11::W11VertPipeEntry>(&data, first, n, true); }
++      other => panic!("unknown case {}", other),
++    }
++    return;
++  }
++  if args.len() >= 5 && args[1] == "traceh" {
++    // traceh CASE FIRST_RECORD N [--lift [APTN0]] --goal-x GX --goal-y GY FILE... : like tracec (one "=== FILE"
++    // section per input file, the case built once), but prints per step the position-goal bound h (the case's
++    // y-coupled ygate bound for x_pos >= GX && Player_Y <= GY) and whether the goal holds — tools/ygate_audit.py
++    // checks admissibility on these traces (P2.3c-2c).
++    let first: usize = args[3].parse().unwrap();
++    let n: usize = args[4].parse().unwrap();
++    let (mut lift, mut aptn0, mut gx, mut gy) = (false, 0u16, None, None);
++    let mut files: Vec<String> = Vec::new();
++    let mut i = 5;
++    while i < args.len() {
++      if args[i] == "--lift" { lift = true; i += 1; if i < args.len() && !args[i].starts_with("--") && args[i].parse::<u16>().is_ok() { aptn0 = args[i].parse().unwrap(); i += 1; } }
++      else if args[i] == "--goal-x" { gx = Some(args[i + 1].parse::<i32>().unwrap() << 8); i += 2; }
++      else if args[i] == "--goal-y" { gy = Some(((args[i + 1].parse::<i32>().unwrap() + 0x100) << 8) | 0xff); i += 2; }
++      else { files.push(args[i].clone()); i += 1; }
++    }
++    let (gx, gy) = (gx.expect("--goal-x"), gy.expect("--goal-y"));
++    match args[2].as_str() {
++      "W42Main" => traceh_run::<case::w42::W42Main>(&files, first, n, if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, gx, gy),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1585,7 +1876,7 @@ index 350d469..092ebd6 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +312,1069 @@ fn calc_prng() {
+@@ -46,4 +335,1101 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -1872,6 +2163,32 @@ index 350d469..092ebd6 100644
 +/// Generic replay (P2.3a): run a case's model from start_states()[0] through `n` NES-order records starting at
 +/// `first`, optionally tracing each step in the trace11pipe row format. Returns (state, alive).
 +fn replayc<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool) -> (State, bool) { let (s, _, a) = replayce::<C>(data, first, n, trace, None, 0); (s, a) }
++/// P2.3c-2c: replay each input file with the position-goal bound printed per step (see the `traceh` mode).
++fn traceh_run<C: case::SmbSearchCase>(files: &[String], first: usize, n: usize, hook: Option<Hook>, ext0: u16, gx: i32, gy: i32) {
++  use emu::{Emu, EmuResult};
++  use case::SmbSearchCase;
++  use heuristics::SearchGoal;
++  let mut goal = C::SearchGoal::new();
++  goal.set_position_goal(gx, gy);
++  let hof = |g: &C::SearchGoal, st: &State| -> String { match g.steps_until_xy(&mut st.clone(), gx, gy) { Some(d) => d.to_string(), None => "?".to_string() } };
++  for f in files {
++    let data = ::std::fs::read(f).unwrap();
++    let mut s = C::start_states()[0].clone();
++    let mut ext = ext0;
++    println!("=== {}", f);
++    println!("step x_pos y_pos x_spd y_spd state h goal result");
++    println!("0 {:#x} {:#x} {:#x} {:#x} {:?} {} {} Root", s.x_pos, s.y_pos, s.x_spd, s.y_spd, s.player_state, hof(&goal, &s), (s.x_pos >= gx && s.y_pos <= gy) as u8);
++    for i in 0..n {
++      let input = nes_to_model(data[first + i]);
++      let (mut ns, res) = <C as SmbSearchCase>::Emu::run_step(s.clone(), input);
++      let g = res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy;
++      if let Some(h) = hook { if res == EmuResult::Success { h(&s, &mut ns, &mut ext); } }
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {} {} {:?}", i + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hof(&goal, &ns), g as u8, res);
++      s = ns;
++      if res != EmuResult::Success { break; }
++    }
++  }
++}
 +/// replayc with an optional per-frame object hook (e.g. the 4-2 lift) carrying `ext`; returns (state, ext, alive).
 +fn replayce<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool, hook: Option<Hook>, ext0: u16) -> (State, u16, bool) {
 +  use emu::{Emu, EmuResult};
@@ -1937,9 +2254,13 @@ index 350d469..092ebd6 100644
 +fn xy_goal<G: heuristics::SearchGoal>(g: &G, ns: &State, res: &emu::EmuResult, gx: Option<i32>, gy: Option<i32>) -> bool {
 +  match gx { Some(gx) => *res == emu::EmuResult::Success && ns.x_pos >= gx && gy.map_or(true, |gy| ns.y_pos <= gy), None => g.is_goal_state(ns, res) }
 +}
-+fn xy_h<G: heuristics::SearchGoal>(g: &G, st: &State, e: u16, step: usize, gx: Option<i32>) -> Option<usize> {
++fn xy_h<G: heuristics::SearchGoal>(g: &G, st: &State, e: u16, step: usize, gx: Option<i32>, gy: Option<i32>) -> Option<usize> {
 +  let mut c = st.clone();
-+  match gx { Some(gx) => g.steps_until_x_at_least(&mut c, gx).map(|d| d as usize), None => g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize) }
++  match (gx, gy) {
++    (Some(gx), Some(gy)) => g.steps_until_xy(&mut c, gx, gy).map(|d| d as usize), // P2.3c-2c: y-coupled (ygate) if the case has one
++    (Some(gx), None) => g.steps_until_x_at_least(&mut c, gx).map(|d| d as usize),
++    _ => g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize),
++  }
 +}
 +fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>))
 +    where C::SearchGoal: Send + Sync {
@@ -1971,9 +2292,11 @@ index 350d469..092ebd6 100644
 +  println!("root after {} prefix steps (record {}): {}", prefix, first + prefix, s);
 +  println!("object hook {} (root ext {:#x}); key {} bytes (+2 ext, {}-byte records); threads {}; layer dir {}; acc {} MB/thread; resume {:?}; inputs: all 16 A/B/L/R combinations", hook.is_some(), e0, klen, XREC, threads, ldir, acc_mb, resume);
 +  let t0 = time::precise_time_ns();
-+  let goal = Arc::new(C::SearchGoal::new());
-+  let hval = |g: &C::SearchGoal, st: &State, e: u16, step: usize| -> Option<usize> { xy_h(g, st, e, step, goal_x) };
-+  if let Some(gx) = goal_x { println!("position goal: x_pos >= {:#x} (X {}){}; bound = x-only table to that x", gx, gx >> 8, match goal_y { Some(gy) => format!(", y_pos <= {:#x} (Y <= {})", gy, (gy >> 8) - 0x100), None => String::new() }); assert!(hval(&goal, &s, e0, 0).is_some(), "this case has no x-only table for --goal-x"); }
++  let mut goal0 = C::SearchGoal::new();
++  if let (Some(gx), Some(gy)) = (goal_x, goal_y) { goal0.set_position_goal(gx, gy); }
++  let goal = Arc::new(goal0);
++  let hval = |g: &C::SearchGoal, st: &State, e: u16, step: usize| -> Option<usize> { xy_h(g, st, e, step, goal_x, goal_y) };
++  if let Some(gx) = goal_x { println!("position goal: x_pos >= {:#x} (X {}){}; bound = x table to that x, y-coupled (ygate) when the case supports --goal-y", gx, gx >> 8, match goal_y { Some(gy) => format!(", y_pos <= {:#x} (Y <= {})", gy, (gy >> 8) - 0x100), None => String::new() }); assert!(hval(&goal, &s, e0, 0).is_some(), "this case has no x-only table for --goal-x"); }
 +  println!("heuristic built in {:.1}s; at root: {:?} steps (deadline {} steps)", (time::precise_time_ns() - t0) as f64 / 1e9, hval(&goal, &s, e0, 0), max_steps);
 +  // reference path (--check-path): (state, ext, record) per step
 +  let mut refpath: Vec<(State, u16, XRec)> = Vec::new();
@@ -2067,7 +2390,7 @@ index 350d469..092ebd6 100644
 +                  let mut ne = pe;
 +                  if let Some(h) = hook { h(&ps, &mut ns, &mut ne); }
 +                  if ns.y_pos >= 0x1d000 { dead += 1; continue; }
-+                  match xy_h(&*goal, &ns, ne, step + 1, goal_x) {
++                  match xy_h(&*goal, &ns, ne, step + 1, goal_x, goal_y) {
 +                    None => { pruned += 1; continue; }
 +                    Some(hh) => { if step + 1 + hh > max_steps { pruned += 1; continue; } }
 +                  }
