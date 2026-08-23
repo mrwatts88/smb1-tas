@@ -8,7 +8,11 @@
 # forbids swap the way MemorySwapMax=0 does.
 #
 # usage: tools/mac_run.sh [-m MEM] -- <command> [args...]     (paths relative to repo root)
-#   -m MEM   hard memory cap, docker syntax (default 6g; the Docker VM itself has ~8.2g)
+#   -m MEM   hard memory cap, docker syntax (default 6g)
+#
+# Keep -m below the Docker VM's own total (currently 7.65 GiB) — a cap above it does not fail
+# cleanly, the VM OOM-kills the container. Raise the VM in Docker Desktop's GUI (Settings ->
+# Resources -> Advanced), NOT via settings-store.json: see docs/experiments/P0.11-two-box.md.
 #
 # example:
 #   tools/mac_run.sh -m 6g -- third_party/smb-opt/target/release/smb-opt bfscx W42Main ...
