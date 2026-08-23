@@ -663,3 +663,19 @@ the geometry before chaining beats finding out from the next segment's dead rung
 only makes sense above the cheap end; the ladder is sequential by nature.
 **Next.** S3′ verdict → S4 (the pipe; the F100 plant is the open cost question) → full-chain `replay_check`, slack
 accounting vs 577, the staged-bound plan. Then the P0.11d doc fold-in, engine truncation fix, run 4 resume.
+
+## 2026-08-23 — Session 11 (cont. 2): S3′ = 82, the pit is free (F114); S4 — the decisive segment — is running
+**Did.** S3′ (x ≥ 1005 ∧ Y ≤ 112, the lift pit): probe 82, **first rung d82 GOAL at layer 82 — the movement bound
+again** (45.5M goal transitions, 887.7 s); goal-parent prefix recovery had exactly 1 match (the koopa is live in the
+ext); the path is a full-power 23-frame jump over the pit, **no lift ride**. `chain_s3p.bin` (6,999) core-verified
+415/415, still exactly 2 stomps. **Chain: root → x ≥ 1005 = 149 + 184 + 82 = 415 — three segments, all exactly at
+the y-coupled movement bound; nothing has cost a frame yet** (F114). S4 probed from the arrival: x-only root bound
+**137** → the chain floor is 552, under the 554 double-framerule line — and the bound is blind to pipe B's climb
+and every plant, so S4's ladder (d137 → 187, running) now measures precisely what the clock-gated obstacles cost.
+User priority recorded: S4 outranks resuming run 4 for the local threads; run 4 resumes after S4 or at bedtime.
+**Learned.** All three skill-gated sections were free for an exhaustive search — the H36 question has collapsed onto
+the clock-gated mechanisms in S4 (the F100 wrong-warp-pipe plant above all: 47 up / 64 idle / 47 down, phase fixed by
+arrival time). Goal-boundary hygiene: check the arrival state against the map before chaining (S2′/S3′ both passed).
+**Next.** S4 verdict → chain_s4.bin, core-verify, **the chain total vs 575/577** (the headline) → full replay_check,
+slack accounting, the seam-merge question if the number lands just above a framerule boundary; then the P0.11d
+fold-in, the goal-print engine fix, run 4 resume.
