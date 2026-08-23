@@ -418,3 +418,26 @@ Even a zero-slack phase carries 2×10⁷ states/layer here, so bounds alone neve
 are cloud jobs, and the bound's job is only to keep the layers flat.
 **Next.** P2.3c-2b (end-game (x,y) bound or the Phase-B multi-root search, H35) and P2.3c-2c (main-area gates); then
 the cloud decision for the runs. Run 4 ETA ~2026-08-24 early morning.
+
+## 2026-08-22 — Session 8 (interleaved): P0.10 — cloud provider, billing mechanics, machine sizing
+**Did.** Installed `hcloud` 1.67.0 to `~/.local/bin` from the official tarball (no sudo, no toolbox); the user
+created context `smb1-tas` in their own terminal — `hcloud context create` needs a TTY and fails under Claude
+Code's `! …` with `non-interactive tty detected`. Verified against the API (`hcloud location list`, exit 0).
+Established the billing rules from Hetzner's docs + the authenticated pricing endpoint (F92): hourly rounded up,
+monthly cap, ancillary rates — and the one that matters, **a powered-off server still bills; only `delete` stops
+the charge**. Measured the engine's scaling limit from run 4's own log (F93): expansion is parallel over
+`--threads`, the k-way merge is single-threaded, serial fraction 4–6 % at 12 threads → the useful ceiling is
+~48 cores. Since $/core-hour is flat across dedicated tiers, the $300 cap is really ~9,000 core-hours and
+machine size buys wall-clock only. **Then the user hit the account quota**: new account, only ccx13/ccx23/ccx33
+(≤ 8 dedicated cores), and the console refuses a limits-increase request as the account is too new — which
+inverts the recommendation, because 8 dedicated cores is ~1.08× the laptop. Rewrote the analysis around that.
+`docs/experiments/P0.10-cloud-sizing.md`; STATUS Spend now carries the standing cloud rules.
+**Learned.** Price the *quota*, not the catalogue — the sizing answer (ccx63) was worthless the moment the
+account limits appeared, and the rewrite is the real deliverable. Two things survived the inversion and are
+worth more than the original answer: the shared tiers are **4–10× cheaper per core** (cx53: 16 cores at
+$0.0561/h vs ccx33's 8 at $0.2612/h) and can be benchmarked for under $1, and at ≤ 16 cores the serial merge is
+irrelevant, so P2.3c-3 (parallel merge) is parked rather than queued.
+**Next.** P0.10a — benchmark cx53 / cpx51 / ccx33 against the laptop's logged throughput (~$0.46, delete same
+hour); check whether shared tiers are quota-limited too. Run 4 stays on the laptop (ETA ~2026-08-24 early
+morning). Re-request the Hetzner limits increase once the account has history — that is the gate on the 4-2
+main-area proof run. Unchanged: P2.3c-2c is still the in-progress unit.
