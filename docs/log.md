@@ -483,3 +483,27 @@ to `docs/facts.md` only after re-reading it — `tail -3` at the start of a unit
 writing), then S2–S4 chain per the P2.3c-2c checkpoint. Run 4 at layer 143/238, ETA ~2026-08-24. Apply the F98
 decision rule when the full-level frontier is known. Worth de-risking early: whether Robot gates new accounts
 the way Cloud does (user action; ordering flow, no purchase needed).
+
+## 2026-08-23 — Session 9: the y-coupled bound (P2.3c-2c), and the 4-2 enemy reference sim (P2.5c-1)
+**Did.** (1) `heuristics::ygate` — a sound y-coupled lower bound for position goals `x ≥ GX ∧ Y ≤ GY`: the model's
+exact vertical rules relaxed over *surfaces* = every standable cell top of the block buffer with the x intervals where a
+foot point is inside its column (wall faces and in-wall rows included, because of F80 and the wall jump), the hold-A
+trajectory as the pointwise-highest envelope, per-surface landing bounds with the x table's charge, y-only T(surface)
+precomputed top-down, and a per-k join with the x table. Wired into `bfscx --goal-y`; `smb-opt traceh` +
+`tools/ygate_audit.py` (300 random trajectories, 1,485 checks, 0 violations); regression control identical. The
+pipe-B gate of the session-8 spec was dropped as unprovable (H37: wall-entry mechanics). S1 d149 with the bound is
+running detached (identical counts to the x-only run through layer 85 — the term cannot bite before the jump region),
+and an S1a ladder (first arrival at the last floor block) in parallel. (2) While those grind, P2.5c-1: a reference
+simulation of the 4-2 main-area enemies validated on the WR dump — **0 mismatching rows over all 588 frames**, with
+the negative controls biting (119/20/63). It found three **piranha plants** nobody had in the spec, that the
+wrong-warp pipe's plant is *slot-dependent* (the WR had all five slots full at col 84; a freer route gets a plant in
+the pipe it must enter, F100), and that the enemy loader sees the *previous* frame's `AreaParserTaskNum` (F78
+amended; the lift hook was one frame off at burst boundaries — fixed, rebuilt, F81 control re-run). Also fixed:
+`tools/bfscx_ladder.sh` (`systemd-run -p Nice=` is rejected for scopes here), `area_data.py`'s import-time argv parsing
+breaking the sims when given arguments.
+**Learned.** The x-only frontier explosion is *intrinsic* at 2 frames of slack: ~10⁷ distinct hop/sub-pixel variants
+per layer are all x-tight, and a y-term only prunes within ~25 frames of the goal — so position-goal ladders cost
+hours on 2 laptop threads regardless; the decision rule F98 stands but the "10⁷ → hours" regime is where we are.
+Reading the dump beats reading specs: the plants and the slot dependence came from a 20-line slot survey.
+**Next.** P2.5c-2 (the Rust enemy module for `W42Main`, with slot occupancy) is the decisive work for H36; the S1/S1a
+results feed the reference-path chain (S2–S4) when they land. Run 4 ends ~2026-08-24 00:30.

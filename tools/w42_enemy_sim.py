@@ -64,7 +64,9 @@ SETBITS = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02]
 XOFF = [0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01, 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff]
 EXTERNAL_IDS = {0x27, 0x2e, 0x2f}          # lift, mushroom, vine: copied from the dump
 MODELLED_IDS = {0x00, 0x02, 0x06, 0x0d}    # green koopa, buzzy beetle, goomba, piranha plant
-BBOX = {3: (1, 8, 15, 24), 9: (3, 14, 13, 20)}  # BoundBoxCtrlData: (x1, y1, x2, y2) offsets (ctrl 3 provisional, from the notes)
+BBOX = {3: (2, 9, 14, 21), 9: (3, 14, 13, 20)}  # BoundBoxCtrlData ctrl 3 (koopa/beetle, 12770) and 9 (goomba/plant, 12776): x1, y1, x2, y2 offsets
+BGC_STATE = [1, 1, 2, 2, 2, 5]   # EnemyBGCStateData (12395-12396)
+XSPD_ADDER = [0x00, 0xe8, 0x00, 0x18]  # XSpeedAdderData (9207-9208)
 # Vertical pipes (left column, top row) from the block map: the area parser spawns a piranha plant when it renders
 # the left column (VerticalPipe, smbdis.asm 3843-3884: no "no plant" bit exists; only 1-1 and a full slot table
 # prevent it) — P2.5c-notes-piranha.md §1.
@@ -94,7 +96,8 @@ def x_offscreen_bits(x16, sl16):
 
 
 class Slot:
-    FIELDS = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked', 'cbits', 'yspd', 'yforce', 'bbctl', 'ftimer', 'up', 'dn')
+    FIELDS = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked', 'cbits', 'yspd', 'yforce', 'bbctl', 'ftimer', 'up', 'dn', 'yhi')
+    # 'up' = $0417+x = PiranhaPlantUpYPos for plants / Enemy_YMF_Dummy (vertical sub-pixel accumulator) for walkers
 
     def __init__(self):
         for f in self.FIELDS:
@@ -127,6 +130,7 @@ class Sim:
         d['yforce'] = self.ram(row, A('Enemy_Y_MoveForce', i)); d['bbctl'] = self.ram(row, A('Enemy_BoundBoxCtrl', i))
         d['ftimer'] = self.ram(row, A('EnemyFrameTimer', i))
         d['up'] = self.ram(row, A('PiranhaPlantUpYPos', i)); d['dn'] = self.ram(row, A('PiranhaPlantDownYPos', i))
+        d['yhi'] = self.ram(row, A('Enemy_Y_HighPos', i))
         return d
 
     def load_from_dump(self, row):
@@ -200,6 +204,7 @@ class Sim:
     def init_enemy(self, s):
         """InitEnemyObject dispatch for the ids we model (CheckpointEnemyID sets the masked bit first)."""
         s.masked = 1
+        s.yhi = 1
         s.external = s.id in EXTERNAL_IDS
         if s.external:
             return
@@ -274,7 +279,7 @@ class Sim:
             else:
                 x1, y1, x2, y2 = BBOX[s.bbctl]
                 s.box = ((relx + x1) & 0xff, (s.y + y1) & 0xff, (relx + x2) & 0xff, (s.y + y2) & 0xff)
-            self.bg_collision(s, row, i)
+            self.bg_collision(s, row, i, px)
             # EnemiesCollision (odd FrameCounter; piranha plants are excluded on both sides, 11563-11564 / 11580-11581)
             if fc & 1 and s.id < 0x15 and s.id != 0x0d and not s.masked:
                 for j in range(i - 1, -1, -1):
@@ -282,13 +287,21 @@ class Sim:
                     if not t.flag or t.id >= 0x15 or t.id == 0x0d or t.masked or t.box is None or s.box is None:
                         continue
                     if self.overlap(s.box, t.box):
-                        if (s.state | t.state) & 0x80 == 0:
+                        if (s.state | t.state) & 0x80 == 0:   # no kicked shell: the pair-bit latch applies
                             if t.cbits & SETBITS[i]:
                                 continue
                             t.cbits |= SETBITS[i]
-                        if ((s.state | t.state) & 0x20) == 0 and s.state < 6 and t.state < 6:
+                        if (s.state | t.state) & 0x20:
+                            continue
+                        if s.state < 6 and t.state < 6:
                             self.turn_around(t); self.turn_around(s)
                             self.events.append(('eeturn', row, i, j))
+                        elif s.state >= 6 and t.state < 6:
+                            self.defeat(t, px); self.events.append(('shellkill', row, i, j))
+                        elif t.state >= 6 and s.state < 6:
+                            self.defeat(s, px); self.events.append(('shellkill', row, j, i))
+                        else:
+                            self.defeat(s, px); self.defeat(t, px); self.events.append(('shellkill2', row, i, j))
                     else:
                         t.cbits &= ~SETBITS[i] & 0xff
             # PlayerEnemyCollision (even FrameCounter)
@@ -300,25 +313,53 @@ class Sim:
                         s.cbits |= 1
                         if s.id == 0x0d:
                             self.events.append(('injury', row, i))   # plants: InjurePlayer unconditionally (11338-11339)
-                        elif s.id == 6 and s.state == 4:
-                            pass
-                        elif pys_signed > 0 or self.stomp_timer:
-                            self.stomp(s, row, i)
-                        else:
-                            self.events.append(('death', row, i))
+                        elif s.id == 6 and (s.state & 7) >= 2:
+                            pass                                      # flattened goomba: early-out (11354-11356)
+                        elif (s.state & 0x80) or (s.state & 7) < 2:  # kicked shell, walking or falling: ChkForPlayerInjury
+                            if pys_signed > 0 or self.stomp_timer:
+                                self.stomp(s, row, i)
+                            else:
+                                # side contact: an enemy walking away from Mario is reversed, then Mario is hurt
+                                mario_left = ((px - sl16) & 0xff) < relx
+                                if (mario_left and s.dir == 1) or (not mario_left and s.dir != 1):
+                                    self.turn_around(s)
+                                self.events.append(('death', row, i))
+                        else:                                         # states 2/3/4: kick the shell away from Mario
+                            s.state |= 0x80
+                            s.dir = 1 if s.x >= px else 2
+                            s.spd = 0x30 if s.dir == 1 else 0xd0
+                            self.events.append(('kick', row, i))
                 else:
                     s.cbits &= 0xfe
-            # EnemyMovementSubs
+            # EnemyMovementSubs (MoveNormalEnemy 9293-9335 / ReviveStunned / MoveDefeatedEnemy), skipped while TimerControl != 0
             if s.id == 0x0d:
                 self.move_plant(s, fc, px)
-            elif s.state == 0:
-                self.move(s)
-            elif s.state & 7 == 1 or s.state & 0x40:   # falling
-                self.move_vertical(s); self.move(s)
-            elif s.id == 6 and s.state == 4:
-                if s.itimer == 14:
-                    self.erase(s)
-                    continue
+            elif r(row - 1, A('TimerControl')) == 0:
+                st = s.state
+                if st & 0x40:
+                    self.fall_e(s)
+                elif st & 0x80:
+                    self.steady(s, 0)
+                elif st & 0x20:
+                    self.gravity(s); self.move(s)
+                elif (st & 7) == 0:
+                    self.steady(s, 0)
+                elif (st & 7) == 5:
+                    self.fall_e(s)
+                elif (st & 7) >= 3:
+                    if s.itimer:
+                        if s.id == 6 and s.itimer == 14:
+                            self.erase(s)
+                            continue
+                    else:
+                        s.state = 0; s.dir = 1 + (fc & 1); s.spd = 0x08 if s.dir == 1 else 0xf8
+                        self.events.append(('revive', row, i))
+                else:
+                    self.fall_e(s)
+            # gfx-handler erase once the object has dropped below the screen (Enemy_Y_HighPos = 2), 14048-14059
+            if s.yhi == 2:
+                self.erase(s); self.events.append(('fell-off', row, i))
+                continue
             # OffscreenBoundsCheck (plants: never erased on the right; left bound SL-16, or SL-271 when SL_X >= $c7)
             if s.id == 0x0d:
                 left = sl16 - (271 if (sl16 & 0xff) >= 0xc7 else 16)
@@ -347,48 +388,93 @@ class Sim:
                     break
 
     def stomp(self, s, row, i):
-        if s.id == 6:
-            s.state = 4; s.itimer = 16; self.stomp_timer += 1
-            self.events.append(('stomp', row, i))
-        else:
-            self.events.append(('stomp-unmodelled', row, i, s.id))
+        """HandleStompedShellE (11499-11513): state 4 (d7 cleared), interval timer $10, StompTimer++, Mario bounces;
+        speed/dir/y unchanged. Goombas are erased at timer $0E (ChkKillGoomba); koopas/beetles revive at 0."""
+        s.state = 4; s.itimer = 16; self.stomp_timer += 1
+        self.events.append(('stomp', row, i))
 
-    def bg_collision(self, s, row, i):
-        """EnemyToBGCollisionDet for walkers (ids < 7): ground under (x+8, y+24)? then side check, else fall."""
+    def bg_collision(self, s, row, i, px):
+        """EnemyToBGCollisionDet (12401-12453) for walkers (ids < 7): gates, ground under (x+8, y+24), the
+        LandEnemyProperly nybble window, ChkLandedEnemyState / ProcEnemyDirection, else Chk2MSBSt; then the side check."""
         if s.state & 0x20:
             return
-        if (s.y + 62) & 0xff < 68:
+        if (s.y + 0x3e) & 0xff < 0x44:
             return
         if s.id >= 7:
             return
         under = block_at(s.x + 8, s.y + 24)
-        if under and not non_solid(under):
-            # LandEnemyProperly: TODO the $04 low-nybble test (from the koopa/beetle notes); provisional: landed
-            if s.state & 0x40:
-                self.land_init(s); return
+        if under and not non_solid(under) and 8 <= (s.y & 0x0f) <= 0x0c:
+            st = s.state
+            if st & 0x40:
+                self.land_init(s)
+            elif st & 0x80:
+                self.side_check(s, row, i)
+            elif st == 0:
+                self.side_check(s, row, i)
+            elif st == 1:
+                # ProcEnemyDirection: koopa/beetle turn to face Mario on landing (goombas keep their direction)
+                if s.id != 6:
+                    want = 1 if s.x >= px else 2
+                    if want == s.dir:
+                        self.turn_around(s)
+                self.land_init(s)
+            elif st == 2:
+                s.itimer = 0x10; s.state = 3; self.landing(s)
+            # states 3, 4 (and 5): nothing
+        else:
             if s.state & 0x80:
-                self.side_check(s, row, i); return
-            if s.state == 0:
-                self.side_check(s, row, i); return
-            # other landed states (koopa/beetle stunned etc.): filled from the notes
-            self.land_init(s)
-        else:
-            self.no_ground(s)
+                s.state |= 0x40
+            elif s.state < 6:
+                s.state = BGC_STATE[s.state]
+            self.side_check(s, row, i)
 
-    def no_ground(self, s):
-        """ChkForRedKoopa/Chk2MSBSt: green koopa/goomba/beetle: state <- EnemyBGCStateData[state] (0 -> 1: falling)."""
-        if s.state & 0x80:
-            s.state |= 0x40
-        else:
-            s.state = {0: 1, 1: 1}.get(s.state, s.state | 0x40)  # refine from the notes' EnemyBGCStateData
-
-    def land_init(self, s):
+    def landing(self, s):
         s.yspd = 0; s.yforce = 0
         s.y = (s.y & 0xf0) | 0x08
+
+    def land_init(self, s):
+        self.landing(s)
         if s.state & 0x80:
             s.state &= 0xbf
         else:
             s.state = 0
+
+    def gravity(self, s):
+        """MoveD_EnemyVertically -> ImposeGravity (7704-7759) with force $3D and max speed 3; 'up' holds Enemy_YMF_Dummy."""
+        t = s.up + s.yforce; c1 = t >> 8; s.up = t & 0xff
+        hi = 0xff if s.yspd & 0x80 else 0
+        y = s.y + s.yspd + c1; c2 = y >> 8; s.y = y & 0xff
+        s.yhi = (s.yhi + hi + c2) & 0xff
+        f = s.yforce + 0x3d; c3 = f >> 8; s.yforce = f & 0xff
+        s.yspd = (s.yspd + c3) & 0xff
+        if ((s.yspd - 3) & 0xff) < 0x80 and s.yforce >= 0x80:
+            s.yspd = 3; s.yforce = 0
+
+    def steady(self, s, y):
+        saved = s.spd
+        if saved & 0x80:
+            y += 2
+        s.spd = (saved + XSPD_ADDER[y]) & 0xff
+        self.move(s)
+        s.spd = saved
+
+    def fall_e(self, s):
+        self.gravity(s)
+        if s.state == 2:
+            self.move(s)
+        elif not (s.state & 0x40) or s.id == 0x2e:
+            self.steady(s, 0)
+        else:
+            self.steady(s, 1)
+
+    def defeat(self, s, px):
+        """ShellOrBlockDefeat on a koopa/beetle/goomba (11172-11193 -> SetStun 12466-12493): stunned then d5."""
+        s.state = (s.state & 0xf0) | 2
+        s.y = (s.y - 2) & 0xff
+        s.yspd = 0xfd
+        s.dir = 1 if s.x >= px else 2
+        s.spd = 0x10 if s.dir == 1 else 0xf0
+        s.state = (s.state & 0x1f) | 0x20
 
     def side_check(self, s, row, i):
         """DoEnemySideCheck: the block at (x+0 if moving left, x+16 if right; y+20) solid -> turn around."""
@@ -423,10 +509,6 @@ class Sim:
         if s.y == end:
             s.yspd = 0
             s.ftimer = 0x40
-
-    def move_vertical(self, s):
-        """MoveD_EnemyVertically (filled from the notes): placeholder gravity."""
-        raise SystemExit("enemy falling not implemented yet")
 
     @staticmethod
     def overlap(a, b):
@@ -463,7 +545,7 @@ class Sim:
                 continue
             if s.external:
                 continue
-            keys = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked')
+            keys = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked', 'yspd', 'yforce', 'yhi')
             if s.id == 0x0d:
                 keys = ('flag', 'id', 'state', 'x', 'y', 'spd', 'yspd', 'ftimer', 'up', 'dn', 'masked')
             for k in keys:
