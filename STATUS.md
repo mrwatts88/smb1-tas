@@ -20,6 +20,8 @@ Host: Linux box (primary). Emulators: FCEUX/BizHawk in the rootless toolbox cont
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
+**Priority (user, 2026-08-22, docs/decisions.md):** after run 4, the next big run is the 4-2 main area with the top route (needs P2.3c-2c + the cloud box), then the 4-2 warp zone; 1-1 room 1 (P2.5a/P2.5b, H29) is queued behind the 4-2 work. Order of work: P2.3c-2c (main-area bound, laptop) → cloud decision → 4-2 main run → 4-2 warp run (after P2.3c-2b) → P2.5.
+
 **Standing lead (H36, 2026-08-22):** 4-2 top route = HappyLee's "2 frames short" − the pipe-entry frame (F79, likely transfers) = 1 short; his bottom-route ending was 3 frames loose (F88), so the top route's unexamined ending is the most hopeful concrete target. Needs the main-area search with the top route allowed (P2.3c-2c + a run).
 
 | ID | Title | Track | Size | Depends on | Acceptance |
