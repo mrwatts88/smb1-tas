@@ -64,7 +64,11 @@ SETBITS = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02]
 XOFF = [0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01, 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff]
 EXTERNAL_IDS = {0x27, 0x2e, 0x2f}          # lift, mushroom, vine: copied from the dump
 MODELLED_IDS = {0x00, 0x02, 0x06, 0x0d}    # green koopa, buzzy beetle, goomba, piranha plant
-BBOX = {3: (1, 8, 15, 24), 9: (3, 14, 13, 20), 0x0a: None}  # BoundBoxCtrlData: (x1, y1, x2, y2) offsets; filled from the notes
+BBOX = {3: (1, 8, 15, 24), 9: (3, 14, 13, 20)}  # BoundBoxCtrlData: (x1, y1, x2, y2) offsets (ctrl 3 provisional, from the notes)
+# Vertical pipes (left column, top row) from the block map: the area parser spawns a piranha plant when it renders
+# the left column (VerticalPipe, smbdis.asm 3843-3884: no "no plant" bit exists; only 1-1 and a full slot table
+# prevent it) — P2.5c-notes-piranha.md §1.
+PIPES = sorted((c, r) for r in range(13) for c in range(WIDTH) if BLOCKS[r][c] in (0x10, 0x12))
 
 
 def x_offscreen_bits(x16, sl16):
@@ -90,7 +94,7 @@ def x_offscreen_bits(x16, sl16):
 
 
 class Slot:
-    FIELDS = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked', 'cbits', 'yspd', 'yforce', 'bbctl')
+    FIELDS = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked', 'cbits', 'yspd', 'yforce', 'bbctl', 'ftimer', 'up', 'dn')
 
     def __init__(self):
         for f in self.FIELDS:
@@ -121,6 +125,8 @@ class Sim:
         d['itimer'] = self.ram(row, A('EnemyIntervalTimer', i)); d['masked'] = self.ram(row, A('EnemyOffscrBitsMasked', i))
         d['cbits'] = self.ram(row, A('Enemy_CollisionBits', i)); d['yspd'] = self.ram(row, A('Enemy_Y_Speed', i))
         d['yforce'] = self.ram(row, A('Enemy_Y_MoveForce', i)); d['bbctl'] = self.ram(row, A('Enemy_BoundBoxCtrl', i))
+        d['ftimer'] = self.ram(row, A('EnemyFrameTimer', i))
+        d['up'] = self.ram(row, A('PiranhaPlantUpYPos', i)); d['dn'] = self.ram(row, A('PiranhaPlantDownYPos', i))
         return d
 
     def load_from_dump(self, row):
@@ -223,6 +229,11 @@ class Sim:
             for s in self.slots:
                 if s.itimer and not s.external:
                     s.itimer -= 1
+        # frame timers (EnemyFrameTimer) tick every frame while TimerControl == 0 (NMI, before the logic)
+        if r(row - 1, A('TimerControl')) == 0:
+            for s in self.slots:
+                if s.ftimer and not s.external:
+                    s.ftimer -= 1
         self.stomp_timer = 0
         pys_signed = pys - 256 if pys >= 128 else pys
         if pys == 0xfc and dump_stomp == 1:
@@ -264,11 +275,11 @@ class Sim:
                 x1, y1, x2, y2 = BBOX[s.bbctl]
                 s.box = ((relx + x1) & 0xff, (s.y + y1) & 0xff, (relx + x2) & 0xff, (s.y + y2) & 0xff)
             self.bg_collision(s, row, i)
-            # EnemiesCollision (odd FrameCounter)
-            if fc & 1 and s.id < 0x15 and not s.masked:
+            # EnemiesCollision (odd FrameCounter; piranha plants are excluded on both sides, 11563-11564 / 11580-11581)
+            if fc & 1 and s.id < 0x15 and s.id != 0x0d and not s.masked:
                 for j in range(i - 1, -1, -1):
                     t = self.slots[j]
-                    if not t.flag or t.id >= 0x15 or t.masked or t.box is None or s.box is None:
+                    if not t.flag or t.id >= 0x15 or t.id == 0x0d or t.masked or t.box is None or s.box is None:
                         continue
                     if self.overlap(s.box, t.box):
                         if (s.state | t.state) & 0x80 == 0:
@@ -287,7 +298,9 @@ class Sim:
                 if self.overlap(pbox, s.box):
                     if not (s.cbits & 1):
                         s.cbits |= 1
-                        if s.id == 6 and s.state == 4:
+                        if s.id == 0x0d:
+                            self.events.append(('injury', row, i))   # plants: InjurePlayer unconditionally (11338-11339)
+                        elif s.id == 6 and s.state == 4:
                             pass
                         elif pys_signed > 0 or self.stomp_timer:
                             self.stomp(s, row, i)
@@ -297,7 +310,7 @@ class Sim:
                     s.cbits &= 0xfe
             # EnemyMovementSubs
             if s.id == 0x0d:
-                self.move_plant(s, row)
+                self.move_plant(s, fc, px)
             elif s.state == 0:
                 self.move(s)
             elif s.state & 7 == 1 or s.state & 0x40:   # falling
@@ -306,12 +319,32 @@ class Sim:
                 if s.itimer == 14:
                     self.erase(s)
                     continue
-            # OffscreenBoundsCheck
+            # OffscreenBoundsCheck (plants: never erased on the right; left bound SL-16, or SL-271 when SL_X >= $c7)
+            if s.id == 0x0d:
+                left = sl16 - (271 if (sl16 & 0xff) >= 0xc7 else 16)
+                if s.x < left:
+                    self.erase(s); self.events.append(('offscreen', row, i))
+                continue
             left = sl16 - 73
             right = sr16 + 72 + (1 if left >= 0 else 0)
             if s.x < left or s.x >= right:
                 self.erase(s)
                 self.events.append(('offscreen', row, i))
+        # the area parser runs after the enemy loop: a render task (post-frame AreaParserTaskNum 7 or 3) processing a
+        # vertical pipe's left column spawns a piranha plant into the first free slot 0..4 (none free: no plant)
+        aptn_post = r(row, A('AreaParserTaskNum'))
+        if aptn_post in (7, 3):
+            col = r(row, A('CurrentPageLoc')) * 16 + r(row, A('CurrentColumnPos'))
+            for (pc, pr) in PIPES:
+                if pc == col:
+                    free = next((k for k in range(5) if not self.slots[k].flag), None)
+                    if free is None:
+                        self.events.append(('plant-no-slot', row, col)); break
+                    t = self.slots[free]
+                    t.flag = 1; t.id = 0x0d; t.state = 0; t.x = pc * 16 + 8; t.y = pr * 16 + 32
+                    t.spd = 1; t.yspd = 0; t.dn = t.y; t.up = (t.y - 24) & 0xff; t.bbctl = 9; t.box = None; t.external = False
+                    self.events.append(('plant', row, free, col))
+                    break
 
     def stomp(self, s, row, i):
         if s.id == 6:
@@ -367,8 +400,29 @@ class Sim:
             self.turn_around(s)
             self.events.append(('bgturn', row, i, s.x))
 
-    def move_plant(self, s, row):
-        raise SystemExit("piranha plant movement not implemented yet")
+    def move_plant(self, s, fc, px):
+        """MovePiranhaPlant (smbdis.asm 10577-10634): state 0 and frame timer 0 only; parked at the bottom it waits
+        until the 8-bit |enemy x - player x| (low byte, sign from the 16-bit difference) is >= $21; travel 1 px on
+        odd FrameCounter frames until Y equals the end position, then park and set the frame timer to $40."""
+        if s.state != 0 or s.ftimer != 0:
+            return
+        if s.yspd == 0:                       # parked
+            if not (s.spd & 0x80):            # at the bottom: distance test
+                diff = s.x - px
+                d8 = diff & 0xff
+                if diff < 0:
+                    d8 = (-d8) & 0xff
+                if d8 < 0x21:
+                    return
+            s.spd = (-s.spd) & 0xff
+            s.yspd += 1
+        end = s.up if s.spd & 0x80 else s.dn
+        if fc & 1 == 0:
+            return
+        s.y = (s.y + (s.spd - 256 if s.spd >= 128 else s.spd)) & 0xff
+        if s.y == end:
+            s.yspd = 0
+            s.ftimer = 0x40
 
     def move_vertical(self, s):
         """MoveD_EnemyVertically (filled from the notes): placeholder gravity."""
@@ -398,7 +452,7 @@ class Sim:
 
     @staticmethod
     def erase(s):
-        s.flag = 0; s.id = 0; s.state = 0; s.itimer = 0; s.box = None; s.external = False
+        s.flag = 0; s.id = 0; s.state = 0; s.itimer = 0; s.ftimer = 0; s.box = None; s.external = False
 
     def compare(self, row):
         diffs = []
@@ -409,7 +463,10 @@ class Sim:
                 continue
             if s.external:
                 continue
-            for k in ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked'):
+            keys = ('flag', 'id', 'state', 'x', 'y', 'spd', 'force', 'dir', 'itimer', 'masked')
+            if s.id == 0x0d:
+                keys = ('flag', 'id', 'state', 'x', 'y', 'spd', 'yspd', 'ftimer', 'up', 'dn', 'masked')
+            for k in keys:
                 if getattr(s, k) != d[k]:
                     diffs.append(f"slot{i}.{k} sim {getattr(s, k)} dump {d[k]}")
         for k, sym in (('eoff', 'EnemyDataOffset'), ('epage', 'EnemyObjectPageLoc'), ('epsel', 'EnemyObjectPageSel')):
