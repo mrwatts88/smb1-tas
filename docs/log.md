@@ -507,3 +507,10 @@ hours on 2 laptop threads regardless; the decision rule F98 stands but the "10�
 Reading the dump beats reading specs: the plants and the slot dependence came from a 20-line slot survey.
 **Next.** P2.5c-2 (the Rust enemy module for `W42Main`, with slot occupancy) is the decisive work for H36; the S1/S1a
 results feed the reference-path chain (S2–S4) when they land. Run 4 ends ~2026-08-24 00:30.
+**Later (session 9, cont.): P2.5c-2 started.** The reference sim ported to Rust (`w42enemies.rs`, 96-byte search records
+with a 64-byte object ext; `tracec/bfscx --enemies`), matching the dump frame-for-frame to the vine bump; the remaining
+differences are all the unmodelled vine's slot usage (H34) — the stale slot memory (`EraseEnemyObject` keeps the
+move force / collision / masked bits / sub-pixel accumulators) turned out to matter for a walker's half-pixel phase and
+is now in the record even for empty slots. Three core difftests (`--enemies`) launched for the next session. Process
+lesson, twice: a `cd` inside a compound Bash command made later commands run in the vendored smb-opt repo (a stray
+commit there, reset) — absolute paths and `git -C` only.

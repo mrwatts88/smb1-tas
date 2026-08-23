@@ -140,7 +140,7 @@ def compare(core, model, first_step, last_step, verbose):
 
 def main():
     args = sys.argv[1:]
-    opt = dict(n=100, len=120, seed=1, root=1232, wr=False, keep=None, pr=.75, pl=.15, pa=.25, pb=.6, verbose=False, mutate=0, goombas=False)
+    opt = dict(n=100, len=120, seed=1, root=1232, wr=False, keep=None, pr=.75, pl=.15, pa=.25, pb=.6, verbose=False, mutate=0, goombas=False, arun=0)
     i = 0
     while i < len(args):
         a = args[i]
@@ -158,6 +158,7 @@ def main():
         elif a == "--first": opt["first"] = int(args[i + 1]); i += 2
         elif a == "--lift": opt["lift"] = int(args[i + 1]); i += 2
         elif a == "--enemies": opt["enemies"] = int(args[i + 1]); i += 2
+        elif a == "--arun": opt["arun"] = int(args[i + 1]); i += 2
         else: raise SystemExit(f"unknown option {a}")
     global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT, ENEMIES
     if opt.get("lift") is not None: LIFT = opt["lift"]
@@ -173,9 +174,20 @@ def main():
     os.makedirs(tmp, exist_ok=True)
     trials = [("wr", wr[: opt["root"] + opt["len"]])] if opt["wr"] else []
     for t in range(opt["n"] if opt["mutate"] == 0 else 0):
-        rnd = bytes((R if rng.random() < opt["pr"] else 0) | (L if rng.random() < opt["pl"] else 0)
-                    | (A if rng.random() < opt["pa"] else 0) | (B if rng.random() < opt["pb"] else 0)
-                    for _ in range(opt["len"]))
+        if opt["arun"] > 0:
+            # --arun AMAX: A is held in runs of random length 0..AMAX started with probability pa (jumps of every height,
+            # as tools/ygate_audit.py) so trials climb to the 4-2 top floor (P2.5c-2)
+            out, a_left = [], 0
+            for _ in range(opt["len"]):
+                v = (R if rng.random() < opt["pr"] else 0) | (L if rng.random() < opt["pl"] else 0) | (B if rng.random() < opt["pb"] else 0)
+                if a_left > 0: a_left -= 1; v |= A
+                elif rng.random() < opt["pa"]: a_left = rng.randint(0, opt["arun"]); v |= A
+                out.append(v)
+            rnd = bytes(out)
+        else:
+            rnd = bytes((R if rng.random() < opt["pr"] else 0) | (L if rng.random() < opt["pl"] else 0)
+                        | (A if rng.random() < opt["pa"] else 0) | (B if rng.random() < opt["pb"] else 0)
+                        for _ in range(opt["len"]))
         trials.append((f"t{t}", wr[: opt["root"]] + rnd))
     for t in range(opt["n"] if opt["mutate"] > 0 else 0):
         # the WR's own records from the root, with `mutate` random frames replaced by random A/B/L/R bytes
