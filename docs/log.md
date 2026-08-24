@@ -858,3 +858,23 @@ the wrong-warp finale is the first place the missing scroll term actually bites.
 **Next.** Read the d58-drift verdict (layer 38 = the with/without datapoint). GOAL at d ≤ 66 → the record pipeline
 (path → core → splice → FCEUX warp-dest check → BizHawk); dry through d66 → pivot to the bottom route. Resync the
 Mac to the drift patch and run d62/d66 in parallel. Then the P0.11d Mac-watchdog `docker kill` fix.
+
+## 2026-08-24 — Session 13 (cont.): the drift bound settles d58 (dry), but d62–d66 are a resource wall
+**Did.** Ran the drift-bounded ladder. **d58 = proof-grade DRY** (local, resumed from the pre-drift superset;
+frontier collapsed 130M→0 by layer 48, `no goal within 58`, max x pinned at the relative-112 wall throughout —
+no path mints enough offset in ≤ 58 steps). **d62 (Mac, from scratch) and d66 (local) were CAP-KILLED, not
+verdicts:** the drift term only prunes once `D − L ≤ drift_h` (~20), so a looser deadline delays the collapse and
+the wall frontier accumulates for the extra layers — d62 hit 329M at layer 38 still growing ×1.35 (collapse 4
+layers off ⇒ ~1B peak), d66 hit 143M at layer 30 growing ×1.2 (multi-billion). So d62–d66 are ~10⁹-state searches,
+beyond the laptop's 147G / the Mac's ~130G free. Stopped both, cleaned the local box. **The Mac's P0.11d watchdog
+bug bit again** — the watchdog killed only the docker-run client, the orphan container ran to layer 41 filling disk;
+`docker kill`ed it.
+**Learned.** The drift bound is *necessary* (it makes the finale finite and decidable, and settled d58) but not
+*sufficient* on this hardware for loose deadlines — the peak scales with the deadline, not just the answer. The
+wall frontier's likely dominant multiplier is the 64-byte enemy ext; the vine-bumped chain suppresses the plant, so
+an enemy-ext abstraction (if no live enemy touches the finale) may bring d62–d66 back under the laptop's disk — the
+cheapest thing to try before cloud.
+**Next (fork — STATUS "Needs user input").** (1) cloud for d62–d66; (2) enemy-ext frontier abstraction (unblocked,
+try first); (3) bottom-route pivot (F79+F88 → 575, non-cloud, no mint search). d58 dry + HappyLee's 2-short + the
+peak analysis all suggest the top-route mint is marginal, but it is NOT refuted (d62–d66 unsearched; "too big for
+this hardware" is not a proof). Also queued: the P0.11d Mac-watchdog `docker kill` fix.
