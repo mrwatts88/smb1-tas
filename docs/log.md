@@ -878,3 +878,22 @@ cheapest thing to try before cloud.
 try first); (3) bottom-route pivot (F79+F88 → 575, non-cloud, no mint search). d58 dry + HappyLee's 2-short + the
 peak analysis all suggest the top-route mint is marginal, but it is NOT refuted (d62–d66 unsearched; "too big for
 this hardware" is not a proof). Also queued: the P0.11d Mac-watchdog `docker kill` fix.
+
+## 2026-08-24 — Session 14: STATUS.md cleanup (branch `status-cleanup`)
+**Did.** STATUS.md had become a ~100 KB session-by-session narrative (single lines of 10+ KB; "Running
+jobs" carried six paragraphs of finished history; "Next up" listed units done days ago). Rewrote it as a
+status: a "Where we are" block, Running jobs (none — verified `pgrep` empty, Mac `docker ps` empty),
+an empty In progress, a refreshed Next-up table (done units removed; P2.3c-6 = the cloud finale and
+P2.3e = the next framerule level now carry the fork), one line per Done unit, current loose ends (the
+Mac's 400 G of stale layer dirs and the local 81 G `runs/P2.1b-model` surfaced with sizes), the fork and
+the other user decisions condensed, Key numbers trimmed to the current headline numbers, and the
+Model-omissions table updated (bounces admitted, vine modeled, scroll latch, RNG row). 100 KB → 28 KB.
+Nothing was deleted: the old file is archived verbatim at `docs/archive/STATUS-2026-08-24-pre-cleanup.md`;
+material that lived ONLY in STATUS got real homes — `docs/search-runbook.md` (new: capped-run rule,
+ladder/dedicated-run pattern, the seam protocol, the record pipeline with the FCEUX warp-destination
+check, patch discipline, cleanup) and `docs/experiments/P0.11-two-box.md` §7 (the P0.11d Mac fan-out
+lessons, now 13 items incl. the docker-kill bug and the intent-add patch rule).
+**Learned.** STATUS hoarded runbook content because there was no runbook file; PROCESS §"Parallel work"
+still points at STATUS "Running jobs" for the cgroup rule, so that one-liner stays there too.
+**Next.** User: review the branch and merge; answer the fork (A cloud / B pivot, default B); clear the
+Mac's stale layer dirs. Then the loop resumes from the new Next-up table (P2.3e unless (A)).
