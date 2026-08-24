@@ -750,3 +750,16 @@ verify sed matched; retention until the next segment chains.
 **Next.** Morning: run 4's H28 verdict; the coupled-segment decision (cloud auction box vs bound engineering vs
 H34 unlock); the wrap-up unit (P0.11d, goal-print fix, slot forensics, sweep list). The chain's 465 verified frames
 and five exact segment optima stand regardless of the route chosen.
+
+## 2026-08-24 — Session 11 (close): run 4 reports — H28 refuted, 1-1 closed (F116)
+**Did.** Run 4's first grabs came at layer 234 (33.3M, all F55's slow band); the process OOM-died expanding 235 and
+the whole-file resumes died the same way 3×. Recovered the table with `--stop-step 234`, then searched layers 235–238
+by slicing layer 234 into 8 disjoint parts and resuming each (sound for grab existence; ~25 min total): **no FPG grab
+exists ≤ step 238 — H28 refuted proof-grade in the over-approximating model; 1-1 is closed** (F116; H29 parked).
+Corrected the morning's premature "candidate" reading in the docs. The 4-2 plan (floor-clip ladder → beam mode →
+dominance/y-term → cloud for optimality) is recorded in STATUS and the experiment file.
+**Learned.** Read the engine's output columns before celebrating (fpg true/false is the whole question); unbounded
+bookkeeping is the OOM you never budgeted for; partitioning a layer's parents is a code-free, sound way past it.
+**Next.** The 4-2 plan step (i): the floor-clip ladder from the 465 chain (bound 62); step (ii) beam mode. Wrap-up
+unit: P0.11d, the goal-print fix, WR slot forensics, the sweep list. Loose end: delete `runs/P2.1b-model/room_layers`
+(71 G) + the slices once F116's write-up is reviewed.
