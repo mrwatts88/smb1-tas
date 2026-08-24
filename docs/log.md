@@ -810,3 +810,26 @@ went two framerules further.
 warp-zone framerule alignment analysis — what 553 does to the full-run time). (2) The optimality note (552 vs
 553: at most one frame open, worthless for framerules — 533 would be needed for a third). (3) The parked
 alternates (brick-landing line, over-flier G3) are moot at the bound. (4) The fork decision (Needs user input).
+
+## 2026-08-24 — Session 12 (afternoon): verification catches the warp, the scroll ledger, the drift campaign
+**Did.** Emulator round 1 (new `tools/splice_fm2.py` → `w42_553.fm2`/`.bk2`): FCEUX frame-perfect on the main
+area (552/552 = the model, entry Δ = 35 rows vs the WR) — and the wrong warp DIVERGED (ours re-enters at page 8
+x 2072, falling; the WR at page 0 x 24). Root cause chain, fully closed: F40 (on the books since session 6) —
+the warp needs the page-5-col-15 area-change command unparsed; our parser consumed it (cursor 18 vs the WR's 15)
+because our entry's ScreenLeft was 1237 vs 1216. Both conditions now REFUSED in the hook (eoff ≥ 16, sl16 ≥
+1217; engine + patch committed, Mac resynced + gate-checked — en route: mac_run.sh got the P0.11d-#4 PATH shim,
+and mac_sync_engine.sh must run ON the Mac, whose repo needed the `laptop` remote added). Then the scroll
+ledger (F120): the offset Mario-x − ScreenLeft is a LATCH; collision-push displacement is the only minting
+mechanism; the WR mints +21 px INSIDE the col-30 wall — the wall walk is passage + vine + warp key. The drift
+geometry: the goal-pipe face sits 1.06 px beyond the relative-112 wall — the mint stages at the bricks' face
+(+11) then the pipe face (+17); the G4a/G4b split (chain 539) dead-ended on exactly that (the gate cut the
+staging) and was retired. **Campaign running: dedicated rungs from 509 — local d58, Mac d62 — vs the d ≤ 66
+budget** (see STATUS Running jobs for the full decision tree and the pivot if dry).
+**Learned.** The two-emulator rule earned its keep on its first real test: the model was exact, the GOAL was
+underspecified. Case goals must pin every load-bearing state byte (the scroll and the parser cursor were both
+in the state all along). And the session's through-line: HappyLee's 2011 route is a machine — bumps are slot
+management, the wall walk mints the warp key, the apex graze is the only legal vine touch; each "quirk" we
+removed came back as a requirement.
+**Next.** The rung verdicts → the decision tree in STATUS (record-verify path or d64/d66 or the bottom-route
+pivot). Then: BizHawk re-run, the full-movie assembly + framerule math, the optimality note (552/553), the
+fork decision (Needs user input), P0.11d fold-in.
