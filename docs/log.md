@@ -763,3 +763,29 @@ bookkeeping is the OOM you never budgeted for; partitioning a layer's parents is
 **Next.** The 4-2 plan step (i): the floor-clip ladder from the 465 chain (bound 62); step (ii) beam mode. Wrap-up
 unit: P0.11d, the goal-print fix, WR slot forensics, the sweep list. Loose end: delete `runs/P2.1b-model/room_layers`
 (71 G) + the slices once F116's write-up is reviewed.
+
+## 2026-08-24 — Session 12: the ledge was the fault; the G-chain runs the pipes at the bound; the plant guards the finale
+**Did.** Plan step (i) (the floor-clip ladder from 465, Mac, d62–d82): no path at any rung, 36 s total — every
+465-rooted continuation slams pipe A's face (F117); H37 untested (pipe B never reached). Diagnosis by trace: the
+S3′ arrival (Y 45 at x 1005) is FORCED onto the vine ledge at step 418, and the session-11 chain-safety note
+("passes under at Y ≈ 65") was hand physics, wrong. The WR passes UNDER the ledge and runs 1005 → 1284 at exactly
+the movement bound. Fix: S3′ rerun (deterministic to the digit), hand-picked an under-ledge arrival with the new
+`tools/pick_parent.py` (census tool, full 96-byte records), then chained the WR's own standable gates: **G1 floor
+1090 = 34 = bound (grounded re-pick; the auto-pick was a fated mid-jump), G2 pipe-A cap 1177 = 35 = bound, G3
+pipe-B top 1239 = 25 = bound — chain 509, core-verified at every stage (0 mismatches, 2 stomps), = the WR's
+step-540 player state 31 frames early.** G4 (pipe entry, floor 44 → total 553): d44–47 refused — our bump-free
+world spawns a piranha plant IN the wrong-warp pipe (risen, static to ~step 566; 34.2M deaths at layer 46;
+standing in the entry window = contact). HappyLee's (64,3) vine bump was slot management: bump → slot-5 vine →
+the enemy loader injects an inert VineObject into the first free normal slot → no plant at the col-84 render.
+The full mechanism read from the disassembly and documented; 77,696 vine-capable rising S3′ arrivals exist at
+the bound in the retained layer_081.bin (`h34_riser_record.txt`). **H34 unparked by the plan's own trigger.**
+Tools: `pick_parent.py` (new), `replay_check.py --enemies` (+ a latent 4-tuple unpack fix, regression-checked),
+`bfscx_ladder.sh` third rung ending ("no goal at the deadline" no longer aborts the ladder).
+**Learned.** Probes over hand physics, again — twice (the ledge note; the "misses the cap by 7 px" story).
+The truncated-goal-print bug reproduced locally (recover the full record from the last layer by prefix;
+main.rs:987 audit still queued). First-arrival gates on standable ground + census-picked landing/grounded
+parents made four consecutive seams work without a single re-gate. And the biggest: HappyLee's "irrelevant"
+bumps are load-bearing slot management — routes here are enemy-slot programs, not just movement.
+**Next.** P2.5c-3: model the vine (design written), unlock (64,3) in the search, oracle to 0 on WR rows
+7038–7172, then the G-line re-search from a vine-capable arrival → G4′ with an empty pipe → the total vs 575/554
+→ assembly + two-emulator verification if ≤ 575.
