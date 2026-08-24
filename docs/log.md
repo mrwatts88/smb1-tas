@@ -789,3 +789,24 @@ bumps are load-bearing slot management — routes here are enemy-slot programs, 
 **Next.** P2.5c-3: model the vine (design written), unlock (64,3) in the search, oracle to 0 on WR rows
 7038–7172, then the G-line re-search from a vine-capable arrival → G4′ with an empty pipe → the total vs 575/554
 → assembly + two-emulator verification if ≤ 575.
+
+## 2026-08-24 — Session 12 (cont.): the vine unlock → 4-2 main area in 553, two framerules under the record
+**Did.** Modeled the vine (design → implementation → validation in one sitting): `CLASS_VINE`, the flag in spare
+ext bits, the loader injection on the frenzy paths, KillVine; oracle **0 mismatching rows over 586** (was
+"everything after 7038"), wrong-warp plants 0, tunnel difftest 60/60 clean with the former bump-stoppers now
+core-compared through the bump; bump-free behavior byte-identical (S3′ rerun reproduced to the digit on the new
+binary). Then the G-line from a vine-capable arrival — four wrong chains taught four physics facts (the [72,78)
+bump band / the side-slam, continuous-A low gravity, the v_force index alias, the RunningTimer ground clamp; all
+in F119) — and the fifth chain ran the table: **G1v 34, G2v 35, G3v 25, G4v 44, every one = its movement bound;
+main area 553 = 149+184+82+34+35+25+44; core-verified entry at record 7136 (GES 3, Down, 0 mismatches, 2 stomps)**
+— F118. The wrong-warp pipe is bare in every bound-time line (the bump is forced at the bound); plant C spawns
+into the freed vine slot exactly as in the WR's world.
+**Learned.** The census-pick discipline needs the PHYSICS fields, not just position: v_force (with its encoder
+alias), RunningTimer, the goal-transition input (A|R / B|R). The seam protocol's "probe, don't hand-derive"
+paid five times today. And the deepest one: HappyLee's 2011 route encodes all of this — the apex graze IS the
+only legal bump, his vine IS the plant suppressor; the search rediscovered his moves from mechanics alone, then
+went two framerules further.
+**Next.** (1) Two-emulator verification + movie assembly (WR prefix + our 553 + the post-entry splice; the
+warp-zone framerule alignment analysis — what 553 does to the full-run time). (2) The optimality note (552 vs
+553: at most one frame open, worthless for framerules — 533 would be needed for a third). (3) The parked
+alternates (brick-landing line, over-flier G3) are moot at the bound. (4) The fork decision (Needs user input).
