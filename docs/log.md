@@ -731,3 +731,22 @@ the scoreboard and the results table hardcode 149/184/82/415 and will be stale t
 as a STATUS loose end with the artifact URL (republishing without the URL creates a *second* artifact).
 
 **Next.** Unchanged: S4 verdict → chain_s4.bin → core-verify → the chain total vs 575/577.
+
+## 2026-08-24 — Session 11 (overnight): five segments at the bound; the coupled passage stops the chain at 465
+**Did.** S4a-i′ (x ≥ 1130 ∧ Y ≤ 176 re-gate) = **50 exactly — the fifth consecutive segment at its movement bound**
+(chain `chain_s4aip.bin` = **465**, core-verified 465/465, still 2 stomps). Then every cut of the remaining
+pit-arc → pipe-A → bricks passage failed: the over-flier arc is fated to the floor (misses the cap by ~7 px), no
+grounded gate-point exists inside the passage, the descending-lander root prices the bricks at > 60 empirically
+(ladders d36–d62; d62 blew 20M) vs a record budget of ≤ 52. Full reasoning + numbers in the experiment file
+§"The coupled passage". Auto-picks found the sky twice more (`Y ≤ GY` never fences it) → hand-picking is standard
+at every seam; the dual-rank pick found NO grounded and NO rising max-speed states at 1130 (all mid-descent of
+S3′'s arc) — the coupling reaches back to S3′'s boundary. Housekeeping: dead-run layers cleaned everywhere
+(~250 G reclaimed), the live 1130-seam layers retained on the Mac, run 4 resumed 01:30 (verdict ~10–11am, precise
+watcher armed after a "grabs 0" false-match), Mac caffeinated, everything committed stepwise.
+**Learned.** A segment chain's gates must sit on standable ground OUTSIDE coupled aerial maneuvers; where no such
+ground exists, the maneuver is one search — and this one (bound ~118 from prefix 333) is beyond both local boxes.
+The night's method upgrades: y-term range = the segmentation ruler; probes over hand physics; hand-pick every seam;
+verify sed matched; retention until the next segment chains.
+**Next.** Morning: run 4's H28 verdict; the coupled-segment decision (cloud auction box vs bound engineering vs
+H34 unlock); the wrap-up unit (P0.11d, goal-print fix, slot forensics, sweep list). The chain's 465 verified frames
+and five exact segment optima stand regardless of the route chosen.
