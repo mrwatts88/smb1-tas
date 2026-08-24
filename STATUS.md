@@ -5,7 +5,7 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-24 (session 14 — STATUS cleanup; no search running)
+**Updated:** 2026-08-24 (session 15 — P2.5b-1 done: H29 refuted, 1-1 closed; no search running)
 
 ## Where we are
 - **Target:** beat 17,868 frames (HappyLee, TASVideos #1715M). A new movie must finish with an
@@ -25,12 +25,20 @@ pre-cleanup narrative version of this file is archived at
   optimal-ish); continuation probe from the chained mint: **total ≥ 584 > 575**. Bottom-route
   floor ≈ 584–585 = deficit ~9–10. **4-2 = 553 movement + ~31 warp-key tax + ~4 slack, conserved
   across routes — closed for a framerule both ways** (residual: H38, a speed-preserving mint).
-- **1-1 is closed** (H28 refuted, F116; H29 parked). 4-2's warp zone: enemy-free bound 461 vs
-  WR 476 (F89–F91, H35 open).
+- **1-1 is now closed END TO END (session 15, F124):** the enemy-aware room-1 rung `bfscx W11Room1E
+  … 0 367 --enemies 0` is **dry in 4.7 s** (root bound exactly 367, frontier extinct at layer 21) and
+  the bound is provably admissible with enemies — `w11enemies.rs` never touches `x_pos`/`x_spd` (its
+  only player write is the stomp bounce), and the case bound is the x table to `0x39400`, the exact
+  x the pipe's right-foot `cv 0x11` check demands. **H29 refuted; with H28 (F116) that also closes
+  H21** — 1-1 cannot deliver its 1 missing frame on any modeled route. The one unavoidable frame is
+  spent on an airborne frame of the opening jump (`k+h` 367 → 368 at step 21, then constant). 4-2's
+  warp zone: enemy-free bound 461 vs WR 476 (F89–F91, H35 open).
 - **Fork RETIRED; 4-2 closed BOTH routes (F122 top / F123 bottom):** no cloud proof needed. The
   user's cheaper/earlier-mint ideas were tested directly (`--goal-offset`): mint is speed-priced
-  at ~30 frames on any route. **Next unit = the user's pick: pivot the tooling to 8-3 / 1-2**
-  (see Blocked/Needs user input for the framing; H38 records the one 4-2 residual).
+  at ~30 frames on any route (H38 records the one 4-2 residual).
+- **Next unit: P2.2a — the 8-4 turnaround room (H25), already In progress with a checkpoint.** Its
+  next step is the `w84enemies` port (piranha plants + the flying-cheep frenzy) → difftest → the
+  d194 rung. 1-1, 4-2 are closed; 8-4 is the primary track (decisions.md, session 14 evening).
 - **Phase:** P2 (proof engine on the route). ROM verified byte-identical to TASVideos' (W) [!]
   (`tools/verify_rom.py`; copy in `roms/`, gitignored). Host: Linux box primary, Mac overflow
   (PROCESS §"Parallel work on the second host"); emulators in the toolbox container `smb1`
@@ -38,13 +46,15 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **None** (2026-08-24 session 14: P2.3c-6 beam/probe searches all done + stopped; `pgrep -x
-  smb-opt` empty; 147G free). Beam-tooling lesson recorded: layer dirs MUST live on the NVMe
-  (`/home`), never the tmpfs scratchpad (`/tmp`, 7.7G RAM-backed) — a run filling tmpfs OOM/quota-
-  dies AND starves the shell of fork memory.
-- Standing rule: **never start a search without a cgroup cap** — not even a short control
-  (`docs/search-runbook.md` §1). Check here first every session; list each job with machine,
-  pids, log path and how to read the verdict.
+- **None** (2026-08-24 session 15: the P2.5b-1 `w11_d368` control was stopped as infeasible —
+  see Done/F124 — and its 94 GB layer dir deleted; `pgrep -x smb-opt` empty; 147G free). Beam-tooling
+  lesson recorded: layer dirs MUST live on the NVMe (`/home`), never the tmpfs scratchpad (`/tmp`,
+  7.7G RAM-backed) — a run filling tmpfs OOM/quota-dies AND starves the shell of fork memory.
+- **Sizing lesson (session 15):** a `--check-path` rung at deadline = optimum+1 is NOT a cheap
+  control — zero slack gives tens of states, one frame of slack gives tens of millions (the bound is
+  a coarse x-only table). The control you actually want runs *before* layer 1: `--check-path N`
+  audits the reference path's bound and goal at startup (main.rs:938–950). Read that, then decide
+  whether the exhaustive part is worth its disk.
 - Standing rule: **never start a search without a cgroup cap** — not even a short control
   (`docs/search-runbook.md` §1). Check here first every session; list each job with machine,
   pids, log path and how to read the verdict.
@@ -70,26 +80,11 @@ pre-cleanup narrative version of this file is archived at
   class from w42enemies + model the cheep frenzy (asm: FlyCheepCheepFrenzy/InitFlyingCheepCheep/
   MoveFlyingCheepCheep) into a `w84enemies` hook, difftest to 0 incl. cheep stomps, THEN the
   d194 rung `--enemies` + d195 check-path control.** `P2.2a-84-turnaround.md`.
-- **P2.5b-1 — 1-1 room-1 enemy-aware exhaustive search (H29; started 2026-08-24 session 14,
-  continuing in-session).** Goal: the H29 verdict — can a goomba/koopa bounce beat the enemy-free
-  room-1 optimum 368 (WR = optimum, F63)? Deficit 1 ⇒ any 1-frame gain = a full framerule. Plan:
-  (1) port the validated P2.5a room-1 enemy rules (`tools/room1_enemy_sim.py`, F64/F65) into the
-  engine as a data-driven module adapting `w42enemies.rs` (goomba pairs; spawn at ScreenRight on
-  the parser frame; walk 0.5 px/f; pipe/enemy turnaround; stomp lifetime on the interval clock;
-  offscreen erase); new case with scroll tracking (spawns are scroll-driven), control = the
-  enemy-free 368 must reproduce; (2) difftest from the room-1 control frame (record 196, F69) to
-  0 differences incl. stomps/deaths; (3) exhaustive `bfscx --enemies` deadline **367** (~5M
-  states/layer at 1 frame slack, F82 — laptop-sized, proof-grade, no beam). Outcomes: goal ≤ 367
-  → core replay → two-emulator → a FRAMERULE; dry → H29 refuted proof-grade, 1-1 fully closed.
-  **CHECKPOINT (same session): the port is DONE and validated** — WR replay 368/368 vs the core
-  (0 diffs, pipe entry identical, stomps at the sim's exact rows); random battery **500 trials /
-  82,234 frames / 0 differences / 53 matching deaths / 169 stomps** (`runs/P2.5b/difftest_w11_*.log`).
-  **d367 (the verdict rung) = DRY** — root bound exactly 367, frontier extinct at layer 21,
-  `no goal found within 367` (`runs/P2.5b/w11_d367.log`). **RUNNING: d368 `--check-path 368`
-  (the positive control, pid 599229, watchdog 200M/40G armed)** — the WR's line must be
-  in-frontier all 368 layers with the goal at 368 (`runs/P2.5b/w11_d368.log`, 7G cap, layers
-  `runs/P2.5b/w11_d368/`). Pass ⇒ **H29 refuted proof-grade for bump-free routes** (the (21,7)
-  powerup refusal is the one documented exclusion) ⇒ 1-1 fully closed.
+  **Sizing note (session 15, from P2.5b-1):** do NOT budget the d195 `--check-path` rung as a cheap
+  control — at one frame of slack the frontier explodes (1-1 room 1: 36 states at d367 vs 61M and
+  climbing at d368, ≈1.6 TB projected). Take the positive control from the reference-path audit
+  `--check-path` prints *before* layer 1 (goal test + `N bound violations over M steps`), and let the
+  d194 dry carry the negative side.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
@@ -118,7 +113,6 @@ optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. O
 | P0.10a | **Benchmark the reachable Hetzner tiers (< $1)**: cx53 16c ($0.0561/h), cpx51 16c ($0.1338/h), ccx33 8c ($0.2612/h) — build, run the `bfscx` control gate, `--resume` a run-4 layer, record states/s; delete every box the same hour (F95). Check whether shared tiers are quota-limited first. | infra | S | P0.10 | A throughput/$ table in `P0.10-cloud-sizing.md` §8; go/no-go on shared tiers |
 | P0.11c | **(optional, timeboxed) Port `smb-opt` off `nightly-2018-06-01`** — removes the container requirement, native arm64 on the Mac. Engine work ⇒ primary box only. Abandon if not cheap. | infra | M | — | Control gate identical on a native build; timebox outcome in `P0.11-two-box.md` |
 | P2.3c-3 | **(parked until a core-limits increase)** Parallelise `bfscx`'s k-way merge by key buckets (F96: merge is 4–6 % of wall at ≤ 16 cores; worth it at 32+). | infra | M | P0.10a | Merge wall time scales with `--threads`; layers byte-identical |
-| P2.5a/b | **1-1 room 1 bounce search (H29, low prior):** port `tools/room1_enemy_sim.py`'s validated rules (F64/F65) into the patch as a room-1 enemy module with `WithScrollPos`, difftest from the room-1 control frame to 0 differences, then `bfs11` from the room-1 entry with deadline 367. Queued behind the 4-2 work (decisions.md). | A | L | — | Difftest 0 differences incl. stomps/deaths; search record; any candidate replayed on the core |
 | P2.2 | 8-4 exhaustive search (frame-granular; Bowser RNG, L+R, the ending-input coast H1; Maru's turnaround-room idea H25). F67: every running/swimming section is at the speed cap — remaining levers are transitions, the water-room end alignment, Bowser/RNG, glitches. | A | L | P2.1 tooling | Faster path verified in two emulators, or a proof record |
 | P2.4 | Cross-level DP over reachable entry states (RNG / framerule phase, H9). | A | M | P2.2, P2.3e | Best-known full route + proof record |
 | P1.2 | Stage-2 core (static recompilation of the ROM with cycle counting + minimal PPU timing) — only if a whole-level exact search ever needs it; the model route (P1.2-lite + patch) has carried everything so far. | A | L | P1.1 | Differential test vs QuickNES on ≥ 10M random frames incl. lag |
@@ -136,6 +130,7 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-24 s15 — **P2.5b-1**: **H29 refuted proof-grade — 1-1 room 1 is optimal at 368 with the enemies (F124)**. The d367 rung is dry in 4.7 s (root bound exactly 367, frontier 1→36 then extinct at layer 21); admissibility proved at code level (pipe entry forces `x_pos ≥ 0x39400` via the right-foot `cv 0x11` adder 0x0c00 = exactly the case bound's target; `w11enemies.rs` never references `x_pos`/`x_spd`, only the stomp bounce). Positive control = the reference-path audit that runs *before* layer 1: WR line → `StateChangeVerticalPipe(57,7)` GOAL at step 368, **0 bound violations / 368 steps**. The d368 *exhaustive* rung was stopped as infeasible (94 GB at layer 90/368, ≈1.6 TB projected) and was never needed; 94 GB reclaimed. **H21 closes too** — 1-1 is done end to end. `P2.5b-room1-search.md` §"The verdict".
 - 2026-08-24 s14 — **P2.3c-7**: the vine-snap mint refuted at code level (kill criterion (a), same-session): every 4-2 vine grab is an irreversible autoclimb warp commitment (side-point grabs × rows-≤2 cells ⇒ Y < 32 ⇒ GES 1 ⇒ forced Up ⇒ area change to $2F), and a leave-able grab would net ≤ +14 px at wall-mint rates (~578–581 > 575); H38's x-writer enumeration completed ⇒ **H38 refuted for 4-2 — the level rests (F122 + F123 + this)**. Pivot queue: **1-1 room-1 H29 (deficit 1, exhaustive-sized at d367, port w42enemies classes) → 1-2 → 8-3**. `P2.3c-2c-main-area.md` §P2.3c-7.
 - 2026-08-24 s14 — **P2.3c-6b**: `--goal-offset` mint-economics probe — min 132-mint = 27 frames but speed-priced (the WR's sct-frozen sprint already ~optimal); continuation probe ≥ 584 > 575 ⇒ **the bottom route is closed too (F123)**; 4-2 = 553 movement + ~31 key + ~4 slack, conserved. Mac: resync d679bb8 + gate exact, 401 GB stale layers reclaimed (133→533 GiB). H38 added (speed-preserving mint, parked). `P2.3c-2c-main-area.md` §P2.3c-6b.
 - 2026-08-24 s14 — **P2.3c-6**: `bfscx --beam N [--beam-offset] [--log-offset]` added (opt-in heuristic finder; **optimal mode byte-identical with beam off**) to *find* a top-route warp by loosening optimality (user decision). Result: **F122 — the top route CANNOT mint the +20 px offset the warp needs** (offset frozen at 112 across 5 beam+exhaustive searches; the col-30 floor wall walk is a bottom-route mechanism; F117 blocks floor access). Strong evidence the top-route warp is structurally infeasible → **retires the P2.3c-5 cloud fork**. `P2.3c-2c-main-area.md` §P2.3c-6; F122.
@@ -206,7 +201,7 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 | WR first Start / L+R use | Start on frame 41 (rows 34–43 equivalent, F31); 85 L+R frames, 0 U+D | `tools/fm2_info.py [--list-lr]` (V) |
 | Framerule | 21 frames; RTA-equivalent 4:54.032; no-L+R TAS 4:54.265 (14 frames slower) | S |
 | WR level-entry frames (fm2, 0-based) | 1-1 42, 1-2 1944, 4-1 3766, 4-2 6042, 8-1 7723, 8-2 10813, 8-3 12956, 8-4 15057 | `tools/check_sync.py` (rows −1) (V) |
-| Per-level slack/deficit (frames) | 1-1 20/**1** (closed, F116), 1-2 13/8 (5 on Maru's route, S), 4-1 12/9, 4-2 8/13 (10 after F88; top route in the model: two framerules minus the warp key, F118/F120), 8-1 3/18, 8-2 2/19, 8-3 11/10 (FPG+242: 7, S), 8-4 unquantized | `tools/slack_table.py data/wr/fceux_wr.ram` (V) |
+| Per-level slack/deficit (frames) | 1-1 20/**1** (closed end to end, F116 + F124), 1-2 13/8 (5 on Maru's route, S), 4-1 12/9, 4-2 8/13 (10 after F88; top route in the model: two framerules minus the warp key, F118/F120), 8-1 3/18, 8-2 2/19, 8-3 11/10 (FPG+242: 7, S), 8-4 unquantized | `tools/slack_table.py data/wr/fceux_wr.ram` (V) |
 | Per-level frames (load→next load) / lag | 1-1 1902, 1-2 1870, 4-1 2228, 4-2 1729, 8-1 3042, 8-2 2143, 8-3 2101, 8-4 2810 (+43 boot/title); 24 lag frames, none in-level | `tools/slack_table.py`, `tools/check_sync.py` (V) |
 | **4-2 main area, top route (enemy-aware, vine-bumped)** | **553** = 149+184+82+34+35+25+44, every segment at its movement bound; x-only floor 552; QuickNES 553/553, 0 mismatches, 2 stomps, entry GES 3 at record 7136; FCEUX main area 552/552 identical, entry Δ 35 rows — wrong warp diverges (scroll) | `runs/P2.3c-2c/chain_s4v4.bin`, `w42_553.fm2`; `tools/replay_check.py --case W42Main --first 6584 --prefix 0 --path runs/P2.3c-2c/s4v4_seg553.bin --enemies 0 --down` (V) |
 | 4-2 wrong-warp finale from the 509 chain (scroll-constrained, drift bound) | d ≤ 58: proof-grade dry (frontier 130M → 0 by layer 48); d62: 329M at layer 38 ×1.35/layer, cap-killed; d66: 143M at layer 30 ×1.2/layer, stopped — both null | `runs/P2.3c-2c/s4w4_d58_drift.log`, `s4w4_d66_drift.log`; Mac `runs/P2.3c-2c/s4w4_d62_drift_mac.log` (pre-drift rungs: `s4w4_entry_d58big.log`, Mac `s4w4_entry_d62_mac.log`) (V) |
@@ -216,6 +211,7 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 | 4-2 control gate (both boxes, after every engine change) | `bfscx W42Main data/wr/wr_inputs.bin 6584 575 587 --lift 0 --check-path 12` → layers 6, 16, 34, 70, 134, 673, 3472, 16472, 69489, 257001; goal at layer 10 | `runs/P2.3c/ctrl_w42main_p575_d587.log` (V) |
 | 4-2 warp zone | enemy-free coupled bound **461** at the WR's entry vs WR 476; return from the WR's drop state optimal (76); frontier ×1.25/layer at 15 frames of slack | `runs/P2.3c/warp_stage3_p0_d475.log`, `warp_stage_p400_d7{5,6}.log` (V) |
 | 4-2 frames on the WR's own route | 3 on the last 12 frames before the wrong-warp pipe (F79 + F88), framerule-absorbed (deficit 13 → 10); other pipe entries earliest-possible | `tools/replay_check.py … --path runs/P2.3c/ctrl_w42main_path.bin --lift 0 --down`; `tools/pipe_entry_scan.py` (V) |
+| **1-1 room 1, enemy-aware exhaustive (F124)** | optimum **368** = the WR's; d367 dry in 4.7 s (root bound 367, frontier 1→36, extinct at layer 21); reference path → GOAL at step 368 with 0 bound violations; the single lost frame is at step 21 | `runs/P2.5b/w11_d367.log`, `runs/P2.5b/w11_d368.log`; `bfscx W11Room1E data/wr/wr_inputs.bin 196 0 367 --enemies 0 --threads 8` (V) |
 | 1-1 third room, whole-room exact search (run 4, F116) | relaxed model + goombas, deadline 238: no FPG grab ≤ 238; peak frontier ~693M/layer; 660.6M states in a 24-px window at the stairs top | `runs/P2.1b-model/room_compact_d238*.log`, `fpg_part*.log` (V) |
 | 1-1 model vs core | 0 differences: player-only 1,600 trials; with goombas 97,335 frames / 700 trials, 119 deaths, 37 grabs | `tools/model_difftest.py [--goombas --root-record 1048] …` (V) |
 | Bound audits | x-bound (room 3): 1,906,600 checks, 0 violations (F68); ygate (S1 goal): 1,485 checks, 0 violations; bounce band ~1.6M checks, 0 violations | `tools/heuristic_audit.py`, `tools/ygate_audit.py` (V) |

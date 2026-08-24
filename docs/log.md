@@ -969,3 +969,45 @@ at its purest: HappyLee's lines thread zero-margin scroll thresholds THROUGH ene
 is a scroll+slot program, and our edge is that we can now read and search those programs.
 **Next.** P2.2a step 3: port the plant class into a w84 enemy module + model the cheep frenzy (asm anchors in
 the experiment file), difftest to 0, then the d194 rung with `--enemies`. d368's verdict closes 1-1 when it lands.
+
+## 2026-08-24 — session 15 (P2.5b-1: H29 refuted, 1-1 closed end to end)
+
+**Did.** Picked up the one running job, the `w11_d368 --check-path 368` positive control, and killed
+it — after measuring it. At layer 90 of 368 it held 94 GB of layers, a 61.3M-state frontier growing
+×1.10/layer, with 105 GB of headroom to the watchdog floor: ~10 more layers, and ≈1.6 TB / ≥12 h to
+finish even if growth flattened. Not a laptop run. Then found that it had **already produced the
+control I needed, 43 minutes earlier**: `--check-path N` audits the reference path *before* layer 1
+(main.rs:938–950) — it replays the WR's own inputs, evaluates the goal test, and checks the bound
+against the path. Its verdict was sitting at the top of the log: WR line → `StateChangeVerticalPipe(57,7)`
+**GOAL at step 368**, `0 bound violations over 368 steps`, two `object event Stomp` on the way.
+Deleted the dead layer dir (94 GB back).
+
+**Learned.**
+- **H29 is refuted, proof-grade — 1-1 room 1 is optimal at 368 with the enemies in the model (F124).**
+  The d367 rung was dry in **4.7 seconds**. The whole verdict rests on the bound being admissible under
+  `--enemies`, and that closes at code level, not by audit: (1) pipe entry needs the **right** foot on
+  `cv 0x11` (emu.rs:485) and `BLOCK_BUFFER_X_ADDER_DATA[0x10] = 0x0c00` makes that `x_pos ≥ 0x39400`,
+  which is *exactly* the case bound's target — the bound can't ask for more x than the goal does;
+  (2) `src/w11enemies.rs` contains no reference to `x_pos` or `x_spd` at all, its only player write being
+  line 315's stomp bounce `s.y_spd = -4<<8`. A bounce moves y. The x machine the table is computed over
+  is the one the enemy-aware search steps. That is the argument H29 always needed, and it is three greps long.
+- **With H28 (F116), H21 closes too: 1-1 cannot deliver its missing frame on any modeled route.**
+- **Where 1-1's frame goes.** `k + h` along the WR's line is 367 for steps 1–20 and **368 from step 21
+  onward, forever** — one transition. Step 21 is an airborne frame of the opening jump that buys no
+  progress in the x table's terms; Mario lands at 22 with x_spd frozen at 0x18f0. The d367 dry proves the
+  loss is *forced*: every reachable state has spent it by step 21. After that the WR rides the bound
+  exactly for 347 steps and enters the pipe at x 0x39410 — **0x10 past the threshold**, the earliest
+  admitting pixel. HappyLee's 1-1 is not merely optimal, it is tight against the bound the whole way.
+- **Sizing lesson, worth carrying to 8-4.** "Deadline = optimum + 1" is not a cheap control. Zero slack
+  gave 36 states; one frame of slack gave 61M and climbing, because `h` is a coarse x-only bound and
+  tens of millions of states can sit one frame behind the optimistic line. F82's "~5M states/layer at 1
+  frame slack" was optimistic by an order of magnitude. Before paying for an exhaustive `--check-path`
+  rung, read the reference-path audit it prints at startup — that is usually the control you actually wanted.
+  This applies directly to the queued **d195 check-path control** in P2.2a: expect the same blowup, and
+  plan to take the verdict from the startup audit plus the d194 dry.
+
+**Next.** P2.2a, the 8-4 turnaround room (H25) — the campaign opener, already In progress with its
+forensics checkpoint (WR margin over SL 3345 = ZERO px, `W84Room3` built, WR line 195/195 exact). Its
+step is the `w84enemies` port: the piranha-plant class from `w42enemies` plus the flying-cheep frenzy
+(`FlyCheepCheepFrenzy`/`InitFlyingCheepCheep`/`MoveFlyingCheepCheep`), difftest to 0 differences
+including cheep stomps, then the d194 rung with `--enemies`.
