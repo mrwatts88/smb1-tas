@@ -62,8 +62,14 @@ pre-cleanup narrative version of this file is archived at
   brake's subpixel phase / the seam into the F66-optimal 74-frame clip). **The case `W84Room3`
   is BUILT** (Small + scroll, goal = pipe (212,5) with screen_left_abs ≥ 3345, F89 overshoot
   bound; MrWint's clip case independently encodes the same SL window — threshold cross-checked).
-  WR-line + 100-trial difftests RUNNING; then the d194 ladder (WR = 195; a goal ≤ 194 = THE
-  RECORD, 8-4 unquantized) with the d195 `--check-path` control. `P2.2a-84-turnaround.md`.
+  **WR line 195/195 exact — but the random battery FAILED (9/100): room 3 is NOT enemy-free.**
+  The core has **3 piranha plants (one IN the warp pipe — the WR enters via F100's $21 distance
+  rule) + the flying-cheep-cheep FRENZY** (id $14, LFSR-driven = frame-indexed on the lag-free
+  route); the t2 divergence = a cheep stomp bounce (kept inputs `runs/P2.2a/keep_s5/`). Bound
+  horizon fixed 0 → 96 (the premature d194 was slack-29 and killed). **NEXT: port the plant
+  class from w42enemies + model the cheep frenzy (asm: FlyCheepCheepFrenzy/InitFlyingCheepCheep/
+  MoveFlyingCheepCheep) into a `w84enemies` hook, difftest to 0 incl. cheep stomps, THEN the
+  d194 rung `--enemies` + d195 check-path control.** `P2.2a-84-turnaround.md`.
 - **P2.5b-1 — 1-1 room-1 enemy-aware exhaustive search (H29; started 2026-08-24 session 14,
   continuing in-session).** Goal: the H29 verdict — can a goomba/koopa bounce beat the enemy-free
   room-1 optimum 368 (WR = optimum, F63)? Deficit 1 ⇒ any 1-frame gain = a full framerule. Plan:

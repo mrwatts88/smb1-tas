@@ -876,7 +876,7 @@ index 84463c9..d254e1e 100644
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w84.rs b/src/case/w84.rs
-index 3f1c53b..39d43e3 100644
+index 3f1c53b..42d9f46 100644
 --- a/src/case/w84.rs
 +++ b/src/case/w84.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W84Speedup {
@@ -998,7 +998,7 @@ index 3f1c53b..39d43e3 100644
 +impl SearchGoal for W84Room3 {
 +  fn new() -> Self {
 +    let mut h = XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states());
-+    h.build_overshoot_bound(W84R3_OVERSHOOT_X, W84R3_PIPE_XMAX, 0);
++    h.build_overshoot_bound(W84R3_OVERSHOOT_X, W84R3_PIPE_XMAX, 96);
 +    Self { h }
 +  }
 +  /// Two-phase (as W42Warp, phase from the STATE's scroll — no ext needed): before SL 3345 the coupled

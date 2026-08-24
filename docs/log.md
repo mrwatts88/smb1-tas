@@ -952,3 +952,20 @@ asm. And the project's recurring shape held once more: 4-2's every "trick" (bump
 machinery for the warp, not optional style.
 **Next.** P2.5b-1: port the room-1 enemy rules into the engine (adapt w42enemies), difftest to 0, then the
 deadline-367 exhaustive room-1 search — the H29 verdict and the cheapest framerule on the route.
+
+## 2026-08-24 — Session 14 (night): 1-1 port lands + closes H29's rungs; the 8-4 campaign opens and finds its real shape
+**Did.** (1) P2.5b-1: the room-1 enemy port validated to the F102 standard (WR 368/368; 500 trials / 82k frames /
+0 diffs) — **d367 DRY (exhaustive, extinct at layer 21) + the WR reference line 0 bound violations with the goal
+at 368** ⇒ H29 refuted modulo the d368 in-frontier control (still running, watchdog armed). (2) The 8-4 campaign
+(user decision: primary track): P2.2a forensics — **the room-3 wrong warp parses at SL ≥ 3345 and the WR hits it
+with ZERO pixels of margin** (hand-tuned brake, rel pinned 112); `W84Room3` case built (Small+scroll, the warp
+condition in the goal, F89 overshoot bound), **WR line 195/195 exact on the core** — then the random battery
+did its job: 9/100 trials diverge, traced to a **flying-cheep-cheep stomp** — room 3 is 3 piranha plants (one IN
+the warp pipe; F100's distance rule is how the WR enters) + a continuous LFSR-driven cheep frenzy. The
+premature d194 (slack-29, bound horizon bug — fixed to 96) was killed; the search waits on the enemy layer.
+**Learned.** The difftest discipline earned its keep twice in one night (the w11 port passed it; the w84 spec
+failed it exactly where it should). pkill self-match bit again (memory rule stands). And the recurring theme
+at its purest: HappyLee's lines thread zero-margin scroll thresholds THROUGH enemy rain — every level's record
+is a scroll+slot program, and our edge is that we can now read and search those programs.
+**Next.** P2.2a step 3: port the plant class into a w84 enemy module + model the cheep frenzy (asm anchors in
+the experiment file), difftest to 0, then the d194 rung with `--enemies`. d368's verdict closes 1-1 when it lands.
