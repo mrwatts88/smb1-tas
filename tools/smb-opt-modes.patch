@@ -1897,7 +1897,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..4504b7d 100644
+index 350d469..863570b 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1908,7 +1908,7 @@ index 350d469..4504b7d 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,310 @@ mod ida;
+@@ -20,8 +21,316 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -1973,6 +1973,9 @@ index 350d469..4504b7d 100644
 +    let mut acc_mb: usize = 64; let mut stop_step: usize = ::std::usize::MAX; let mut stage = false;
 +    let mut goal_x: Option<i32> = None; let mut goal_y: Option<i32> = None; // P2.3c-2c: position goal override (px)
 +    let mut no_drift = false; // P2.3c-5: `--no-drift` keeps the case bound x-only under --enemies (A/B, regressions)
++    let mut beam: Option<usize> = None; // P2.3c-6: keep only the N lowest-h records per layer (heuristic upper-bound finder, NOT proof-grade)
++    let mut beam_offset = false; // P2.3c-6: beam ordering by scroll offset first (high offset = minting progress), then h
++    let mut log_offset = false; // P2.3c-6: print max scroll offset per layer (probe minting without a beam)
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
@@ -1988,14 +1991,17 @@ index 350d469..4504b7d 100644
 +      else if args[i] == "--goal-x" { goal_x = Some(args[i + 1].parse::<i32>().unwrap() << 8); i += 2; } // goal = x_pos >= PX (after a Success step)
 +      else if args[i] == "--goal-y" { goal_y = Some(((args[i + 1].parse::<i32>().unwrap() + 0x100) << 8) | 0xff); i += 2; } // and Player_Y <= PY
 +      else if args[i] == "--no-drift" { no_drift = true; i += 1; }
++      else if args[i] == "--beam" { beam = Some(args[i + 1].parse().unwrap()); i += 2; } // P2.3c-6: per-layer beam width (lowest-h)
++      else if args[i] == "--beam-offset" { beam_offset = true; i += 1; } // P2.3c-6: order the beam by scroll offset first (mint frontier), then h
++      else if args[i] == "--log-offset" { log_offset = true; i += 1; } // P2.3c-6: print max scroll offset per layer
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    let hook: Option<Hook> = if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None };
 +    let drift = enemies && !no_drift && goal_x.is_none(); // P2.3c-5: the drift bound joins the case bound under the F40 refusal
 +    match args[2].as_str() {
-+      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift),
-+      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false),
-+      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false),
++      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift, beam, beam_offset, log_offset),
++      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, log_offset),
++      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, log_offset),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -2219,7 +2225,7 @@ index 350d469..4504b7d 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +349,1223 @@ fn calc_prng() {
+@@ -46,4 +355,1272 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2725,7 +2731,7 @@ index 350d469..4504b7d 100644
 +    _ => g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize),
 +  }
 +}
-+fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>), drift: bool)
++fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>), drift: bool, beam: Option<usize>, beam_offset: bool, log_offset: bool)
 +    where C::SearchGoal: Send + Sync {
 +  // P2.3c-2c: `--goal-x PX [--goal-y PY]` replaces the case's goal by "x_pos >= PX (and Player_Y <= PY) after a Success step" and its
 +  // bound by the case's x-only table to PX (SearchGoal::steps_until_x_at_least) — segment searches whose results chain into a reference path.
@@ -2918,6 +2924,55 @@ index 350d469..4504b7d 100644
 +    drop(w);
 +    drop(readers);
 +    for p in &runs { ::std::fs::remove_file(p).ok(); }
++    // P2.3c-6: beam (heuristic, NOT proof-grade) — keep only the N lowest-h records this layer, tie-broken by
++    // highest scroll offset (lowest ScreenLeft16) then highest x. Loses the optimality guarantee (a pruned state
++    // could have been the ancestor of the goal) but bounds the frontier so the finale runs on the laptop; a found
++    // route is still a real route (verify on the core + two emulators), the search just no longer proves none shorter.
++    if let Some(nbeam) = beam {
++      if (unique as usize) > nbeam {
++        let tb = time::precise_time_ns();
++        let bpath = layer_path(step + 1);
++        let mut brd = BufReader::with_capacity(1 << 22, File::open(&bpath).unwrap());
++        let mut bheap: BinaryHeap<(i64, i64, i32, XRec)> = BinaryHeap::with_capacity(nbeam + 1);
++        let mut br: XRec = XRec::zero();
++        let mut max_rel: i64 = 0; // max scroll offset (x - ScreenLeft16) over the layer: > 112 (0x70) = minting happened
++        while brd.read_exact(&mut br.0[..]).is_ok() {
++          let st = Key::<C, A>::from_bytes(&br[..klen]).decompress();
++          let ext = rec_ext(&br, klen);
++          let hh = hval(&goal, &st, &ext, step + 1).unwrap_or(::std::usize::MAX) as i64;
++          let sl = screen_left16(&st) as i64; // lower ScreenLeft16 = higher scroll offset = more minting progress
++          max_rel = max_rel.max((st.x_pos >> 8) as i64 - sl);
++          // --beam-offset: keep the highest-offset (mint frontier) states first, tie-break by h; else lowest-h first.
++          // A minting maneuver costs (slows, backs off x) before it pays, so h-first prunes it the instant it slows;
++          // offset-first preserves it. Tie-break by -x so the further-right state wins within a (key1, key2) tie.
++          let (k1, k2) = if beam_offset { (sl, hh) } else { (hh, sl) };
++          let elt = (k1, k2, -((st.x_pos >> 8) as i32), br);
++          if bheap.len() < nbeam { bheap.push(elt); }
++          else if elt < *bheap.peek().unwrap() { bheap.pop(); bheap.push(elt); }
++        }
++        drop(brd);
++        let mut kept: Vec<XRec> = bheap.into_iter().map(|(_, _, _, rr)| rr).collect();
++        kept.sort_by(|a, b| a.0[..].cmp(&b.0[..]));
++        let mut bw = BufWriter::with_capacity(1 << 23, File::create(&bpath).unwrap());
++        for rr in &kept { bw.write_all(&rr[..]).unwrap(); }
++        bw.flush().unwrap();
++        println!("  beam: layer {} {} -> {} ({}; max offset {} [warp needs 132]; {:.1}s)", step + 1, unique, kept.len(), if beam_offset { "offset-first" } else { "h-first" }, max_rel, (time::precise_time_ns() - tb) as f64 / 1e9);
++        unique = kept.len() as u64;
++      }
++    }
++    if log_offset { // P2.3c-6: scan the (post-beam) layer for the max scroll offset — probe whether any state minted (> 112)
++      let lp = layer_path(step + 1);
++      if let Ok(f) = File::open(&lp) {
++        let mut rd2 = BufReader::with_capacity(1 << 22, f);
++        let mut r2: XRec = XRec::zero();
++        let mut mr: i64 = 0;
++        while rd2.read_exact(&mut r2.0[..]).is_ok() {
++          let st2 = Key::<C, A>::from_bytes(&r2[..klen]).decompress();
++          mr = mr.max((st2.x_pos >> 8) as i64 - screen_left16(&st2) as i64);
++        }
++        println!("  offset: layer {} max {} [warp needs 132; 112 = no mint]", step + 1, mr);
++      }
++    }
 +    let t3 = time::precise_time_ns();
 +    println!("layer {}: parents {} -> unique {}, generated {}, pruned {}, dead {}, other {}, goals {}; max x {:#x}; {:.1}s (expand {:.1}s, merge {:.1}s of {} runs)",
 +      step + 1, n, unique, gen, pruned, dead, other, goals, max_x, (t3 - t1) as f64 / 1e9, (t2 - t1) as f64 / 1e9, (t3 - t2) as f64 / 1e9, runs.len());

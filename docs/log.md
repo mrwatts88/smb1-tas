@@ -897,3 +897,24 @@ lessons, now 13 items incl. the docker-kill bug and the intent-add patch rule).
 still points at STATUS "Running jobs" for the cgroup rule, so that one-liner stays there too.
 **Next.** User: review the branch and merge; answer the fork (A cloud / B pivot, default B); clear the
 Mac's stale layer dirs. Then the loop resumes from the new Next-up table (P2.3e unless (A)).
+
+## 2026-08-24 — Session 14: the 4-2 top-route warp is closed — the offset can't be minted (F122)
+**Did.** User steer: no cloud (CPU cap), don't pivot levels, **loosen the optimality requirement** to *find* a
+≤575 top-route warp rather than *prove* the finale optimal (and keep optimal runnable). Built `bfscx --beam N
+[--beam-offset] [--log-offset]` (opt-in per-layer beam; **optimal mode byte-identical with beam off** — control
+gate `6 16 34 70 134 673 3472 16472 69489 257001`). Re-verified the warp requirement from ground truth: WR enters
+at ScreenLeft exactly 1216 / offset 132 (dump row 7173); parse threshold asm-exact at SL ≥ 1217 (`CheckRightBounds`,
+checked against the $2F command's own parse); mint physics = collision-push welded to speed-zero in
+`impede_player_move` (no fast-mint hole); the drift bound's C=16 credit over-credits re-accel → d58 dry is sound.
+Then ran the finder: h-first & offset-first beams from 509 (d72) and 484 (d100), plus two no-beam exhaustive probes
+(drift from step 530; position-goal 484→x1284, 23 layers exhaustive) — **the scroll offset is frozen at 112 in
+every one; nothing mints.** Mechanism: minting is the bottom route's col-30 floor wall walk; the top route's walls
+are top surfaces / jumped-over, and F117 blocks floor access past pipe A. **F122: strong evidence (not formal
+proof) the top-route wrong warp is structurally infeasible — not "2 frames short."** Retires the P2.3c-5 cloud fork.
+**Learned.** The drift bound (admissible → assumes minting available) is sound for *proving* but too optimistic to
+*steer* a beam (it read wall-pinned states as ~20 frames from the goal); h-first and offset-first beams both prune
+the mint-setup (delayed-payoff maneuver) — but here it didn't matter, minting isn't generated at all. Ops: layer
+dirs MUST go on the NVMe, not the tmpfs scratchpad (a run filling `/tmp` OOM-died AND starved the shell of fork
+memory). The STATUS cleanup commit (`eb597f6`) landed mid-session from another terminal — consolidated on main.
+**Next (user question, not chosen).** 8-3 (deficit ~7) with the tooling, the 4-2 warp zone (H35), or another lead.
+Beam tooling is reusable. `docs/experiments/P2.3c-2c-main-area.md` §P2.3c-6; F122; H36 updated.

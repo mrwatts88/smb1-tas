@@ -11,17 +11,20 @@ pre-cleanup narrative version of this file is archived at
 - **Target:** beat 17,868 frames (HappyLee, TASVideos #1715M). A new movie must finish with an
   earlier last input than frame 17848 (0-based); framerule = 21 frames (F27–F29).
 - **Our best full movie:** none yet.
-- **Headline result:** 4-2 main area in **553** frames vs the WR's 588 / HappyLee's top-route
-  claim 577 — model + QuickNES-verified, every segment at its movement bound (F118). **Not a
-  record yet:** the entry's scroll state sends the wrong warp to the wrong destination
-  (F40/F120); a valid warp needs ~20 px of collision-minted scroll offset, and the finale
-  search from the 509 chain is **proof-grade dry at d ≤ 58** and cloud-scale (~10⁹ states) at
-  d 59–66 = the one-framerule budget (F121; `docs/experiments/P2.3c-2c-main-area.md`
-  §"The resource wall").
+- **Headline result:** 4-2 main area in **553** frames (movement) vs the WR's 588 — model +
+  QuickNES-verified, every segment at its movement bound (F118). **Not a record, and the top
+  route CANNOT become one (F122, session 14):** the wrong warp needs +20 px of collision-minted
+  scroll offset (F40/F120), and the top route **cannot mint it** — minting is the bottom route's
+  col-30 floor wall walk; the top route can't reach floor past pipe A (F117) and its offset stays
+  frozen at 112 across 5 beam+exhaustive searches. Strong evidence (not formal proof) the top-
+  route warp is structurally infeasible — not "2 frames short." **This retires the P2.3c-5 cloud
+  fork** (no billion-state proof needed). The 553 stands as a movement result only.
 - **1-1 is closed** (H28 refuted, F116; H29 parked). 4-2's warp zone: enemy-free bound 461 vs
   WR 476 (F89–F91, H35 open).
-- **Live decision (user):** cloud for the 4-2 finale (A) or pivot to the next framerule level
-  with the current tooling (B, default) — see "Blocked / Needs user input".
+- **Fork RETIRED (2026-08-24 session 14):** the cloud-vs-pivot fork is moot — F122 shows the
+  4-2 top-route warp is structurally infeasible (offset can't be minted), so no cloud proof is
+  needed. **Open question for the user:** what next — 8-3 (deficit ~7) with the tooling, the 4-2
+  warp zone (H35), or something else? (User has been reluctant to pivot levels; awaiting steer.)
 - **Phase:** P2 (proof engine on the route). ROM verified byte-identical to TASVideos' (W) [!]
   (`tools/verify_rom.py`; copy in `roms/`, gitignored). Host: Linux box primary, Mac overflow
   (PROCESS §"Parallel work on the second host"); emulators in the toolbox container `smb1`
@@ -29,8 +32,13 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **None** (2026-08-24: `pgrep -x smb-opt` empty on the Linux box; Mac idle, `ssh mac docker ps`
-  empty after the orphan container was killed).
+- **None** (2026-08-24 session 14: P2.3c-6 beam/probe searches all done + stopped; `pgrep -x
+  smb-opt` empty; 147G free). Beam-tooling lesson recorded: layer dirs MUST live on the NVMe
+  (`/home`), never the tmpfs scratchpad (`/tmp`, 7.7G RAM-backed) — a run filling tmpfs OOM/quota-
+  dies AND starves the shell of fork memory.
+- Standing rule: **never start a search without a cgroup cap** — not even a short control
+  (`docs/search-runbook.md` §1). Check here first every session; list each job with machine,
+  pids, log path and how to read the verdict.
 - Standing rule: **never start a search without a cgroup cap** — not even a short control
   (`docs/search-runbook.md` §1). Check here first every session; list each job with machine,
   pids, log path and how to read the verdict.
@@ -75,6 +83,7 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-24 s14 — **P2.3c-6**: `bfscx --beam N [--beam-offset] [--log-offset]` added (opt-in heuristic finder; **optimal mode byte-identical with beam off**) to *find* a top-route warp by loosening optimality (user decision). Result: **F122 — the top route CANNOT mint the +20 px offset the warp needs** (offset frozen at 112 across 5 beam+exhaustive searches; the col-30 floor wall walk is a bottom-route mechanism; F117 blocks floor access). Strong evidence the top-route warp is structurally infeasible → **retires the P2.3c-5 cloud fork**. `P2.3c-2c-main-area.md` §P2.3c-6; F122.
 - 2026-08-24 s14 — **STATUS cleanup**: narrative archived (`docs/archive/`), standing rules → `docs/search-runbook.md`, Mac lessons → `P0.11-two-box.md` §7.
 - 2026-08-24 s13 — **P2.3c-5**: scroll-aware drift bound (`heuristics::drift`, F121) makes the wrong-warp finale decidable; **d58 proof-grade dry**; d62/d66 cap-killed at ~10⁹ states (not verdicts) → the fork. `P2.3c-2c-main-area.md` §P2.3c-5, §"The verdict", §"The resource wall".
 - 2026-08-24 s12 (pm) — **Emulator round 1** of the 553 movie (`tools/splice_fm2.py`, `w42_553.fm2/.bk2`): FCEUX frame-perfect on the main area (552/552, entry Δ 35 rows) but the wrong warp diverges — the case goal never constrained the screen (F40); **the scroll offset is a latch minted only by collision push, the WR mints +21 px in its col-30 wall (F120)**; both conditions now refused in the hook; G4a/G4b split retired. §"Emulator verification round 1", §"The scroll-offset discovery", §"The drift geometry".
@@ -107,16 +116,12 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
   (F45: FCEUX row r ↔ QuickNES r−3; fm2 record j → FCEUX row j+2); any tool mixing them
   must state the offset. `tools/check_sync.py`/`compare_dumps.py` are FCEUX/BizHawk-only.
 
-## Blocked / Needs user input
-- **FORK — how to resolve the 4-2 finale (set 2026-08-24, session 13).** d58 is proof-grade
-  dry; d59–66 (the one-framerule budget, 575 − 509) are ~10⁹-state searches beyond both boxes.
-  **(A)** authorize a cloud box for P2.3c-6 (the auction EPYC ≈ $10/day, F97; needs the
-  Robot-account provisioning risk de-risked) — the only lever for a 4-2 framerule: the bottom
-  route is deficit 10 after F88 (not 2 — the "577 − 2" figure was HappyLee's *top*-route
-  claim), and the enemy-ext abstraction (P2.3c-4) does not attack the mint-state multiplier.
-  **(B)** pivot to the next framerule level with the current tooling (P2.3e) while H36 stays
-  open (not refuted: the top route is 1 frame under two framerules in the model; only the
-  warp-key cost is unresolved). **Default absent word: (B).** Say the word for (A).
+- **FORK RETIRED (2026-08-24 session 14): the 4-2 top-route finale is closed by F122** — the top
+  route can't mint the warp offset, so no cloud proof (option A) is needed and the top route
+  can't yield a framerule (H36 warp-infeasible, strong evidence). **What next is the open user
+  question** (see "Where we are"): 8-3 (deficit ~7) with the current tooling, the 4-2 warp zone
+  (H35, ≤15 frames), or something else. User has been reluctant to pivot levels ("a new level
+  hides the same difficulty") — awaiting steer. The beam tooling (P2.3c-6) is reusable anywhere.
 - **Fork MrWint's smb-opt vs the patch file?** (user question, 2026-08-24). Today the engine
   diff is `tools/smb-opt-modes.patch` (committed every unit; the clone is untracked; the Mac
   rebuilds from it with a sha guard). A private fork would give granular engine history; a
