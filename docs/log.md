@@ -700,3 +700,34 @@ before walking away. The backstop watcher earned its place in P0.11d.
 **Next.** The Mac's d112 verdict (hours): GOAL → prefix-recover + `bfscx-path` ON the Mac, scp the path, chain →
 `chain_s4a.bin`, core-verify, S4b probe/ladder (the plant tax read-out) → **the chain total vs 575/577**. "No live
 states" → d114, same treatment. Then the P0.11d fold-in, the goal-print fix, the slack accounting.
+
+## 2026-08-23 — Session 11 (cont. 3): the search explainer page (`docs/web/`)
+
+**Did.** Wrote a human-facing explainer of Track A at the user's request — "explain like I'm 15, interactive,
+about the *searching*, not the glitch/memory tracks". Twelve chapters built only from `docs/facts.md`,
+`docs/experiments/` and `runs/` logs: the input explosion (16/frame) against the measured dedup'd layer sizes
+from P2.1a; the 21-frame framerule with the real slack/deficit table and why the objective is a deadline rather
+than a minimisation; the engine as a *model* (2,048 B of RAM vs a 12,792 B savestate vs our 96 B record) and what
+the 3,836-line patch added (physics corrections F56/F70/F71/F72/F101, block states, the lift, `w42enemies.rs`,
+layered BFS over all 16 inputs, ygate, position goals); the verification chapter the user specifically asked for
+(difftest F102, the dump oracle F99 *with* its negative controls 119/20/63, bound audits, the byte-identical
+regression control, core replay of every path); why BFS is forced (unit edge cost) and per-layer vs global dedup;
+`g + h > D` and the x-table; the frontier law as an interactive slack dial (anchored on the slack 0/2/15/28
+measurements) and the tight-first ladder with the deadline = bound proof argument; the ygate and the S1 collapse;
+segments and seams incl. the S3 chain-unsafe-arrival post-mortem and the 45M-arrivals-pick-one framing; the
+external-memory engine; the current 149/184/82/415 scoreboard with the two surprises (enemies free, pit free) and
+the two negative results (1-1 pole, F88's 3 frames); and an honest limits chapter.
+Interactive: the explosion counter, the framerule ruler, the slack/frontier chart, and an SVG block map of the
+4-2 main area drawn from F92's exact geometry with the top route and the WR's bottom route (incl. the F80/F93
+wall walk) toggleable.
+
+**Built.** `docs/web/proving-mario-optimal.body.html` (source of truth, artifact form — no doctype/head/body,
+the Artifact host injects those), `tools/build_page.sh` (splits at `<div class="shell">` and wraps into a
+standalone document), generated `docs/web/index.html` (single self-contained file, hostable anywhere; only
+external request is the Google Fonts stylesheet, every face has a fallback stack), and `docs/web/README.md`.
+
+**Learned / noted.** The page is a second consumer of the facts ledger, so it is now a maintenance surface:
+the scoreboard and the results table hardcode 149/184/82/415 and will be stale the moment S4 lands. Recorded
+as a STATUS loose end with the artifact URL (republishing without the URL creates a *second* artifact).
+
+**Next.** Unchanged: S4 verdict → chain_s4.bin → core-verify → the chain total vs 575/577.

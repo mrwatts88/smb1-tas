@@ -1,0 +1,1116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="How the SMB1 TAS project searches: framerules, frame-layered BFS, admissible bounds, the height gate, and the seams between segments.">
+<style>
+/* minimal reset — mirrors what the Artifact host injects, so the hosted copy matches */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img,svg,canvas{max-width:100%}
+table{border-collapse:collapse}
+dl,dd{margin:0}
+</style>
+<title>Proving Mario Optimal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#e6e8ee;
+  --surface:#fafbfd;
+  --surface-2:#f0f2f6;
+  --ink:#12141b;
+  --ink-2:#3c4152;
+  --ink-3:#6b7288;
+  --line:#d0d4e0;
+  --line-2:#bcc2d2;
+  --gold:#a87a10;
+  --gold-mark:#d9a520;
+  --gold-wash:#f7edcf;
+  --green:#25714a;
+  --green-mark:#39a06a;
+  --green-wash:#e0f0e7;
+  --rust:#a63f24;
+  --rust-mark:#cc5a35;
+  --rust-wash:#f6e3dc;
+  --blue:#2c4a8f;
+  --blue-wash:#e2e8f6;
+  --shadow:0 1px 2px rgba(18,20,27,.06), 0 8px 24px -12px rgba(18,20,27,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101219;
+    --surface:#171a23;
+    --surface-2:#1d212c;
+    --ink:#e8eaf1;
+    --ink-2:#b8bdcd;
+    --ink-3:#868da3;
+    --line:#282d3a;
+    --line-2:#39404f;
+    --gold:#e8c25c;
+    --gold-mark:#e8c25c;
+    --gold-wash:#2a2416;
+    --green:#5ec48b;
+    --green-mark:#5ec48b;
+    --green-wash:#132419;
+    --rust:#e8886a;
+    --rust-mark:#e8886a;
+    --rust-wash:#2a1a15;
+    --blue:#8fa7e0;
+    --blue-wash:#171c2b;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101219;
+  --surface:#171a23;
+  --surface-2:#1d212c;
+  --ink:#e8eaf1;
+  --ink-2:#b8bdcd;
+  --ink-3:#868da3;
+  --line:#282d3a;
+  --line-2:#39404f;
+  --gold:#e8c25c;
+  --gold-mark:#e8c25c;
+  --gold-wash:#2a2416;
+  --green:#5ec48b;
+  --green-mark:#5ec48b;
+  --green-wash:#132419;
+  --rust:#e8886a;
+  --rust-mark:#e8886a;
+  --rust-wash:#2a1a15;
+  --blue:#8fa7e0;
+  --blue-wash:#171c2b;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;
+  font-size:17.5px;
+  line-height:1.66;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.display{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;text-wrap:balance;}
+code,kbd,.mono,.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-ligatures:none;}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- shell ---------- */
+.shell{max-width:1240px;margin:0 auto;padding:0 24px 120px;}
+.layout{display:block}
+@media (min-width:1080px){
+  .layout{display:grid;grid-template-columns:196px minmax(0,1fr);gap:56px;align-items:start;}
+}
+main{min-width:0}
+
+/* ---------- rail ---------- */
+.rail{display:none}
+@media (min-width:1080px){
+  .rail{display:block;position:sticky;top:0;padding:36px 0;max-height:100vh;overflow-y:auto;}
+}
+.rail-title{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 14px;}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
+.rail a{
+  display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:baseline;
+  text-decoration:none;color:var(--ink-3);
+  font-family:"Bricolage Grotesque",sans-serif;font-size:13px;line-height:1.35;
+  padding:6px 8px;border-radius:5px;border-left:2px solid transparent;
+}
+.rail a span:first-child{font-family:"IBM Plex Mono",monospace;font-size:10.5px;opacity:.75}
+.rail a:hover{color:var(--ink);background:var(--surface-2)}
+.rail a.on{color:var(--ink);border-left-color:var(--gold-mark);background:var(--surface-2)}
+.rail a:focus-visible{outline:2px solid var(--gold-mark);outline-offset:2px}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin:0 0 20px;}
+h1{font-size:clamp(40px,7.5vw,74px);line-height:.98;letter-spacing:-.025em;font-weight:800;margin:0 0 22px;max-width:15ch;}
+.deck{font-size:clamp(18px,2.3vw,21.5px);line-height:1.5;color:var(--ink-2);max-width:56ch;margin:0;}
+.deck em{font-style:normal;color:var(--ink);box-shadow:inset 0 -.45em 0 var(--gold-wash);}
+.scoreboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:44px;}
+.score{background:var(--surface);padding:16px 18px;}
+.score .v{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:26px;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.score .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:6px;}
+.score.hl .v{color:var(--gold)}
+
+/* ---------- sections ---------- */
+section{padding:60px 0 4px;scroll-margin-top:16px;}
+section+section{border-top:1px solid var(--line)}
+.chapno{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin:0 0 10px;}
+h2{font-size:clamp(27px,3.6vw,38px);line-height:1.08;letter-spacing:-.02em;font-weight:700;margin:0 0 18px;max-width:20ch;}
+h3{font-size:19.5px;line-height:1.25;letter-spacing:-.01em;font-weight:700;margin:38px 0 10px;}
+h4{font-size:13px;font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px;}
+p{max-width:67ch;margin:0 0 17px}
+ul,ol{max-width:66ch;padding-left:1.15em;margin:0 0 18px}
+li{margin:0 0 9px}
+strong{font-weight:600;color:var(--ink)}
+a{color:var(--blue)}
+code{font-size:.86em;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:.1em .34em;color:var(--ink-2);}
+.lede{font-size:19.5px;line-height:1.55;color:var(--ink-2);max-width:60ch;}
+
+/* ---------- components ---------- */
+.panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:22px 24px;margin:26px 0 28px;box-shadow:var(--shadow);
+}
+.panel.wide{max-width:none}
+.panel-hd{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+.panel-hd h4{margin:0}
+.note{
+  border-left:2px solid var(--line-2);padding:2px 0 2px 18px;margin:24px 0;
+  color:var(--ink-2);font-size:16.5px;max-width:62ch;
+}
+.note strong{color:var(--ink)}
+.callout{
+  background:var(--gold-wash);border:1px solid var(--line);border-radius:10px;
+  padding:18px 22px;margin:26px 0;max-width:68ch;
+}
+.callout p:last-child{margin-bottom:0}
+.callout.war{background:var(--rust-wash)}
+.callout.win{background:var(--green-wash)}
+.callout h4{color:var(--ink-2)}
+
+figure{margin:30px 0;max-width:none}
+figure svg{max-width:100%;height:auto;display:block;color:var(--ink-2)}
+figcaption{font-size:14px;color:var(--ink-3);margin-top:12px;max-width:64ch;line-height:1.5}
+
+.tablewrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:500;background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tr.is-target td{background:var(--gold-wash)}
+
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;padding:2px 8px;border-radius:999px;border:1px solid currentColor;vertical-align:1px}
+.pill.ok{color:var(--green)}
+.pill.dead{color:var(--rust)}
+.pill.run{color:var(--gold)}
+
+input[type=range]{width:100%;accent-color:var(--gold-mark);cursor:pointer}
+button{font:inherit}
+.btn{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.04em;
+  background:var(--surface-2);border:1px solid var(--line-2);color:var(--ink-2);
+  padding:6px 12px;border-radius:6px;cursor:pointer;
+}
+.btn:hover{border-color:var(--gold-mark);color:var(--ink)}
+.btn[aria-pressed="true"]{background:var(--gold-wash);border-color:var(--gold-mark);color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--gold-mark);outline-offset:2px}
+.ctrlrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.ctrllabel{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:14px;margin-top:6px}
+.readout div{min-width:0}
+.readout .rv{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:23px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2;word-break:break-word}
+.readout .rk{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:3px}
+
+.bars{display:flex;flex-direction:column;gap:12px;margin:6px 0 4px}
+.bar-row{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
+.bar-lbl{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2);line-height:1.3}
+.bar-track{background:var(--surface-2);border-radius:4px;height:26px;position:relative;overflow:hidden;border:1px solid var(--line)}
+.bar-fill{height:100%;border-radius:3px 0 0 3px}
+.bar-val{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2)}
+
+canvas{display:block;width:100%;height:auto}
+.mapwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:10px}
+#w42map{max-width:none;min-width:1010px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:11px;height:11px;border-radius:2px;display:inline-block;border:1px solid rgba(128,128,128,.35)}
+
+.glossary{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.glossary div{background:var(--surface);padding:14px 18px}
+.glossary dt{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15px;margin:0 0 4px}
+.glossary dd{margin:0;font-size:15.5px;color:var(--ink-2);line-height:1.5}
+
+footer{margin-top:70px;padding-top:26px;border-top:1px solid var(--line);color:var(--ink-3);font-size:14px;font-family:"IBM Plex Mono",monospace}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.bar-fill,.rv,.frbox{transition:all .25s ease}
+</style>
+
+</head>
+<body>
+<div class="shell">
+<div class="layout">
+
+<nav class="rail" aria-label="Chapters">
+  <p class="rail-title">The method</p>
+  <ol>
+    <li><a href="#problem"><span>01</span><span>The size of the thing</span></a></li>
+    <li><a href="#framerule"><span>02</span><span>The clock is a staircase</span></a></li>
+    <li><a href="#engine"><span>03</span><span>Not an emulator</span></a></li>
+    <li><a href="#verify"><span>04</span><span>Proving the engine</span></a></li>
+    <li><a href="#bfs"><span>05</span><span>Why breadth-first</span></a></li>
+    <li><a href="#bound"><span>06</span><span>The bound</span></a></li>
+    <li><a href="#slack"><span>07</span><span>Slack is the price</span></a></li>
+    <li><a href="#ygate"><span>08</span><span>Teaching it height</span></a></li>
+    <li><a href="#seams"><span>09</span><span>Segments and seams</span></a></li>
+    <li><a href="#memory"><span>10</span><span>Memory is the wall</span></a></li>
+    <li><a href="#results"><span>11</span><span>Where it stands</span></a></li>
+    <li><a href="#wrong"><span>12</span><span>What could be wrong</span></a></li>
+    <li><a href="#glossary"><span>—</span><span>Glossary</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="hero">
+  <p class="eyebrow">Super Mario Bros. · any% warps · exhaustive search</p>
+  <h1>Proving Mario Optimal</h1>
+  <p class="deck">We are trying to beat a tool-assisted speedrun that has stood since 2011. Not by playing it better — by <em>proving</em>, frame by frame, that stretches of it cannot be played faster, and finding the stretches where the proof fails.</p>
+  <div class="scoreboard">
+    <div class="score hl"><div class="v num">17,868</div><div class="k">frames to beat</div></div>
+    <div class="score"><div class="v num">21</div><div class="k">frames per framerule</div></div>
+    <div class="score"><div class="v num">96 B</div><div class="k">one search state</div></div>
+    <div class="score"><div class="v num">415</div><div class="k">frames solved, segment by segment</div></div>
+    <div class="score"><div class="v num">877,058</div><div class="k">frames difftested</div></div>
+  </div>
+</header>
+
+<section id="problem">
+  <p class="chapno">Chapter 01</p>
+  <h2>The size of the thing</h2>
+  <p class="lede">A speedrun is not a performance. It is a list of button presses, one entry per frame, and the game is a function that turns that list into an ending.</p>
+
+  <p>The NES runs at 60.0988 frames per second, and exactly once per frame the game reads the controller. So a run of Super Mario Bros. is a list of 17,868 rows, each row saying which buttons are held. HappyLee's record is such a list. Ours would be another one.</p>
+
+  <p>For moving Mario, only four buttons matter: <strong>A, B, Left, Right</strong> — sixteen combinations per frame. (Up and Down matter only at pipes and vines; Start and Select do nothing useful mid-level.) Tool-assisted rules allow Left and Right at the same time, which the real game handles in a strange and very useful way: your <em>facing</em> direction stops matching your <em>moving</em> direction, and Mario decelerates instantly.</p>
+
+  <p>Sixteen choices per frame, compounding. A single 150-frame stretch of one room has 16<sup>150</sup> possible input sequences — a number with 181 digits. There are not enough atoms in anything to enumerate that.</p>
+
+  <div class="panel wide">
+    <div class="panel-hd">
+      <h4>What actually happens when you count</h4>
+      <span class="ctrllabel" id="expDepthLbl">depth 6 frames</span>
+    </div>
+    <p style="max-width:none;font-size:15.5px;color:var(--ink-2)">Drag to advance the search one frame at a time. Blue is the naive count — every distinct input sequence. Gold is the measured number of genuinely <em>different game states</em> at that depth, from a real run on 1-1's third room with no pruning at all.</p>
+    <input type="range" id="expDepth" min="1" max="7" value="6" step="1" aria-label="Search depth in frames">
+    <div class="bars" style="margin-top:18px">
+      <div class="bar-row"><div class="bar-lbl">input sequences<br><span style="color:var(--ink-3)">16^n</span></div><div class="bar-track"><div class="bar-fill" id="expSeqBar" style="background:var(--blue);opacity:.55"></div><span class="bar-val num" id="expSeqVal"></span></div></div>
+      <div class="bar-row"><div class="bar-lbl">distinct states<br><span style="color:var(--ink-3)">measured</span></div><div class="bar-track"><div class="bar-fill" id="expStateBar" style="background:var(--gold-mark)"></div><span class="bar-val num" id="expStateVal"></span></div></div>
+    </div>
+    <div class="readout" style="margin-top:18px">
+      <div><div class="rv num" id="expRatio">—</div><div class="rk">sequences per state</div></div>
+      <div><div class="rv num" id="expGrowth">—</div><div class="rk">growth per frame</div></div>
+      <div><div class="rv num" id="expMem">—</div><div class="rk">layer size at 96 B/state</div></div>
+    </div>
+  </div>
+
+  <p>Two things are visible there, and the whole project lives between them.</p>
+
+  <p><strong>The good news:</strong> most of those sequences are duplicates. Press Left then Right, or Right then Left, and the machine can end up in literally the same condition — same position, same speed, same everything. Once two histories produce an identical state, they are interchangeable forever after, and we only need to keep one. That is the single fact that makes any of this possible.</p>
+
+  <p><strong>The bad news:</strong> collapsing duplicates only bought a factor of about 3.5 in that measurement. The state count still multiplies by roughly five every frame. Deduplication alone gets you six frames into a two-thousand-frame level. Everything else in this document is about the second lever: <em>throwing away states that provably cannot win</em>.</p>
+</section>
+
+<section id="framerule">
+  <p class="chapno">Chapter 02</p>
+  <h2>The clock is a staircase</h2>
+  <p class="lede">Before you can search for a faster run, you have to know what "faster" even pays. In this game, usually nothing.</p>
+
+  <p>When you touch the flagpole, the level does not end. A fixed sequence starts: the slide, the walk into the castle, the timer counting down at one unit per frame, the flag raising, a fade. And the last wait in that chain is gated by a counter that only ticks over <strong>once every 21 frames</strong> — the same global counter the whole game runs on.</p>
+
+  <p>So the level's contribution to your final time is rounded up to a multiple of 21. Reach the flagpole three frames earlier and, almost always, the game ends at exactly the same frame. You have to cross the boundary.</p>
+
+  <div class="panel wide">
+    <div class="panel-hd">
+      <h4>The framerule ruler</h4>
+      <span class="ctrllabel">click a level</span>
+    </div>
+    <div class="ctrlrow" id="frLevels"></div>
+    <p style="max-width:none;font-size:15.5px;color:var(--ink-2);margin-bottom:14px">Each box is one 21-frame framerule. The marker is where this level's timing event actually lands. Drag to move it earlier and watch what the clock does.</p>
+    <div id="frRuler" style="display:flex;gap:3px;margin-bottom:12px"></div>
+    <input type="range" id="frSave" min="0" max="25" value="0" step="1" aria-label="Frames saved">
+    <div class="readout" style="margin-top:16px">
+      <div><div class="rv num" id="frSaved">0</div><div class="rk">frames saved in-level</div></div>
+      <div><div class="rv num" id="frClock">0</div><div class="rk">frames off the final time</div></div>
+      <div><div class="rv" id="frVerdict">—</div><div class="rk">verdict</div></div>
+    </div>
+  </div>
+
+  <p>Every level in the route has a <strong>deficit</strong>: how many frames you must save before the clock notices, and a <strong>slack</strong>: how many you could waste for free. We measured them by replaying the record and reading the game's own timer bytes every frame.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Level</th><th class="n">Frames</th><th class="n">Slack</th><th class="n">Deficit — frames needed</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr class="is-target"><td>1-1</td><td class="n">1,902</td><td class="n">20</td><td class="n">1</td><td>one frame from a 21-frame save</td></tr>
+        <tr><td>1-2</td><td class="n">1,870</td><td class="n">13</td><td class="n">8</td><td>quantized at the next level's load</td></tr>
+        <tr><td>4-1</td><td class="n">2,228</td><td class="n">12</td><td class="n">9</td><td></td></tr>
+        <tr class="is-target"><td>4-2</td><td class="n">1,729</td><td class="n">8</td><td class="n">13</td><td>but the unsearched <em>top route</em> is thought to be 2 short</td></tr>
+        <tr><td>8-1</td><td class="n">3,042</td><td class="n">3</td><td class="n">18</td><td>nearly a whole framerule away</td></tr>
+        <tr><td>8-2</td><td class="n">2,143</td><td class="n">2</td><td class="n">19</td><td>nearly a whole framerule away</td></tr>
+        <tr><td>8-3</td><td class="n">2,101</td><td class="n">11</td><td class="n">10</td><td></td></tr>
+        <tr class="is-target"><td>8-4</td><td class="n">2,810</td><td class="n">—</td><td class="n">1</td><td>ends on the axe: <strong>no rounding, every frame counts</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>This table is the strategy. 8-1 and 8-2 would need a new trick, not a better line. 1-1 needs a single frame that fifteen years of humans and bots have not found. 8-4 is the only level where ordinary optimisation pays off frame for frame. And 4-2 is the interesting one: the record takes the "bottom route" through the level, and its author believed a different, higher route through the same room was two frames short of paying — a claim nobody ever tested exhaustively. That is where our search is working right now.</p>
+
+  <div class="callout">
+    <h4>Why this changes the search itself</h4>
+    <p>Because the payoff is a threshold, we never ask the search to "minimise time". We ask a yes/no question: <strong>can you be at this spot by frame N?</strong> That converts every state into something checkable — if a state provably cannot make frame N, it and its entire future can be deleted immediately. A minimising search has no such licence. The deadline <em>is</em> the pruning.</p>
+  </div>
+</section>
+
+<section id="engine">
+  <p class="chapno">Chapter 03</p>
+  <h2>The thing we search is not an emulator</h2>
+  <p class="lede">An emulator is a faithful machine and a hopeless search node. The search runs on a reimplementation of Mario's physics that keeps a few dozen bytes and throws away the rest of the NES.</p>
+
+  <p>We do own a real emulator, and it matters: a headless build of the QuickNES core, running the actual ROM, about 15,000 frames per second. That is our ground truth. But a saved state of it is <strong>12,792 bytes</strong> — CPU registers, both RAM banks, PPU memory, sprite tables, mapper state. Multiply by the forty million states a single frame-layer can hold and the arithmetic ends the conversation.</p>
+
+  <p>So the search runs on a model: <strong>smb-opt</strong>, a Rust reimplementation of Super Mario Bros.'s player physics that MrWint hand-extracted from the game's disassembly in 2017. It does not emulate a CPU. It runs the same arithmetic the game's routines run, on a struct that holds only the variables that can affect the future:</p>
+
+  <div class="panel wide">
+    <h4>What one search state actually contains</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px 28px;font-size:15px;line-height:1.5;color:var(--ink-2)">
+      <div><strong style="color:var(--ink)">Position</strong><br>x and y — but as 16-bit values, because <em>sub-pixels</em> decide wall clips</div>
+      <div><strong style="color:var(--ink)">Speed</strong><br>x and y speed plus their fractional accumulators, and <code>x_spd_abs</code></div>
+      <div><strong style="color:var(--ink)">Two directions</strong><br><em>moving</em> and <em>facing</em> — they come apart under Left+Right, and that is the trick</div>
+      <div><strong style="color:var(--ink)">Airborne bookkeeping</strong><br>player state, the two vertical force values, jump/swim timer, collision bits</div>
+      <div><strong style="color:var(--ink)">Sticky flags</strong><br>the running timer (the run cap survives 10 frames past releasing B), <code>a_held</code> — a jump needs a <em>fresh</em> A press</div>
+      <div><strong style="color:var(--ink)">Parity</strong><br>which half of the game's alternating per-frame work happens next</div>
+      <div><strong style="color:var(--ink)">Block states</strong><br>which cell is mid-bounce, which blocks are spent, the coin-brick timer, the level parser's column</div>
+      <div><strong style="color:var(--ink)">Enemies (4-2)</strong><br>the goomba group, koopa, buzzy beetle, three piranha plants, the lift, and the slot memory the game keeps across respawns</div>
+    </div>
+    <div class="bars" style="margin-top:26px">
+      <div class="bar-row"><div class="bar-lbl">emulator savestate</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue);opacity:.5"></div><span class="bar-val num">12,792 B</span></div></div>
+      <div class="bar-row"><div class="bar-lbl">the NES's whole RAM</div><div class="bar-track"><div class="bar-fill" style="width:16%;background:var(--ink-3);opacity:.5"></div><span class="bar-val num">2,048 B</span></div></div>
+      <div class="bar-row"><div class="bar-lbl">our state, with enemies</div><div class="bar-track"><div class="bar-fill" style="width:0.75%;background:var(--gold-mark)"></div><span class="bar-val num">96 B</span></div></div>
+      <div class="bar-row"><div class="bar-lbl">our state, player only</div><div class="bar-track"><div class="bar-fill" style="width:0.17%;background:var(--gold-mark)"></div><span class="bar-val num">10–22 B</span></div></div>
+    </div>
+    <p style="max-width:none;font-size:14px;color:var(--ink-3);margin:14px 0 0">The level itself is not in the state at all — it is a fixed grid of blocks compiled in ahead of time. Neither are the score, the music, the sprites, the palette, or the CPU. None of them can change what Mario does next.</p>
+  </div>
+
+  <p>The payoff is roughly a thousandfold speedup, and states small enough to sort tens of millions of them at a time. The cost is that the model is a <em>claim</em> about the game rather than the game — which is what the next chapter is about.</p>
+
+  <h3>What we changed</h3>
+  <p>The tool we started from was built for a different job: short hand-chained segments, solved with a best-first search, enemies ignored entirely. Our patch is 3,836 lines across 28 files, and it falls into four groups.</p>
+
+  <ul>
+    <li><strong>Physics corrections.</strong> Each of these was a real divergence from the game, found by testing rather than by reading: the run cap persisting for ten frames after B is released; a jump requiring A to have been <em>released</em> the previous frame; the block-bounce timer; the rule that blocks the joypad above the screen applying only in water levels; coins ending the block-collision routine early; the exact order in which Mario's hitbox is built relative to background collision.</li>
+    <li><strong>More of the game in the state.</strong> Block states — a bumped block is a special tile for about fourteen frames and then a used tile, which means a bumped hidden block becomes a platform and a mid-bounce cell blocks a wall-walk. The 4-2 lift, a moving platform. And a full enemy module for 4-2: the three-goomba group, the koopa and the buzzy beetle including shells and kicks, and three piranha plants that every previous description of that level had simply missed. That module is what grew a search record from 24 bytes to 96.</li>
+    <li><strong>A different search.</strong> Frame-layered breadth-first over all sixteen inputs, with layers spilled to disk, replacing an in-memory best-first search over a reduced input set (see chapters 05 and 10).</li>
+    <li><strong>New bounds and new goals.</strong> A height-aware bound (chapter 08), a coupled bound for the warp zone, and the ability to search for "be at this spot, at this height" instead of only "finish this level".</li>
+  </ul>
+</section>
+
+<section id="verify">
+  <p class="chapno">Chapter 04</p>
+  <h2>Proving the engine before trusting the answer</h2>
+  <p class="lede">A search over a wrong model returns a confident, worthless number. So every part of the machinery has its own test, and each test has to be able to fail.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 350" role="img" aria-label="The same input sequence is run through the real emulator and through the physics model, and every field is compared on every frame.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+        </marker>
+      </defs>
+      <rect x="290" y="8" width="240" height="42" rx="6" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+      <text x="410" y="27" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="currentColor">one input sequence</text>
+      <text x="410" y="42" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".7">random · record-mutated · event-seeking</text>
+
+      <line x1="330" y1="50" x2="185" y2="94" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+      <line x1="490" y1="50" x2="635" y2="94" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+
+      <rect x="50" y="98" width="270" height="150" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+      <text x="68" y="122" font-family="'Bricolage Grotesque',sans-serif" font-size="15" font-weight="700" fill="currentColor">QuickNES core</text>
+      <text x="68" y="146" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">the real ROM, 6502 + PPU</text>
+      <text x="68" y="168" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">2,048 B RAM, all of it</text>
+      <text x="68" y="190" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">savestate 12,792 B</text>
+      <text x="68" y="212" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">~15,000 frames/s</text>
+      <text x="68" y="236" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".55">ground truth</text>
+
+      <rect x="500" y="98" width="270" height="150" rx="8" fill="none" stroke="#d9a520" stroke-width="1.8"></rect>
+      <text x="518" y="122" font-family="'Bricolage Grotesque',sans-serif" font-size="15" font-weight="700" fill="currentColor">smb-opt model</text>
+      <text x="518" y="146" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">physics rewritten in Rust</text>
+      <text x="518" y="168" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">level = a fixed block grid</text>
+      <text x="518" y="190" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">state key 96 B</text>
+      <text x="518" y="212" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".8">~1000× faster</text>
+      <text x="518" y="236" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".55">what the search runs on</text>
+
+      <line x1="185" y1="248" x2="330" y2="288" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+      <line x1="635" y1="248" x2="490" y2="288" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+
+      <rect x="270" y="292" width="280" height="46" rx="6" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+      <text x="410" y="312" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="currentColor">compare every field, every frame</text>
+      <text x="410" y="329" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".7">one difference = a bug in the model</text>
+    </svg>
+    <figcaption><strong>Differential testing.</strong> The only honest way to ask whether a reimplementation is the game: feed both the same inputs and compare the bytes. Not the outcome — every intermediate field, on every single frame.</figcaption>
+  </figure>
+
+  <h3>1 · Does the model step like the game?</h3>
+  <p>Pick a starting frame. Generate input sequences — purely random ones, mutations of the record's own inputs, and sequences steered to make interesting things happen (a stomp, a kick, a death). Run each one through both the emulator and the model. Compare Mario's position, sub-pixel, speed, speed fraction, y position, y speed, y fraction and state on every frame; with enemies, compare every slot's flag, id, state, position, speed, force, direction and timers too.</p>
+  <p>The 4-2 enemy module currently stands at <strong>5,787 trials, 877,058 compared frames, zero differences</strong> — including 1,825 deaths on the identical frame, 3,686 stomps and 949 kicks with matching aftermaths. That number only sounds like a formality if you skip the history: the first run of this test on the borrowed physics model diverged on <strong>53 of 200 trials</strong>. Every physics correction listed in the last chapter came out of a difftest failure.</p>
+
+  <h3>2 · Do the rules match the actual recording?</h3>
+  <p>We have every byte of the NES's RAM for all 17,868 frames of HappyLee's run. So a new rule — say, how enemies spawn — gets written as a small independent simulator and required to reproduce the dump exactly: all 588 frames of 4-2's main area, every enemy slot field, plus the level parser's internal offsets.</p>
+  <div class="callout">
+    <h4>A test that cannot fail proves nothing</h4>
+    <p>So each of those checks ships with <strong>negative controls</strong>: deliberately break one rule and the same test must break too. Three perturbed variants of the enemy spawn law fail by 119, 20 and 63 mismatching rows respectively — which is what licenses us to believe the zero.</p>
+    <p style="margin-top:12px">We learned this the hard way. One admissibility audit reported a clean sweep for an afternoon before we noticed it had been <em>silently vacuous</em>: the trace was stopping at the first item bump, so no trajectory ever reached the goal and there was nothing to check. The rule now: a result of "zero problems found" is suspicious until you know how many things were looked at.</p>
+  </div>
+
+  <h3>3 · Is the pruning honest?</h3>
+  <p>The bound that lets us delete states (chapters 06 and 08) is a mathematical claim: <em>from here, you cannot possibly reach the goal in fewer than h frames.</em> If it ever overstates by even one frame, the search will delete the true optimum and then report a confident, wrong proof. So bounds are audited like theorems: fly thousands of random trajectories, and at every frame where the goal is later reached at frame <em>t′</em>, assert that <em>t′ − t</em> is at least the bound claimed at frame <em>t</em>. The x-bound has survived 1,906,600 such checks; the height-aware bound about 1.6 million, including stomp-heavy trajectories. Zero violations each — and three genuine bugs found in a single afternoon before that was true.</p>
+
+  <h3>4 · Did the last change break anything?</h3>
+  <p>Every engine change is followed by a regression control: rerun a known small search and require the layer sizes to come out identical — 6, 16, 34, 70, 134, 673, 3,472, 16,472, 69,489, 257,001, goal at layer 10. Not "similar". Identical. This is also how a second machine proves it built the same engine before it is allowed to contribute anything.</p>
+
+  <h3>5 · And then the answer itself</h3>
+  <p>Finally, no result counts until it has left the model. A finished search prints a winning state; that state is traced backwards through the layer files to recover the actual button presses; those presses are appended to the record's own prefix and <strong>replayed on the real emulator</strong>, frame against frame, field against field. The four segments solved so far replayed 149/149, 315/315, 333/333 and 415/415 frames identical. A path that has not been replayed is not an answer.</p>
+</section>
+
+<section id="bfs">
+  <p class="chapno">Chapter 05</p>
+  <h2>Why breadth-first, and why that is not a style choice</h2>
+  <p class="lede">One property of this problem decides the algorithm: every move costs exactly the same.</p>
+
+  <p>Press buttons, one frame passes. There is no cheaper move and no more expensive move — a frame is a frame. In search terms, every edge in the graph has weight 1.</p>
+
+  <p>That makes breadth-first search not merely convenient but <em>exactly right</em>. Layer <em>k</em> of a breadth-first search is precisely the set of situations reachable in <em>k</em> frames. So <strong>the first layer at which a winning state appears is the optimum</strong>, by construction. No priority queue, no tie-breaking, no reopening nodes, no proof obligation beyond "we searched layer <em>k</em>−1 and it wasn't there". Dijkstra and A* exist to cope with edges of unequal cost; here they would be breadth-first search wearing a costume.</p>
+
+  <p>So the engine walks frame by frame. It reads the entire set of states for frame <em>k</em>, applies all sixteen button combinations to each, and writes the resulting set for frame <em>k</em>+1. Between those two steps sit the two things that keep the set from exploding.</p>
+
+  <figure>
+    <svg viewBox="0 0 830 216" role="img" aria-label="One frame layer: parents are expanded by sixteen inputs, duplicates are merged, states that cannot make the deadline are pruned, and the survivors become the next layer.">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+        </marker>
+      </defs>
+      <rect x="8" y="48" width="146" height="66" rx="7" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+      <text x="81" y="76" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-size="14" font-weight="700" fill="currentColor">layer k</text>
+      <text x="81" y="96" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".75">14.3 M states</text>
+
+      <line x1="158" y1="81" x2="212" y2="81" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar2)"></line>
+      <text x="185" y="70" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".8">×16</text>
+      <text x="185" y="104" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".55">A·B·L·R</text>
+
+      <rect x="216" y="48" width="146" height="66" rx="7" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+      <text x="289" y="76" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-size="14" font-weight="700" fill="currentColor">children</text>
+      <text x="289" y="96" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".75">228 M steps</text>
+
+      <line x1="366" y1="81" x2="420" y2="81" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar2)"></line>
+      <text x="393" y="70" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".8">sort</text>
+      <text x="393" y="104" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".55">merge equals</text>
+
+      <rect x="424" y="48" width="146" height="66" rx="7" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+      <text x="497" y="76" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-size="14" font-weight="700" fill="currentColor">distinct</text>
+      <text x="497" y="96" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".75">deduplicated</text>
+
+      <line x1="574" y1="81" x2="628" y2="81" stroke="#cc5a35" stroke-width="1.6" marker-end="url(#ar2)" color="#cc5a35"></line>
+      <text x="601" y="70" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="#cc5a35">g+h &gt; D</text>
+      <text x="601" y="104" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="#cc5a35" opacity=".85">210 M deleted</text>
+
+      <rect x="632" y="48" width="146" height="66" rx="7" fill="none" stroke="#39a06a" stroke-width="1.8"></rect>
+      <text x="705" y="76" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-size="14" font-weight="700" fill="currentColor">layer k+1</text>
+      <text x="705" y="96" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".75">1.7 M states</text>
+
+      <text x="393" y="164" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".7">every arrow above advances the game by exactly one frame</text>
+      <line x1="8" y1="182" x2="778" y2="182" stroke="currentColor" stroke-width="1" opacity=".3"></line>
+      <text x="8" y="202" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".6">real numbers: layer 130 of the S1 proof run</text>
+    </svg>
+    <figcaption><strong>One frame of the search.</strong> Expand, deduplicate, prune, repeat. The layer shown is from the run that proved a 149-frame segment optimal — the moment where the height-aware bound starts biting and a 14-million-state frontier collapses to under two million.</figcaption>
+  </figure>
+
+  <h3>Deduplication, and one subtlety that matters</h3>
+  <p>Two states are the same if their compressed keys are identical, and the layer is deduplicated by sorting it — sorted order gives you duplicate-removal for free while merging, which matters enormously once the layer lives on disk.</p>
+  <p>The subtlety: we deduplicate <strong>within a layer, never globally</strong>. It is tempting to keep one big "already seen" set, and the original tool did. But in a level with enemies, Mario standing at the same spot with the same speed at frame 200 and at frame 210 is <em>not</em> the same situation — the goombas have walked, the level parser has advanced, the interval clock has a different phase. A state reached at a later frame is a different node of the search, full stop. Global deduplication is only sound in a room with no frame-dependent anything, and getting that wrong would silently delete correct answers.</p>
+
+  <div class="note">
+    <p>We also expand <strong>all sixteen inputs</strong>, every frame. The tool we inherited used a hand-written rule set to skip "pointless" inputs — B only while moving that way, Left+Right only when standing, A only when a jump could start. That is a 20× speedup and it is <em>probably</em> harmless. But "probably" is not a proof, and the entire point of this exercise is proofs, so we pay the 20×.</p>
+  </div>
+</section>
+
+<section id="bound">
+  <p class="chapno">Chapter 06</p>
+  <h2>The bound: the only thing that really prunes</h2>
+  <p class="lede">Deduplication removes copies. The bound removes futures.</p>
+
+  <p>Here is the whole idea in one line. For a state, let <strong>g</strong> be the frames already spent, <strong>h</strong> be a guaranteed-not-too-large count of the frames still needed, and <strong>D</strong> be the deadline we are testing. If <strong>g + h &gt; D</strong>, this state cannot possibly reach the goal in time, so delete it — and with it every sequence that would ever have started from it.</p>
+
+  <p>Everything hinges on getting <em>h</em> from somewhere. Our workhorse is a precomputed table with a neat trick behind it.</p>
+
+  <h3>The x-table</h3>
+  <p>Horizontal motion in Super Mario Bros. depends on surprisingly little: the current x speed, its absolute value, the moving direction, the facing direction, whether Mario is on the ground, and whether the run flag is set. Call that the <em>x-class</em>. There are only tens of thousands of them — a space small enough to enumerate completely.</p>
+  <p>So before the search starts, we run a small exhaustive search <strong>on that tiny space alone</strong>, computing for every x-class the maximum distance Mario could possibly cover in exactly <em>k</em> frames. That gives "frames needed to reach x ≥ X" as a table lookup. It is admissible, because it ignores walls, gravity and enemies, all of which can only slow you down. And it is <em>tight</em> within its own world, because the value is actually achieved by some sequence of x-classes.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 300" role="img" aria-label="A state is pruned when the furthest it could travel by the deadline still falls short of the goal.">
+      <line x1="70" y1="252" x2="760" y2="252" stroke="currentColor" stroke-width="1.2"></line>
+      <line x1="70" y1="252" x2="70" y2="26" stroke="currentColor" stroke-width="1.2"></line>
+      <text x="70" y="278" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".7">now</text>
+      <text x="415" y="278" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".7">frames →</text>
+      <text x="34" y="52" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".7">x</text>
+
+      <line x1="70" y1="66" x2="760" y2="66" stroke="#39a06a" stroke-width="1.4" stroke-dasharray="5 4"></line>
+      <text x="756" y="56" text-anchor="end" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="#39a06a">goal: x ≥ 1005</text>
+
+      <line x1="600" y1="26" x2="600" y2="252" stroke="#cc5a35" stroke-width="1.4" stroke-dasharray="5 4"></line>
+      <text x="592" y="40" text-anchor="end" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="#cc5a35">deadline D</text>
+
+      <path d="M70,216 C150,206 250,150 360,110 C450,78 520,66 600,52" fill="none" stroke="#d9a520" stroke-width="2.4"></path>
+      <text x="330" y="132" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity=".95">state A — the bound clears the goal in time</text>
+      <circle cx="70" cy="216" r="4.5" fill="#d9a520"></circle>
+
+      <path d="M70,236 C160,232 250,214 350,196 C460,176 540,162 600,152" fill="none" stroke="#cc5a35" stroke-width="2.4" stroke-dasharray="7 4"></path>
+      <text x="330" y="222" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="#cc5a35">state B — even at its physical maximum, it cannot</text>
+      <circle cx="70" cy="236" r="4.5" fill="#cc5a35"></circle>
+      <text x="612" y="156" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="#cc5a35">pruned</text>
+
+      <text x="70" y="296" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".55">curves are the table's maximum reachable x, not a path anyone plays</text>
+    </svg>
+    <figcaption><strong>Why a bound deletes whole futures.</strong> The curves are the ceiling on what physics allows, from two states with different speed and stance. State B is not slow — it is <em>provably</em> too slow, so nothing downstream of it needs to be looked at again.</figcaption>
+  </figure>
+
+  <h3>Two rules we do not bend</h3>
+  <ul>
+    <li><strong>Admissible or bust.</strong> A bound that overstates by a single frame can delete the true optimum and then let the search announce a proof that is simply false. This is why bounds get audited with millions of assertions before they are trusted, and why a bound that "seemed obviously right" has three times turned out to have an off-by-one in it.</li>
+    <li><strong>Relaxations may cheat, but only in Mario's favour.</strong> Every bound is really a fantasy version of the game where Mario is allowed to do <em>more</em> than he can — no walls, landings on surfaces he could not really stand on, head bumps whenever convenient. Anything impossible in the fantasy is impossible in reality. Cheat the other way and you get the failure we hit early on: a bound assuming Mario accelerates as fast as possible <em>on the ground</em> pruned every single state at the first frame — because in this game Mario accelerates <em>faster in the air</em>, with a doubled adder, which is exactly what the record does.</li>
+  </ul>
+
+  <div class="note">
+    <p><strong>The trick we deliberately refuse.</strong> The obvious extra prune is dominance: if two states are alike but one is further right, drop the other. In most games that is free. Here it is false. Wall clips, the flagpole glitch and the block-edge tricks the whole route depends on turn on exact sub-pixel values — being one sub-pixel further right can be the difference between clipping into a wall and bouncing off it. Any dominance rule here needs a per-case proof, and that is filed as future work rather than assumed.</p>
+  </div>
+</section>
+
+<section id="slack">
+  <p class="chapno">Chapter 07</p>
+  <h2>Slack is the price you pay</h2>
+  <p class="lede">The cost of proving something is not set by the length of the segment. It is set by one number: how much room the search has to be wasteful.</p>
+
+  <p>Define <strong>slack</strong> as the deadline minus what the bound says is needed at the very first state. Slack 0 means we are asking "can you do it in exactly the minimum the physics allows?" — and then the search is a corridor: almost anything that dawdles for even one frame is immediately over budget and deleted. Slack 15 means fifteen frames of freedom to wander, and the number of ways to wander for fifteen frames is astronomical.</p>
+
+  <div class="panel wide">
+    <div class="panel-hd">
+      <h4>The frontier law</h4>
+      <span class="ctrllabel" id="slSlackLbl">slack 0</span>
+    </div>
+    <input type="range" id="slSlack" min="0" max="28" value="0" step="1" aria-label="Slack in frames">
+    <canvas id="slChart" height="300" aria-label="Frontier size per layer as a function of slack"></canvas>
+    <div class="readout" style="margin-top:18px">
+      <div><div class="rv num" id="slGrowth">—</div><div class="rk">growth per frame</div></div>
+      <div><div class="rv num" id="slPeak">—</div><div class="rk">states at layer 40</div></div>
+      <div><div class="rv num" id="slMem">—</div><div class="rk">that layer on disk</div></div>
+      <div><div class="rv" id="slVerdict">—</div><div class="rk">verdict</div></div>
+    </div>
+    <p style="max-width:none;font-size:14px;color:var(--ink-3);margin:16px 0 0">Curve shape fitted to four measured runs: slack 0 solved on the first try with a peak near 5 million; slack 2 plateaus around 14 million and turns over; slack 15 stood at 9.2 million by layer 24 and multiplied by 1.25 every layer after; slack 28 doubled every layer from the start and was killed within minutes.</p>
+  </div>
+
+  <p>This law dictates the working method, which we call <strong>the ladder</strong>: always try the tightest possible deadline first, then loosen by two, then two more. Tight rungs are cheap and get cheaper the tighter they are; loose rungs are unaffordable. That is the exact opposite of how you would guess a search should be scheduled.</p>
+
+  <div class="callout win">
+    <h4>Why the tightest rung gives the strongest possible answer</h4>
+    <p>Set the deadline <em>equal to</em> the bound. Now consider any state that lies on some path reaching the goal in fewer frames than the deadline: its g + h can never exceed that shorter length, which is below the deadline, so it can never be pruned. Nothing on a shorter path can be lost. Therefore if the search finds the goal at layer <em>D</em>, no shorter path exists — <strong>the answer is the movement bound, and it is proven</strong>, in a single run, with no lower rung needed.</p>
+    <p style="margin-top:12px">Three of the four segments solved so far came out this way, on the first rung.</p>
+  </div>
+
+  <p>And a rung that finds <em>nothing</em> is a result too, not a failure. When a deadline of 147 frames died out at layer 29, that established that 147 is impossible for that segment — which is half of the eventual proof that the answer is exactly 149.</p>
+</section>
+
+<section id="ygate">
+  <p class="chapno">Chapter 08</p>
+  <h2>Teaching the bound to see height</h2>
+  <p class="lede">The x-table has one enormous blind spot: it has no idea Mario is in the air.</p>
+
+  <p>The segment that broke it was innocuous: <em>reach x ≥ 339 while at or above height 112</em> — get up on top of the pillar in 4-2's main room. The x-table looks at that and says "137 frames", because it only ever sees the horizontal part. It does not know that being up there also requires a jump you must commit to before you arrive, and that if you are airborne and falling you are simply not allowed to be higher for a while.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 250" role="img" aria-label="Two states at the same horizontal position get the same estimate from the x-only bound, although one of them still has a sixty-four pixel climb to make.">
+      <rect x="60" y="188" width="660" height="34" fill="currentColor" opacity=".12"></rect>
+      <text x="66" y="212" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".65">floor · Y 176</text>
+      <rect x="410" y="118" width="150" height="104" fill="currentColor" opacity=".22"></rect>
+      <text x="418" y="138" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor" opacity=".75">the pillar</text>
+      <line x1="60" y1="118" x2="720" y2="118" stroke="#39a06a" stroke-width="1.4" stroke-dasharray="5 4"></line>
+      <text x="716" y="110" text-anchor="end" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#39a06a">goal height · Y 112</text>
+      <line x1="410" y1="30" x2="410" y2="188" stroke="#39a06a" stroke-width="1.2" stroke-dasharray="3 4"></line>
+      <text x="416" y="42" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#39a06a">goal x · 339</text>
+
+      <circle cx="230" cy="176" r="7" fill="#d9a520"></circle>
+      <text x="150" y="164" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor">on the ground</text>
+      <path d="M230,176 C280,120 340,104 404,116" fill="none" stroke="#d9a520" stroke-width="2" stroke-dasharray="4 3"></path>
+      <text x="252" y="100" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".8">must jump ≈16 frames early</text>
+
+      <circle cx="230" cy="70" r="7" fill="#cc5a35"></circle>
+      <text x="132" y="60" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#cc5a35">airborne, falling</text>
+      <path d="M230,70 C266,110 300,160 336,182" fill="none" stroke="#cc5a35" stroke-width="2" stroke-dasharray="4 3"></path>
+      <text x="252" y="200" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#cc5a35">must land first, then climb again</text>
+
+      <text x="60" y="242" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity=".7">x-only bound for both states: identical. Actual cost: nowhere near.</text>
+    </svg>
+    <figcaption><strong>The blind spot.</strong> An x-only bound scores these two states the same, so the search cannot delete either. The frontier fills up with every possible height and fall-phase of the same handful of horizontal situations.</figcaption>
+  </figure>
+
+  <p>That is not a theory; it is what the logs said. With the x-only bound and a deadline twelve frames above it, the frontier sat at 13 million states per layer from layer 75 onwards, reached 23 million by layer 100, and the furthest state in it had covered 215 pixels of the 339 needed. Loosen the deadline to 28 above the bound and it doubled every single layer from the start. The search was drowning in altitude.</p>
+
+  <h3>The height gate</h3>
+  <p>So we built a second bound that does the opposite of the first: it runs the game's <em>vertical</em> rules exactly — the jump's initial velocity, the lighter gravity that applies only while A is held, the fact that releasing A is irreversible, head bumps, the snap that happens on landing — and throws away horizontal motion, except at one place where the two must meet: <strong>surfaces</strong>.</p>
+  <p>A surface is the top of a cell you could stand on, together with the range of x where a foot would actually be on it. Then, for any state, the bound reasons like this:</p>
+  <ul>
+    <li>while airborne, holding A gives the highest trajectory possible — releasing or bumping only ever makes you lower — so "could I be above the goal height at frame <em>k</em> without landing?" is a simple window;</li>
+    <li>for each surface, the earliest frame you could land on it is whichever comes later: the vertical arrival, or the x-table's estimate of getting a foot over it;</li>
+    <li>from standing on a surface, a precomputed table gives the minimum frames to reach the goal height by chaining jumps and landings through higher surfaces;</li>
+    <li>and the bound is the first frame count where the x-table permits the horizontal goal <em>and</em> the height is reachable.</li>
+  </ul>
+  <p>Like every bound it is deliberately generous — it permits one-frame landings on wall faces, and head bumps on any rising frame, both of which the real game restricts. Generous is the safe direction: the bound may only ever <em>understate</em> the time required.</p>
+
+  <div class="callout win">
+    <h4>What it did</h4>
+    <p>The same segment, same deadline, with the height term switched on: the frontier peaked near 40 million around layer 105, fell to 14.4 million by layer 120, and then <strong>collapsed</strong> — one layer turned 14.3 million parents into 1.7 million survivors and threw away 210 million children. The last layers ran in twenty seconds each. The goal appeared at layer 149 and at no earlier layer.</p>
+      <p style="margin-top:12px"><strong>Segment S1 is exactly 149 frames, and 147 is impossible.</strong> That is the first machine-proven statement about this room that anyone has.</p>
+  </div>
+</section>
+
+<section id="seams">
+  <p class="chapno">Chapter 09</p>
+  <h2>Segments, and the seams between them</h2>
+  <p class="lede">We cannot search a whole level. So we cut it up — and every cut is both the thing that makes the search affordable and the place a better answer could be hiding.</p>
+
+  <p>A level is 1,700 to 3,000 frames long. Our segments are 80 to 190. We pick milestones — "get up onto the pillar", "get to the end of the top surface", "get across the lift pit" — and solve each one exhaustively, starting from where the previous one finished.</p>
+
+  <div class="panel wide">
+    <div class="panel-hd">
+      <h4>4-2, the main room — the level we are searching right now</h4>
+      <div class="ctrlrow" style="margin:0">
+        <button class="btn" id="mapTop" aria-pressed="true">Top route</button>
+        <button class="btn" id="mapBottom" aria-pressed="false">The record's route</button>
+      </div>
+    </div>
+    <div class="mapwrap"><svg id="w42map" width="1010" height="200" viewBox="0 0 1010 200" role="img" aria-label="Block map of the main room of world 4-2, showing the segment milestones and the two candidate routes through it."></svg></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--ink-3)"></i>solid</span>
+      <span><i class="swatch" style="background:var(--gold-mark)"></i>bricks / blocks</span>
+      <span><i class="swatch" style="background:transparent;border-style:dashed"></i>hidden block</span>
+      <span><i class="swatch" style="background:var(--green-mark)"></i>segment milestone</span>
+      <span><i class="swatch" style="background:var(--rust-mark)"></i>enemy</span>
+    </div>
+    <p style="max-width:none;font-size:15px;color:var(--ink-2);margin:16px 0 0" id="mapNote"></p>
+  </div>
+
+  <p>Each segment result is honest: exhaustive, deadline-tight, replayed on the emulator. But look closely at the join.</p>
+
+  <div class="callout">
+    <h4>The seam, stated plainly</h4>
+    <p>Segment 1 explored an entire room of possibilities and found roughly <strong>45 million different ways</strong> to arrive at its milestone on the optimal frame. Segment 2 begins from <strong>one</strong> of them — picked by a rule of thumb, "highest speed, then furthest right".</p>
+  </div>
+
+  <p>Which means:</p>
+  <ul>
+    <li>The chain's total is a real, playable input sequence, so it is a genuine <strong>upper bound</strong> on the level. It is not a proof of the level's optimum.</li>
+    <li>An arrival that is one frame <em>slower</em> but in a much better state could win the rest of the level by more than a frame. The search cannot see across the seam to notice.</li>
+    <li>Even among arrivals on the same frame, choosing by speed is a guess.</li>
+  </ul>
+
+  <h3>The time the guess cost us a day</h3>
+  <div class="callout war">
+    <p>Segment 2's milestone was "reach x ≥ 755 at or above height 112". The best-by-speed arrival was airborne at height 83, descending at maximum speed — a gorgeous number and a useless situation. From there Mario cannot get down onto the next ledge within the twelve pixels of travel available, so <em>every</em> continuation either slams into the face of the question block at column 50 (side collision, speed instantly zero, bound leaps back, deleted) or drops to the bottom floor, where climbing back up costs more than the whole rung's slack.</p>
+    <p style="margin-top:12px">Segment 3 then failed at deadlines 100 through 118, each dying by layer 19 with the wavefront frozen at x ≈ 790, and exploded past twenty million records at deadline 120. Read naively, that says "crossing the lift pit is hard". It actually said "you started from a bad state."</p>
+    <p style="margin-top:12px">The fix was to move the seam, not to loosen the search: milestone at x ≥ 800 instead, which sits over the block tops and forces a <strong>grounded or landing</strong> arrival. The rewritten segment solved on its first rung, arriving at full speed 47 pixels before the pit lip — and the pit segment then also solved on <em>its</em> first rung. Both were free.</p>
+  </div>
+
+  <p>So the rules that came out of it: a seam must be placed where the arrival state is nearly forced, not merely where a number is convenient; and the arrival gets checked against the level's geometry <em>before</em> it is chained, rather than being diagnosed later from a wall of dead search rungs.</p>
+
+  <p>And why cut at all? Two reasons, and they are the same reason twice. Memory — a 1,700-frame search has no chance of fitting anywhere. And slack — a long segment has a loose bound, loose bounds cost exponentially (chapter 07), so a long search is unaffordable even if the memory existed. Short segments have tight bounds. The craft is choosing where to cut.</p>
+</section>
+
+<section id="memory">
+  <p class="chapno">Chapter 10</p>
+  <h2>Memory is the wall, not speed</h2>
+  <p class="lede">A frame layer of 40 million states at 96 bytes each is 3.8 gigabytes — for one frame. The engine is built around that number, not around the processor.</p>
+
+  <p>The first version kept the frontier in memory and died the way you would expect: killed by the kernel's out-of-memory reaper, which on one memorable occasion also took the session driving it. So the engine was rewritten as an <strong>external-memory</strong> search:</p>
+
+  <ul>
+    <li>Each frame layer is a file on disk, one sorted list of fixed-size records.</li>
+    <li>Expansion threads stream parents out of the layer file and write children into a small in-memory buffer with a hard size limit. When a buffer fills, it is sorted and spilled to disk as a "run".</li>
+    <li>The runs are then k-way merged into the next layer file — and because the merge sees keys in sorted order, deduplication is free while it happens.</li>
+    <li>Any layer can be resumed from, because these runs take days and things go wrong.</li>
+    <li>Every search runs inside a hard memory cap. Not as a precaution — as a rule with a date on it.</li>
+  </ul>
+
+  <p>Peak sizes are not modest. One of the segment searches produced 30 gigabytes of layer files. Those get deleted the moment the answer has been reconstructed and verified, because reconstruction is the only thing they exist for: the winning state names its parent, and each lower layer file is scanned to find that parent, and so on back to the start, until the sequence of button presses falls out.</p>
+
+  <div class="note">
+    <p>This is also why the record format matters more than it sounds. Adding the enemy module to 4-2 took a state from 24 bytes to 96 — a four-fold increase in the size of every layer, every spill, every merge and every disk scan. Everything about modeling more of the game is paid for in bytes per state.</p>
+  </div>
+</section>
+
+<section id="results">
+  <p class="chapno">Chapter 11</p>
+  <h2>Where it stands</h2>
+  <p class="lede">Four segments of 4-2's main room, on the route nobody has ever searched exhaustively.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Segment</th><th>Milestone</th><th class="n">Answer</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>S1</td><td>room entry → up onto the pillar (x ≥ 339, height ≤ 112)</td><td class="n">149</td><td><span class="pill ok">proven optimal</span> — and 147 proven impossible</td></tr>
+        <tr><td>S2′</td><td>→ past the top surface (x ≥ 800, height ≤ 112)</td><td class="n">184</td><td><span class="pill ok">proven optimal</span> — first rung</td></tr>
+        <tr><td>S3′</td><td>→ across the lift pit (x ≥ 1005, height ≤ 112)</td><td class="n">82</td><td><span class="pill ok">proven optimal</span> — first rung</td></tr>
+        <tr><td>S4</td><td>→ into the wrong-warp pipe</td><td class="n">—</td><td><span class="pill run">running</span> — split in two after the frontier blew past 20 million</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The chain so far is <strong>415 frames</strong> from the room's entry, replayed on the real emulator 415 frames out of 415 identical, with two goomba stomps in it. Every one of those three segments came out <em>exactly equal to the movement bound</em> — the theoretical floor set by Mario's physics alone.</p>
+
+  <h3>Two results that changed what we believed</h3>
+  <ul>
+    <li><strong>The enemies are free.</strong> The top route walks straight into a group of three goombas on the same surface, in a corridor with 32 pixels of headroom, and the standing assumption was that this costs frames — three forced stomps, or a detour. It costs zero. A goomba stomped while you are already descending sets your vertical speed to −4 and does not touch your horizontal speed at all: taken in stride, it is not a cost. All three segments matched the enemy-free bound exactly.</li>
+    <li><strong>The pit is free.</strong> The record rides a moving platform across it. The search does not: a full-power jump held for 23 frames clears the gap, passing under the vine ledge and landing on open floor, and that is the optimum.</li>
+  </ul>
+
+  <h3>Two results in the negative direction</h3>
+  <p>Negative results are results. From the record's own state approaching the flagpole in 1-1, an exhaustive search of every input sequence shows there is <strong>no faster glitch grab</strong> — the earliest grab of any kind comes four frames later than needed, and the lowest one available is a single pixel short of triggering the glitch. That is a fifteen-year-old community belief, now with a proof artifact behind it.</p>
+  <p>And in 4-2, the record's final approach to the wrong-warp pipe is <strong>three frames loose</strong> — a real, verified saving on the real emulator. It buys nothing, because the framerule swallows it: that level's deficit merely goes from 13 to 10. It is, however, direct evidence that fifteen years of manual optimisation did not reach the floor everywhere, which is the entire premise of the project.</p>
+</section>
+
+<section id="wrong">
+  <p class="chapno">Chapter 12</p>
+  <h2>What could still be wrong</h2>
+  <p class="lede">The honest list, kept as a live document rather than a disclaimer.</p>
+
+  <ul>
+    <li><strong>The seams.</strong> Chapter 09. Each segment is proven; the chain is not. A level-wide proof needs either one search that spans the whole room, or a way to carry many arrival states across a seam instead of one.</li>
+    <li><strong>Things the model does not contain.</strong> Items are not modeled — a mushroom, a star, a vine. That is not only about power-ups: an item also <em>occupies an enemy slot</em>, which is precisely why the record's vine keeps a piranha plant out of the pipe it needs to enter. Searches currently refuse to bump item blocks rather than pretend to know what happens. Swimming is modeled but not yet difference-tested. Lag frames, the random number generator and the game timer live outside the model entirely and are handled by a separate timing model.</li>
+    <li><strong>Known looseness in the bounds.</strong> Documented rather than guessed. The height gate allows chains of one-frame landings on wall faces that the real game's push-out makes unrealizable, so it understates some costs. That is safe — it can only make the search slower, never wrong — but it is where the next tightening will come from.</li>
+    <li><strong>Coverage, not proof, on the model itself.</strong> 877,058 differentially tested frames is a great deal of evidence that the model is the game. It is evidence, not a proof. Every refutation we write has to name which of the model's omissions could have mattered in that room, and why it did not.</li>
+    <li><strong>And the thing nobody can rule out:</strong> that the frames are not in movement at all, but in a glitch — a wrong warp, a level skip, an out-of-bounds table read. That is a separate track of the project, and it is not what this page is about.</li>
+  </ul>
+</section>
+
+<section id="glossary">
+  <p class="chapno">Reference</p>
+  <h2>Glossary</h2>
+  <dl class="glossary">
+    <div><dt>Frame</dt><dd>One sixtieth of a second, one controller read, one move. The unit of everything here.</dd></div>
+    <div><dt>Framerule</dt><dd>The 21-frame grid the end of a level is rounded up to. Saving fewer frames than the level's deficit saves nothing at all.</dd></div>
+    <div><dt>Deficit / slack</dt><dd>How many frames a level must lose before the clock moves (deficit), and how many it could waste for free (slack).</dd></div>
+    <div><dt>State</dt><dd>Everything about the game that can affect the future, and nothing else: 96 bytes with enemies, as few as 10 without.</dd></div>
+    <div><dt>Layer</dt><dd>All distinct states reachable in exactly <em>k</em> frames. The search advances one layer at a time.</dd></div>
+    <div><dt>Bound (h)</dt><dd>A guaranteed-not-too-large number of frames still needed from a state. If frames spent plus the bound exceeds the deadline, the state is deleted.</dd></div>
+    <div><dt>Admissible</dt><dd>The property that a bound never overstates. Lose it and the search deletes the right answer and reports a false proof.</dd></div>
+    <div><dt>Relaxation</dt><dd>An easier fantasy version of the game used to compute a bound. Impossible in the fantasy implies impossible in reality.</dd></div>
+    <div><dt>Deadline / rung / ladder</dt><dd>The frame budget a run tests. The ladder tries the tightest budget first and loosens; tight rungs are cheap, loose rungs are unaffordable.</dd></div>
+    <div><dt>Proof-grade</dt><dd>Deadline set equal to the bound: nothing on a shorter path can be pruned, so the first goal layer is the optimum, established by that single run.</dd></div>
+    <div><dt>Segment / seam</dt><dd>A short milestone-to-milestone search, and the join between two of them where one arrival state is chosen out of millions.</dd></div>
+    <div><dt>Differential test</dt><dd>Same inputs into the model and the real emulator; compare every field on every frame. How the model earns its trust.</dd></div>
+    <div><dt>Wall walk</dt><dd>A quirk of the game's side-collision order that lets Mario keep moving right while inside solid blocks at floor level. The record uses it; it costs 31 frames to get in.</dd></div>
+  </dl>
+</section>
+
+<footer>
+  <p style="max-width:none">Every number on this page comes from a script in the project and a log in <code>runs/</code>. Nothing here is folklore.</p>
+</footer>
+
+</main>
+</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var css = function(name){ return getComputedStyle(document.body).getPropertyValue(name).trim(); };
+  var fmt = function(n){ return n.toLocaleString("en-US"); };
+  var bytes = function(n){
+    if(n < 1024) return n + " B";
+    if(n < 1048576) return (n/1024).toFixed(1) + " KB";
+    if(n < 1073741824) return (n/1048576).toFixed(1) + " MB";
+    if(n < 1099511627776) return (n/1073741824).toFixed(1) + " GB";
+    return (n/1099511627776).toFixed(1) + " TB";
+  };
+  var sci = function(n){
+    if(n < 1e6) return fmt(Math.round(n));
+    if(n < 1e9) return (n/1e6).toFixed(n < 1e7 ? 1 : 0) + " M";
+    if(n < 1e12) return (n/1e9).toFixed(1) + " B";
+    return n.toExponential(1).replace("e+", " × 10^");
+  };
+
+  /* ---------- 01 · the explosion ---------- */
+  var measured = [null, 16, 127, 936, 5402, 26247, 107757, 245300];
+  var depth = document.getElementById("expDepth");
+  if(depth){
+    var maxLog = Math.log10(Math.pow(16, 7));
+    var draw = function(){
+      var n = +depth.value;
+      var seq = Math.pow(16, n), st = measured[n];
+      var cap = (n === 7);
+      document.getElementById("expDepthLbl").textContent = "depth " + n + (n === 1 ? " frame" : " frames");
+      document.getElementById("expSeqBar").style.width = (Math.log10(seq)/maxLog*100).toFixed(2) + "%";
+      document.getElementById("expStateBar").style.width = (Math.log10(st)/maxLog*100).toFixed(2) + "%";
+      document.getElementById("expSeqVal").textContent = fmt(seq);
+      document.getElementById("expStateVal").textContent = fmt(st) + (cap ? "+" : "");
+      document.getElementById("expRatio").textContent = (seq/st).toFixed(seq/st < 10 ? 1 : 0) + "×";
+      document.getElementById("expGrowth").textContent = n > 1 ? "×" + (st/measured[n-1]).toFixed(1) : "—";
+      document.getElementById("expMem").textContent = bytes(st*96) + (cap ? "+" : "");
+    };
+    depth.addEventListener("input", draw);
+    draw();
+  }
+
+  /* ---------- 02 · the framerule ruler ---------- */
+  var LEVELS = [
+    {id:"1-1", deficit:1,  slack:20, note:"one frame from a 21-frame save"},
+    {id:"1-2", deficit:8,  slack:13, note:""},
+    {id:"4-1", deficit:9,  slack:12, note:""},
+    {id:"4-2", deficit:13, slack:8,  note:"the untested top route is thought to need only 2"},
+    {id:"8-1", deficit:18, slack:3,  note:""},
+    {id:"8-2", deficit:19, slack:2,  note:""},
+    {id:"8-3", deficit:10, slack:11, note:""},
+    {id:"8-4", deficit:1,  slack:0,  note:"", linear:true}
+  ];
+  var frLevels = document.getElementById("frLevels");
+  var frRuler = document.getElementById("frRuler");
+  var frSave = document.getElementById("frSave");
+  var current = 0;
+  if(frLevels){
+    LEVELS.forEach(function(L, i){
+      var b = document.createElement("button");
+      b.className = "btn"; b.textContent = L.id;
+      b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+      b.addEventListener("click", function(){
+        current = i;
+        Array.prototype.forEach.call(frLevels.children, function(c, j){
+          c.setAttribute("aria-pressed", j === i ? "true" : "false");
+        });
+        frSave.value = 0; frDraw();
+      });
+      frLevels.appendChild(b);
+    });
+    var cells = [];
+    for(var c = 0; c < 63; c++){
+      var d = document.createElement("div");
+      d.className = "frbox";
+      d.style.cssText = "flex:1;height:30px;border-radius:2px;border-left:" + (c % 21 === 0 ? "2px solid var(--ink-3)" : "1px solid var(--line)");
+      frRuler.appendChild(d); cells.push(d);
+    }
+    var frDraw = function(){
+      var L = LEVELS[current], s = +frSave.value;
+      var base = 21 + L.deficit;
+      var pos = base - s;
+      var save = L.linear ? s : (s >= L.deficit ? 21*(Math.floor((s - L.deficit)/21) + 1) : 0);
+      cells.forEach(function(d, i){
+        var filled = i < pos;
+        d.style.background = filled ? (i < 21 ? "var(--surface-2)" : "var(--gold-wash)") : "transparent";
+        d.style.boxShadow = (i === pos - 1) ? "inset 0 0 0 2px " + css("--gold-mark") : "none";
+        d.style.opacity = (i === base - 1 && s > 0) ? ".55" : "1";
+      });
+      document.getElementById("frSaved").textContent = s;
+      document.getElementById("frClock").textContent = save;
+      var v = document.getElementById("frVerdict");
+      if(L.linear){ v.textContent = "every frame counts"; v.style.color = css("--green"); }
+      else if(save === 0){ v.textContent = s === 0 ? "the record" : "saves nothing"; v.style.color = s === 0 ? css("--ink-3") : css("--rust"); }
+      else { v.textContent = (save/21) + " framerule" + (save > 21 ? "s" : ""); v.style.color = css("--green"); }
+    };
+    frSave.addEventListener("input", frDraw);
+    frDraw();
+  }
+
+  /* ---------- 07 · the frontier law ---------- */
+  var ANCHORS = [[0,1.0],[2,1.02],[6,1.09],[12,1.20],[15,1.25],[20,1.50],[28,2.00]];
+  var growthFor = function(s){
+    for(var i = 1; i < ANCHORS.length; i++){
+      if(s <= ANCHORS[i][0]){
+        var a = ANCHORS[i-1], b = ANCHORS[i];
+        return a[1] + (b[1]-a[1]) * (s-a[0]) / (b[0]-a[0]);
+      }
+    }
+    return 2.0;
+  };
+  var plateauFor = function(s){ return s <= 1 ? 6e6 : (s <= 3 ? 1.5e7 : Infinity); };
+  var slSlack = document.getElementById("slSlack");
+  var slChart = document.getElementById("slChart");
+  var slDraw = function(){
+    if(!slChart) return;
+    var s = +slSlack.value, r = growthFor(s), P = plateauFor(s);
+    var dpr = window.devicePixelRatio || 1;
+    var w = slChart.clientWidth || 700, h = 300;
+    slChart.width = w*dpr; slChart.height = h*dpr;
+    var g = slChart.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    var padL = 62, padR = 16, padT = 16, padB = 34;
+    var W = w - padL - padR, H = h - padT - padB;
+    var LAYERS = 100, LOGMIN = 1, LOGMAX = 10;
+    var X = function(k){ return padL + k/LAYERS*W; };
+    var Y = function(v){ return padT + H - (Math.log10(Math.max(v,10)) - LOGMIN)/(LOGMAX - LOGMIN)*H; };
+    g.font = "10.5px 'IBM Plex Mono', monospace";
+    g.textBaseline = "middle";
+    for(var e = 2; e <= 9; e++){
+      g.strokeStyle = css("--line"); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(padL, Y(Math.pow(10,e))); g.lineTo(w-padR, Y(Math.pow(10,e))); g.stroke();
+      g.fillStyle = css("--ink-3"); g.textAlign = "right";
+      g.fillText(e === 2 ? "100" : (e < 6 ? Math.pow(10,e).toLocaleString("en-US") : "10^"+e), padL-8, Y(Math.pow(10,e)));
+    }
+    g.strokeStyle = css("--rust-mark"); g.lineWidth = 1.4; g.setLineDash([5,4]);
+    g.beginPath(); g.moveTo(padL, Y(4e7)); g.lineTo(w-padR, Y(4e7)); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = css("--rust"); g.textAlign = "left";
+    g.fillText("a layer this big fills the machine", padL+8, Y(4e7)-11);
+    var vals = [], v = 16, over = -1;
+    for(var k = 0; k <= LAYERS; k++){
+      vals.push(v);
+      if(over < 0 && v > 4e7) over = k;
+      v = Math.min(v*r, P);
+    }
+    g.strokeStyle = css("--gold-mark"); g.lineWidth = 2.6;
+    g.beginPath();
+    vals.forEach(function(val, k){ var yy = Math.max(Y(val), padT-2); k ? g.lineTo(X(k), yy) : g.moveTo(X(k), yy); });
+    g.stroke();
+    g.fillStyle = css("--ink-3"); g.textAlign = "center";
+    g.fillText("frame layer →", padL + W/2, h - 10);
+    if(over > 0){
+      g.strokeStyle = css("--rust-mark"); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(X(over), padT); g.lineTo(X(over), padT+H); g.stroke();
+      g.fillStyle = css("--rust"); g.textAlign = X(over) > w*0.6 ? "right" : "left";
+      g.fillText("dead at layer " + over, X(over) + (X(over) > w*0.6 ? -8 : 8), padT + 14);
+    }
+    document.getElementById("slSlackLbl").textContent = "slack " + s + (s === 1 ? " frame" : " frames");
+    document.getElementById("slGrowth").textContent = "×" + r.toFixed(2);
+    document.getElementById("slPeak").textContent = sci(vals[40]);
+    document.getElementById("slMem").textContent = bytes(vals[40]*96);
+    var vd = document.getElementById("slVerdict");
+    if(s === 0){ vd.textContent = "proof-grade"; vd.style.color = css("--green"); }
+    else if(s <= 3){ vd.textContent = "hours"; vd.style.color = css("--green"); }
+    else if(s <= 8){ vd.textContent = "days"; vd.style.color = css("--gold"); }
+    else if(s <= 15){ vd.textContent = "out of reach"; vd.style.color = css("--rust"); }
+    else { vd.textContent = "killed in minutes"; vd.style.color = css("--rust"); }
+  };
+  if(slSlack){
+    slSlack.addEventListener("input", slDraw);
+    window.addEventListener("resize", slDraw);
+    if(window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", slDraw);
+    slDraw();
+  }
+
+  /* ---------- 09 · the 4-2 block map ---------- */
+  var svg = document.getElementById("w42map");
+  if(svg){
+    var NS = "http://www.w3.org/2000/svg";
+    var CELL = 10, OX = 14, OY = 14;
+    var mk = function(tag, attrs){
+      var e = document.createElementNS(NS, tag);
+      for(var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    };
+    var cellRect = function(col, row, fill, opacity, dashed){
+      var r = mk("rect", {x: OX+col*CELL, y: OY+row*CELL, width: CELL-0.6, height: CELL-0.6, rx: 1.4, fill: dashed ? "none" : fill, "fill-opacity": opacity});
+      if(dashed){ r.setAttribute("stroke", fill); r.setAttribute("stroke-width", "1"); r.setAttribute("stroke-dasharray", "2 2"); }
+      return r;
+    };
+    var range = function(a, b){ var o = []; for(var i = a; i <= b; i++) o.push(i); return o; };
+    var solid = [], brick = [], hidden = [];
+    var addRow = function(list, cols, rows){ cols.forEach(function(c){ rows.forEach(function(r){ list.push([c,r]); }); }); };
+    addRow(solid, [0].concat(range(6,56), range(67,97)), [0]);                    /* ceiling */
+    addRow(brick, range(20,47), [1,2,3]);                                          /* hanging brick mass */
+    addRow(solid, range(22,26), [7,8,9]);                                          /* pillar */
+    addRow(brick, [27,28], [7]);
+    addRow(solid, range(30,47), [7,8,9,10]);                                       /* the run */
+    addRow(brick, [50,51], [3]);
+    addRow(brick, [50,51,54,55,56], [7]);
+    addRow(hidden, [63,65], [6]); addRow(hidden, [64], [5]); addRow(hidden, [66], [7]);
+    addRow(brick, [64,65,66], [3]);
+    addRow(solid, [72,73], [8,9,10]);                                              /* pipe A */
+    addRow(brick, [76,77,80,81], [7]);
+    addRow(solid, [78,79], [4,5,6,7,8,9,10]);                                      /* pipe B */
+    addRow(solid, [84,85], [8,9,10]);                                              /* wrong-warp pipe */
+    addRow(solid, [89,90], [8,9,10]);                                              /* pipe C */
+    var pits = {11:1,12:1,15:1,16:1,18:1,19:1,20:1,57:1,58:1,59:1,60:1,61:1,62:1};
+    range(0,97).forEach(function(c){ if(!pits[c]) { solid.push([c,11]); solid.push([c,12]); } });
+
+    var gSolid = mk("g", {}), gBrick = mk("g", {}), gHidden = mk("g", {});
+    solid.forEach(function(p){ gSolid.appendChild(cellRect(p[0], p[1], "currentColor", .30)); });
+    brick.forEach(function(p){ gBrick.appendChild(cellRect(p[0], p[1], "#d9a520", .55)); });
+    hidden.forEach(function(p){ gHidden.appendChild(cellRect(p[0], p[1], "#d9a520", 1, true)); });
+    svg.appendChild(gSolid); svg.appendChild(gBrick); svg.appendChild(gHidden);
+
+    /* enemies */
+    var enemies = [[43.1,6.4,"goomba"],[44.6,6.4,""],[46.1,6.4,""],[77,6.4,"koopa"],[83,7.4,"beetle"],[72.5,7.4,"plant"],[78.5,3.4,"plant"],[84.5,7.4,"plant"]];
+    enemies.forEach(function(e){
+      svg.appendChild(mk("circle", {cx: OX+e[0]*CELL+CELL/2, cy: OY+e[1]*CELL+CELL/2, r: 3.6, fill: "#cc5a35"}));
+    });
+    svg.appendChild(mk("rect", {x: OX+58.4*CELL, y: OY+5*CELL, width: 14, height: 4, rx: 1.5, fill: "#cc5a35"}));
+
+    /* milestones */
+    var goals = [[21.2,"S1 · 149"],[50,"S2′ · 184"],[62.8,"S3′ · 82"],[84.3,"S4 · running"]];
+    goals.forEach(function(g){
+      var x = OX + g[0]*CELL;
+      svg.appendChild(mk("line", {x1:x, y1:OY-6, x2:x, y2:OY+13*CELL+4, stroke:"#39a06a", "stroke-width":1.3, "stroke-dasharray":"4 3"}));
+      var t = mk("text", {x:x+4, y:OY+13*CELL+20, fill:"#39a06a", "font-family":"'IBM Plex Mono',monospace", "font-size":"11"});
+      t.textContent = g[1]; svg.appendChild(t);
+    });
+    var st = mk("text", {x:OX+2*CELL, y:OY+13*CELL+20, fill:"currentColor", "font-family":"'IBM Plex Mono',monospace", "font-size":"11", "fill-opacity":".7"});
+    st.textContent = "entry"; svg.appendChild(st);
+    var lbl = function(col, row, txt, color){
+      var t = mk("text", {x:OX+col*CELL, y:OY+row*CELL, fill:color||"currentColor", "font-family":"'IBM Plex Mono',monospace", "font-size":"10.5", "fill-opacity":".85"});
+      t.textContent = txt; svg.appendChild(t); return t;
+    };
+    lbl(25.5, 5.8, "hanging bricks — 32 px of headroom above the run");
+    lbl(57.5, 12.2, "lift pit", "#cc5a35");
+    lbl(66, 2.4, "pipe B: a wall from the floor to row 4");
+
+    var path = function(pts, color, dash, width){
+      var d = pts.map(function(p, i){ return (i ? "L" : "M") + (OX+p[0]*CELL+CELL/2).toFixed(1) + "," + (OY+p[1]*CELL+CELL/2).toFixed(1); }).join(" ");
+      return mk("path", {d:d, fill:"none", stroke:color, "stroke-width":width||2.4, "stroke-linejoin":"round", "stroke-linecap":"round", "stroke-dasharray": dash||"none"});
+    };
+    var TOP = [[2.5,1.6],[2.5,10],[10,10],[11.5,8.8],[13,10],[15.5,8.8],[17,10],[19,8.6],[21,10],[21.6,7.6],[22.4,6],[29,6],[30,6],[47,6],[48.6,6.9],[50,6],[52,6.7],[54,6],[56.4,6],[58,4.6],[61,4],[62.8,5],[66,8],[70,10],[71.6,7.4],[73.6,7],[76,6],[77.6,6],[78.6,3],[80,6],[82,8.6],[84.3,7]];
+    var BOT = [[2.5,1.6],[2.5,10],[10,10],[11.5,8.8],[13,10],[15.5,8.8],[17,10],[19,8.6],[21,10],[22,9.6],[24,9.6],[29,9.6],[30,9.6],[47.6,9.6],[50,9.6],[56.4,9.6],[58.2,8.4],[58.7,4.4],[63,4.4],[70,6.4],[71.6,7.4],[73.6,7],[76,6],[77.6,6],[78.6,3],[80,6],[82,8.6],[84.3,7]];
+    var pTop = path(TOP, "#d9a520");
+    var pBot = path(BOT, "#cc5a35", "6 4");
+    svg.appendChild(pBot); svg.appendChild(pTop);
+    var wallLbl = lbl(31, 11.6, "wall walk — 31 frames just to wedge in", "#cc5a35");
+
+    var noteEl = document.getElementById("mapNote");
+    var bTop = document.getElementById("mapTop"), bBot = document.getElementById("mapBottom");
+    var NOTES = {
+      top: "<strong>The top route</strong> climbs onto the pillar at column 22 and stays on the upper surface — straight through the three goombas, over the lift pit, over pipe B. Nobody has ever searched it exhaustively. The three green milestones are the seams between our segments; the fourth is the search running now.",
+      bottom: "<strong>The record's route</strong> stays at floor level, through the tunnel under the pillar — and then does something remarkable: it walks <em>inside</em> the solid run at columns 30 to 47, exploiting the order in which the game checks side collisions. Getting wedged in costs 31 frames, which is most of that level's gap to the movement bound. The route then rides the lift out of the pit."
+    };
+    var setRoute = function(which){
+      var top = which === "top";
+      pTop.setAttribute("opacity", top ? "1" : ".18");
+      pBot.setAttribute("opacity", top ? ".18" : "1");
+      wallLbl.setAttribute("fill-opacity", top ? ".2" : ".95");
+      bTop.setAttribute("aria-pressed", top ? "true" : "false");
+      bBot.setAttribute("aria-pressed", top ? "false" : "true");
+      noteEl.innerHTML = top ? NOTES.top : NOTES.bottom;
+    };
+    bTop.addEventListener("click", function(){ setRoute("top"); });
+    bBot.addEventListener("click", function(){ setRoute("bottom"); });
+    setRoute("top");
+  }
+
+  /* ---------- rail scroll spy ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll(".rail a"));
+  if(links.length && "IntersectionObserver" in window){
+    var byId = {};
+    links.forEach(function(a){ byId[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(a){ a.classList.remove("on"); });
+          var a = byId[en.target.id];
+          if(a) a.classList.add("on");
+        }
+      });
+    }, {rootMargin: "-10% 0px -70% 0px"});
+    Object.keys(byId).forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) io.observe(el);
+    });
+  }
+})();
+</script>
+</body>
+</html>
