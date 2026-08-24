@@ -937,3 +937,18 @@ deep structure: 588 = 553 movement + ~31 warp-key + ~4 slack, conserved across r
 sitting on the conserved price.
 **Next.** The pivot the user picked before the mint question: 8-3 (deficit ~7 after F37's FPG) / 1-2 (~5 on the
 best-known route) with the existing tooling — new cases in the engine. 4-2 rests unless H38's enumeration gets picked up.
+
+## 2026-08-24 — Session 14 (close): P2.3c-7 — the vine-snap mint refuted in the asm; 4-2 rests; pivot queue set
+**Did.** Launched the vine unit with agreed kill criteria; the disassembly read killed it in step 1, twice over:
+(1) every grab of the 4-2 vine is an irreversible autoclimb warp commitment (side-point-only grabs × rows-≤2 cells
+⇒ Y < 32 ⇒ GES 1 ⇒ forced-Up JoypadOverride ⇒ area change to $2F — the vine IS the legit warp-zone route, the wrong
+warp its shortcut); (2) even a leave-able grab nets ≤ +14 px at wall-mint rates ⇒ ~578–581 > 575. Completed H38's
+x-writer enumeration (flagpole/platforms/enemies/springs/clamp all ✗) ⇒ H38 refuted for 4-2, code-level. Unit
+closed same-session per the no-third-push agreement. User asked about beaming 1-1: room 3 is proof-closed (F116),
+but the real door is H29 (room 1, bounce-assisted, never searched) — exhaustively searchable at deadline 367
+(~5M/layer, F82), needs only the enemy-module port (classes already in w42enemies.rs). Queue: H29 → 1-2 → 8-3.
+**Learned.** Read the code before building the harness — the half-day difftest plan was preempted by 30 minutes of
+asm. And the project's recurring shape held once more: 4-2's every "trick" (bumps, wall walk, vine) is load-bearing
+machinery for the warp, not optional style.
+**Next.** P2.5b-1: port the room-1 enemy rules into the engine (adapt w42enemies), difftest to 0, then the
+deadline-367 exhaustive room-1 search — the H29 verdict and the cheapest framerule on the route.
