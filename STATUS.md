@@ -50,6 +50,20 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
+  campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
+  area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
+  over 3345 and the stop/turnaround timing (rows 16480–16560); margin ≥ ~3 px ⇒ a 1-frame-earlier
+  stop still warps ⇒ the frame is real ⇒ step 2: the exact-model segment search (W84 cases,
+  land room). Acceptance in the Next-up row.
+  **CHECKPOINT: forensics DONE — the WR's margin over SL 3345 is ZERO px** (SL hits 3345 and the
+  $02 command parses on row 16516 exactly; max x 3457 = rel 112 pinned; a hand-tuned brake with a
+  re-accel blip at 16503 — HappyLee optimized this to the pixel, so the H25 frame lives in the
+  brake's subpixel phase / the seam into the F66-optimal 74-frame clip). **The case `W84Room3`
+  is BUILT** (Small + scroll, goal = pipe (212,5) with screen_left_abs ≥ 3345, F89 overshoot
+  bound; MrWint's clip case independently encodes the same SL window — threshold cross-checked).
+  WR-line + 100-trial difftests RUNNING; then the d194 ladder (WR = 195; a goal ≤ 194 = THE
+  RECORD, 8-4 unquantized) with the d195 `--check-path` control. `P2.2a-84-turnaround.md`.
 - **P2.5b-1 — 1-1 room-1 enemy-aware exhaustive search (H29; started 2026-08-24 session 14,
   continuing in-session).** Goal: the H29 verdict — can a goomba/koopa bounce beat the enemy-free
   room-1 optimum 368 (WR = optimum, F63)? Deficit 1 ⇒ any 1-frame gain = a full framerule. Plan:
@@ -73,12 +87,20 @@ pre-cleanup narrative version of this file is archived at
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
-Priority (decisions.md 2026-08-22/23): 4-2 before 1-1 room 1; big single runs go to the cloud,
-ladders and segment work run locally on the two boxes. H36 (the 4-2 top route) is confirmed
-beyond the claim in the model (553); what remains open is the warp-key finale.
+**Priority (decisions.md 2026-08-24, session 14 evening): THE 8-4 CAMPAIGN IS THE PRIMARY
+TRACK.** 8-4 is unquantized — one frame = the record; an earlier last input (longer ending
+coast, F17) also wins. Order: H25 turnaround stop → H1 ending coast → water room (no solved
+optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. One Track B unit
+(P3.2 oracle) interleaved every few sessions. Framerule levels (P2.3e) demoted to third.
+1-1 and 4-2 are closed. Big single runs → cloud; segments run locally (unchanged).
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
+| P2.2a | **H25 — the 8-4 turnaround-room stop (Maru's idea, the campaign opener).** The room-3 wrong warp needs the (14,4) → $02 p0 command parsed ⇔ SL ≥ 3345 (= 3648 − 303, the F40 threshold); the WR overshoots rightward to drag the scroll, stops, turns, enters the pipe (clip from x 3388 = 74 = optimal, F66 — the candidate frame is in the APPROACH/stop, subspeed $705-dependent, F11/F37). Forensics from the dump (max SL vs 3345 margin; the stop row), then the exact-model segment search (W84 cases exist; land room, no swimming). | A | M | — | The margin arithmetic in `docs/experiments/P2.2a-84-turnaround.md`; if margin ≥ 1 frame of scroll: a searched, core-replayed 1-frame gain (= the record pipeline) or the refutation |
+| P2.2b | **H1 — the ending coast:** earliest last input that still reaches the axe (WR: last input 17848, 19-frame coast). Exhaustive small search over the final approach/jump from the Bowser-room states; every coast frame = a record by F17. | A | S | — | Earliest-last-input proof record; any gain → P4.1 |
+| P2.2c | **The 8-4 water room** (control 16720 → side pipe 17416, 102 frames to x ≥ 185 with NO solved optimum, F66): swimming difftest first (the model's swim code is unvalidated), then the segment search with the side-pipe goal. | A | M | swim difftest | Difftest 0 diffs; segment optimum vs the WR's 102 with a proof record |
+| P2.2d | **8-4 room transitions & wrong-warp scroll timing** (F11): each room's area-change command parse threshold vs the WR's scroll at entry — the 4-2 F40/F120 machinery applied to all four 8-4 warps; any 1-px margin = a candidate frame. | A | M | P2.2a pattern | Per-room threshold/margin table; candidates searched |
+| P2.2e | **Bowser/RNG micro** (H10/H17): hammers/fire are LFSR-driven and lag-free ⇒ frame-indexed like the goombas; model + search the Bowser room incl. spawn suppression. | A | L | P2.2a–d | Difftest 0 diffs incl. hammers; room search record |
 | P2.3c-6 | **4-2 wrong-warp finale, d59–d66 from the 509 chain, on a cloud box.** The drift-bounded `bfscx` rung (`runs/P2.3c-2c/s4w4_d58_drift_launch.sh` pattern; `chain_s4v3.bin`, prefix 509, `--enemies 0`, vine+refusal+drift build) at d62/d64/d66 — ~10⁹ records/layer, needs ~1 TB of layer disk and 64+ GB RAM (the auction EPYC, F97). On a GOAL: the record pipeline (`docs/search-runbook.md` §4; the FCEUX warp-destination check is the gate). | A | L | **user go-ahead (A)**, P2.3c-5 | Either a valid warp at d ≤ 66 verified in two emulators (→ P4.1), or a proof-grade dry through d66 from the 509 root recorded in H36/F-ledger (the mint-elsewhere question then remains) |
 | P2.3e | **Next framerule level with the existing tooling (the default, B).** Candidates by remaining deficit: 8-3 (10, of which F37's FPG-242 gives 3 → 7; Hammer Bros are RNG-driven and the model has no RNG), 1-2 (8 on the WR's route, 5 on Maru's, H22), 4-1 (9). First unit = a one-session feasibility scan of all three (block maps from the dump via `tools/blockmap_from_dump.py`, enemies from `tools/area_data.py`, model gaps, which segments are RNG-free), pick one, then a case in the patch + difftest + bounds + ladder as done for 4-2 (`P2.3a` → `P2.3c-2c` pattern). | A | L | — | Scan table in a new experiment file with the chosen level and why; then a case exact on the WR's frames and a first segment bound vs the WR |
 | H37 | **Pipe B floor-level entry test** (4-2, cols 78–79): `bfscx --goal-x 1262 --goal-y 176` from a grounded root in front of pipe B (a census pick at x ≥ 1200 from the 509 chain's predecessor layers, or a WR state) with a small ladder. A path = a new route (replay on the core, F80-style); a dead frontier = the col-78 face is a sound gate. Never reached by any run so far (F117). | A/B | S | — | A core-replayed path or a proof record in hypotheses.md |

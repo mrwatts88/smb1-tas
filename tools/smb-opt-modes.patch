@@ -876,7 +876,7 @@ index 84463c9..d254e1e 100644
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w84.rs b/src/case/w84.rs
-index 3f1c53b..fc1d170 100644
+index 3f1c53b..39d43e3 100644
 --- a/src/case/w84.rs
 +++ b/src/case/w84.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W84Speedup {
@@ -927,6 +927,96 @@ index 3f1c53b..fc1d170 100644
      };
      vec![s]
    }
+@@ -469,3 +475,89 @@ impl SearchGoal for W84Part4Speedup {
+     println!("best max_x_pos so far: {:x}", self.max_x_pos);
+   }
+ }
++
++/// P2.2a (H25, Maru's turnaround stop): 8-4 room 3 from the CONTROL state (WR dump row 16355: x 3128.0, Y 144,
++/// standing, all fractions 0, SL 3072 — record 16354, F69) to the wrong-warp pipe entry at (212,5) — WITH the
++/// warp condition: the (page 14, col 4) -> $02 p0 area-change command must be PARSED, i.e. absolute
++/// ScreenLeft >= 3345 (= 3648 - 303, the F40 law; MrWint's clip case encodes the same window as
++/// left_screen_edge_pos in [0x11, 0x40) on page 13; the WR enters at SL 3345 EXACTLY — zero margin). Small
++/// Mario (the warps WR never powers up — MrWint's Big is his own route), exact options (running timer). The
++/// segment is enemy-free (E_CastleArea6: nothing between the pages 8-9 lifts, erased by control, and page 18).
++/// WR: 195 steps (row 16355 -> entry 16550, max x 3457 at step ~162). A goal at <= 194 = THE RECORD (8-4 is
++/// unquantized). Bound: the F89 overshoot machinery — the scroll needs max-x >= 3345 + 112 = 3457 (rel <= 112
++/// while scrolling; collision-minted offset only RAISES rel, i.e. needs more x — so x >= 3457 is necessary),
++/// then the return to the pipe.
++#[allow(dead_code)]
++pub struct W84Room3 {
++  h: XPosHeuristic,
++}
++pub const W84R3_OVERSHOOT_X: i32 = 0xd8100;    // 3457 px: min max-x for SL >= 3345
++pub const W84R3_PIPE_XMAX: i32 = (0xd4c << 8) | 0xff; // 3404 px: the entry window's right edge (WR enters at 3404)
++impl Options for W84Room3 {
++  type CoinHandler = IgnoreCoins;
++  type Platform = NTSC;
++  type PlayerSize = Small;
++  type Swim = NotSwimming;
++  type PowerupHandler = NoPowerups;
++  type RunningTimer = WithRunningTimer;
++  type ScrollPos = WithScrollPos;
++  type Parity = NoParity;
++  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U212, ::typenum::U5>;
++  type YPosFractionalBehavior = KeepYPosFractionals;
++}
++impl super::SmbSearchCase for W84Room3 {
++  type SearchGoal = Self;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 12]>, Dist>;
++
++  type BlockBuffer = BB84;
++
++  fn start_states() -> Vec<State> {
++    vec![State {
++      x_pos: 0xc3800,
++      y_pos: 0x19000,
++      x_spd: 0x0,
++      y_spd: 0x0,
++      player_state: PlayerState::STANDING,
++      moving_dir: Dir::empty(),
++      facing_dir: Dir::RIGHT,
++      v_force: <Self as Options>::Platform::V_FORCE_AREA_INIT,
++      v_force_down: <Self as Options>::Platform::V_FORCE_AREA_INIT,
++      x_spd_abs: 0,
++      running_speed: false,
++      collision_bits: Dir::LR,
++      is_crouching: false,
++      jump_swim_timer: 0,
++      running_timer : 0,
++      left_screen_edge_pos: 0x00,
++      side_collision_timer: 0,
++      collected_coins: 0,
++      powerup_block_hit: false,
++      powerup_collected: false,
++      parity: 0,
++      a_held: false, block_bounce_timer: 0, blocks: Default::default(),
++    }]
++  }
++  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
++}
++impl SearchGoal for W84Room3 {
++  fn new() -> Self {
++    let mut h = XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states());
++    h.build_overshoot_bound(W84R3_OVERSHOOT_X, W84R3_PIPE_XMAX, 0);
++    Self { h }
++  }
++  /// Two-phase (as W42Warp, phase from the STATE's scroll — no ext needed): before SL 3345 the coupled
++  /// overshoot bound to x >= 3457 + the return; after, the plain leftward table to the pipe window.
++  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
++    if ::emu::screen_left_abs(s.x_pos >> 8, s.left_screen_edge_pos) < 3345 {
++      Some(self.h.get_steps_overshoot(s, W84R3_OVERSHOOT_X))
++    } else if s.x_pos > W84R3_PIPE_XMAX {
++      Some(self.h.get_steps_until_x_pos_at_most(s, W84R3_PIPE_XMAX))
++    } else { Some(0) }
++  }
++  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
++  fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool {
++    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
++      cx == 212 && cy == 5 && ::emu::screen_left_abs(s.x_pos >> 8, s.left_screen_edge_pos) >= 3345
++    } else { false }
++  }
++}
 diff --git a/src/emu.rs b/src/emu.rs
 index 947eef3..fc94a87 100644
 --- a/src/emu.rs
@@ -1964,7 +2054,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..52cf4f4 100644
+index 350d469..ce3ebb5 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1975,7 +2065,7 @@ index 350d469..52cf4f4 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,322 @@ mod ida;
+@@ -20,8 +21,325 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -1997,6 +2087,7 @@ index 350d469..52cf4f4 100644
 +    match args[2].as_str() {
 +      "W42Main" => { replayce::<case::w42::W42Main>(&data, first, n, true, if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0); }
 +      "W11Room1E" => { replayce::<case::w11::W11Room1E>(&data, first, n, true, if enemies { Some(w11_enemies as Hook) } else { None }, 0x100 | aptn0); }
++      "W84Room3" => { replayce::<case::w84::W84Room3>(&data, first, n, true, None, 0); }
 +      "W42Warp" => { replayc::<case::w42::W42Warp>(&data, first, n, true); }
 +      "W11VertPipeEntry" => { replayc::<case::w11::W11VertPipeEntry>(&data, first, n, true); }
 +      other => panic!("unknown case {}", other),
@@ -2072,6 +2163,7 @@ index 350d469..52cf4f4 100644
 +    match args[2].as_str() {
 +      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift, beam, beam_offset, log_offset, goal_offset),
 +      "W11Room1E" => bfscx_run::<case::w11::W11Room1E, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w11_enemies as Hook) } else { None }, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, log_offset, goal_offset),
++      "W84Room3" => bfscx_run::<case::w84::W84Room3, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, log_offset, goal_offset),
 +      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, log_offset, goal_offset),
 +      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, log_offset, goal_offset),
 +      other => panic!("unknown case {}", other),
@@ -2102,6 +2194,7 @@ index 350d469..52cf4f4 100644
 +    match args[2].as_str() {
 +      "W42Main" => bfscx_path::<case::w42::W42Main, [u8; 20]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
 +      "W11Room1E" => bfscx_path::<case::w11::W11Room1E, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w11_enemies as Hook) } else { None }, threads, out, stride),
++      "W84Room3" => bfscx_path::<case::w84::W84Room3, [u8; 12]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
 +      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
 +      "W11VertPipeEntry" => bfscx_path::<case::w11::W11VertPipeEntry, [u8; 10]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
 +      other => panic!("unknown case {}", other),
@@ -2298,7 +2391,7 @@ index 350d469..52cf4f4 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +361,1303 @@ fn calc_prng() {
+@@ -46,4 +364,1303 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();

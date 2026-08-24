@@ -24,3 +24,11 @@ STATUS "Needs user input" and keep working on other units.
   is a single writer. Exactly one machine edits the engine (the primary box). A single giant
   run still goes to the cloud — F110's 96.9 MB/s LAN rules out splitting one BFS across
   machines. The 2026-08-22 decision stands for that case.
+- **2026-08-24 — The 8-4 campaign is the primary track (user decision, session 14 evening).**
+  Rationale: 8-4 is unquantized — ONE frame = the record (vs 21-frame framerule cliffs with
+  deficits 5–19 everywhere else), and per F17 an earlier LAST INPUT (a longer ending coast at
+  the same axe) also wins. Order: H25 (Maru's turnaround stop) → H1 (ending coast) → the water
+  room (no solved optimum exists) → room transitions/wrong-warp scroll (our 4-2 specialty) →
+  Bowser/RNG. One Track B unit (P3.2 RAM oracle) interleaved every few sessions — the moonshot
+  slot. 1-2/8-3 framerule levels demoted to third. Beam = the finder where a room explodes;
+  proof-grade closes what it can (the 1-1/4-2 doctrine unchanged).
