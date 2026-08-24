@@ -918,3 +918,22 @@ dirs MUST go on the NVMe, not the tmpfs scratchpad (a run filling `/tmp` OOM-die
 memory). The STATUS cleanup commit (`eb597f6`) landed mid-session from another terminal — consolidated on main.
 **Next (user question, not chosen).** 8-3 (deficit ~7) with the tooling, the 4-2 warp zone (H35), or another lead.
 Beam tooling is reusable. `docs/experiments/P2.3c-2c-main-area.md` §P2.3c-6; F122; H36 updated.
+
+## 2026-08-24 — Session 14 (cont.): the mint economics close 4-2's bottom route too (F123); Mac reclaims 401G
+**Did.** User asked whether a cheaper/earlier mint could save the wrong warp. Built `bfscx --goal-offset N` and
+measured the mint directly from the WR's col-30 arrival: min 132-mint = **27 frames** (vs the WR's ~34) — but the
+trace comparison exposed the trap: the WR mints by **sprinting inside the sct-frozen scroll window** (impede arms 15
+frames of frozen scroll; foot impedes refresh it) so it finishes its mint *with 15 units of speed built*, while every
+min-frame minted state sits at ~0 speed. Continuation probe from the chained 27-frame mint: case bound 357 → **total
+≥ 584 > 575**. With F94's tightness and the ~0.65 px/f rate law: bottom-route floor ≈ 584–585, deficit ~9–10 —
+matches the framerule accounting from the other side. **4-2 is now closed for a framerule on both routes with
+mechanisms** (F122 top: no mint possible; F123 bottom: the mint is speed-priced at ~30 frames). H38 (speed-preserving
+mint) records the residual. Inconclusive runs recorded as such: the full-level offset-first beam lost the WR's own
+line (the user predicted the beam-ordering bias); the Mac's root-190 beam was walled by the H34 item-bump refusal at
+col-28 (lesson: root ≥ 200). Mac: resynced to d679bb8, gate exact, **401 GB stale layers reclaimed (133→533 GiB)**.
+**Learned.** "Earliest goal" ≠ "best goal" when the goal is a resource (offset) bought with a resource (speed) — the
+right comparison is full-state dominance, and the continuation probe is the cheap way to price it. And the level's
+deep structure: 588 = 553 movement + ~31 warp-key + ~4 slack, conserved across routes — HappyLee's route was already
+sitting on the conserved price.
+**Next.** The pivot the user picked before the mint question: 8-3 (deficit ~7 after F37's FPG) / 1-2 (~5 on the
+best-known route) with the existing tooling — new cases in the engine. 4-2 rests unless H38's enumeration gets picked up.

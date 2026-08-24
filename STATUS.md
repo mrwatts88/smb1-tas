@@ -19,12 +19,18 @@ pre-cleanup narrative version of this file is archived at
   frozen at 112 across 5 beam+exhaustive searches. Strong evidence (not formal proof) the top-
   route warp is structurally infeasible — not "2 frames short." **This retires the P2.3c-5 cloud
   fork** (no billion-state proof needed). The 553 stands as a movement result only.
+- **And the bottom route is closed too (F123, session 14 cont.):** `--goal-offset` measured the
+  mint directly — min 132-mint = 27 frames but every minted state has ~0 speed (the mint
+  mechanisms price it in speed; the WR sprints inside the sct-frozen scroll window and is already
+  optimal-ish); continuation probe from the chained mint: **total ≥ 584 > 575**. Bottom-route
+  floor ≈ 584–585 = deficit ~9–10. **4-2 = 553 movement + ~31 warp-key tax + ~4 slack, conserved
+  across routes — closed for a framerule both ways** (residual: H38, a speed-preserving mint).
 - **1-1 is closed** (H28 refuted, F116; H29 parked). 4-2's warp zone: enemy-free bound 461 vs
   WR 476 (F89–F91, H35 open).
-- **Fork RETIRED (2026-08-24 session 14):** the cloud-vs-pivot fork is moot — F122 shows the
-  4-2 top-route warp is structurally infeasible (offset can't be minted), so no cloud proof is
-  needed. **Open question for the user:** what next — 8-3 (deficit ~7) with the tooling, the 4-2
-  warp zone (H35), or something else? (User has been reluctant to pivot levels; awaiting steer.)
+- **Fork RETIRED; 4-2 closed BOTH routes (F122 top / F123 bottom):** no cloud proof needed. The
+  user's cheaper/earlier-mint ideas were tested directly (`--goal-offset`): mint is speed-priced
+  at ~30 frames on any route. **Next unit = the user's pick: pivot the tooling to 8-3 / 1-2**
+  (see Blocked/Needs user input for the framing; H38 records the one 4-2 residual).
 - **Phase:** P2 (proof engine on the route). ROM verified byte-identical to TASVideos' (W) [!]
   (`tools/verify_rom.py`; copy in `roms/`, gitignored). Host: Linux box primary, Mac overflow
   (PROCESS §"Parallel work on the second host"); emulators in the toolbox container `smb1`
@@ -83,6 +89,7 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-24 s14 — **P2.3c-6b**: `--goal-offset` mint-economics probe — min 132-mint = 27 frames but speed-priced (the WR's sct-frozen sprint already ~optimal); continuation probe ≥ 584 > 575 ⇒ **the bottom route is closed too (F123)**; 4-2 = 553 movement + ~31 key + ~4 slack, conserved. Mac: resync d679bb8 + gate exact, 401 GB stale layers reclaimed (133→533 GiB). H38 added (speed-preserving mint, parked). `P2.3c-2c-main-area.md` §P2.3c-6b.
 - 2026-08-24 s14 — **P2.3c-6**: `bfscx --beam N [--beam-offset] [--log-offset]` added (opt-in heuristic finder; **optimal mode byte-identical with beam off**) to *find* a top-route warp by loosening optimality (user decision). Result: **F122 — the top route CANNOT mint the +20 px offset the warp needs** (offset frozen at 112 across 5 beam+exhaustive searches; the col-30 floor wall walk is a bottom-route mechanism; F117 blocks floor access). Strong evidence the top-route warp is structurally infeasible → **retires the P2.3c-5 cloud fork**. `P2.3c-2c-main-area.md` §P2.3c-6; F122.
 - 2026-08-24 s14 — **STATUS cleanup**: narrative archived (`docs/archive/`), standing rules → `docs/search-runbook.md`, Mac lessons → `P0.11-two-box.md` §7.
 - 2026-08-24 s13 — **P2.3c-5**: scroll-aware drift bound (`heuristics::drift`, F121) makes the wrong-warp finale decidable; **d58 proof-grade dry**; d62/d66 cap-killed at ~10⁹ states (not verdicts) → the fork. `P2.3c-2c-main-area.md` §P2.3c-5, §"The verdict", §"The resource wall".
@@ -116,12 +123,14 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
   (F45: FCEUX row r ↔ QuickNES r−3; fm2 record j → FCEUX row j+2); any tool mixing them
   must state the offset. `tools/check_sync.py`/`compare_dumps.py` are FCEUX/BizHawk-only.
 
-- **FORK RETIRED (2026-08-24 session 14): the 4-2 top-route finale is closed by F122** — the top
-  route can't mint the warp offset, so no cloud proof (option A) is needed and the top route
-  can't yield a framerule (H36 warp-infeasible, strong evidence). **What next is the open user
-  question** (see "Where we are"): 8-3 (deficit ~7) with the current tooling, the 4-2 warp zone
-  (H35, ≤15 frames), or something else. User has been reluctant to pivot levels ("a new level
-  hides the same difficulty") — awaiting steer. The beam tooling (P2.3c-6) is reusable anywhere.
+- **FORK RETIRED; 4-2 CLOSED both routes (F122 top / F123 bottom, session 14).** The follow-up
+  ideas ("offset earlier?", "cheaper mint?") were tested directly with `--goal-offset`: the mint
+  is speed-priced at ~30 frames on any route — no 4-2 framerule without H38's
+  speed-preserving-mint long shot (parked, enumeration is a half-day unit). **Next unit (the
+  user's pick, made before the mint question — stands as queue head): pivot the tooling to 8-3
+  (deficit ~7 after F37's FPG) / 1-2 (~5 on the best-known route)** — new engine cases, same
+  methodology (block map from the dump → difftest → y-gate segments → beam as finder). The user
+  can redirect (Track B glitch hunt / H38 / H35 warp zone are the alternatives).
 - **Fork MrWint's smb-opt vs the patch file?** (user question, 2026-08-24). Today the engine
   diff is `tools/smb-opt-modes.patch` (committed every unit; the clone is untracked; the Mac
   rebuilds from it with a sha guard). A private fork would give granular engine history; a
