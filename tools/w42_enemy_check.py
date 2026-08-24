@@ -56,21 +56,32 @@ def main():
             eid = r(row, A("Enemy_ID", k))
             if eid in (0x2e, 0x2f, 0x27): continue
             timer = r(row, A("EnemyFrameTimer", k)) if eid == 0x0d else r(row, A("EnemyIntervalTimer", k))
+            # A plant's Enemy_X_MoveForce AND Enemy_MovingDir are stale slot memory (never read by MovePiranhaPlant
+            # or the collisions) — and dir 0 (never-set RAM, e.g. pipe C spawning into the killed vine's slot) is
+            # unrepresentable in the record's 1-bit dir. Ignore both for plants.
             dump.append((eid, r(row, A("Enemy_State", k)), r(row, A("Enemy_PageLoc", k)) * 256 + r(row, A("Enemy_X_Position", k)),
                          r(row, A("Enemy_Y_Position", k)), r(row, A("Enemy_X_Speed", k)), 0 if eid == 0x0d else r(row, A("Enemy_X_MoveForce", k)),
-                         r(row, A("Enemy_MovingDir", k)), timer, int(r(row, A("EnemyOffscrBitsMasked", k)) != 0)))
+                         0 if eid == 0x0d else r(row, A("Enemy_MovingDir", k)), timer,
+                         0 if eid == 0x0d else int(r(row, A("EnemyOffscrBitsMasked", k)) != 0)))   # plants: masked is stale at the spawn instant and recomputed from the compared x/screen afterwards
         mod = []
+        mod_vine = False
         for s in model[step]:
             if s["id"] in (0x2e, 0x27): continue
+            if s["id"] == 0x2f:
+                # H34: the model's vine objects. The injected occupant's x/y are garbage copies in the real game
+                # (Setup_Vine off an arbitrary Y), so compare PRESENCE in slots 0-4 only, not coordinates.
+                if s["slot"] < 5: mod_vine = True
+                continue
             if s["id"] == 0x0d and s["x"] == 84 * 16 + 8:
                 extra_plants += 1; continue
-            mod.append((s["id"], s["st"], s["x"], s["y"], s["spd"], 0 if s["id"] == 0x0d else s["f"], s["d"], s["ft"] if s["id"] == 0x0d else s["it"], s["m"]))
+            mod.append((s["id"], s["st"], s["x"], s["y"], s["spd"], 0 if s["id"] == 0x0d else s["f"], 0 if s["id"] == 0x0d else s["d"], s["ft"] if s["id"] == 0x0d else s["it"], 0 if s["id"] == 0x0d else s["m"]))
+        dump_vine = any(r(row, A("Enemy_Flag", k)) and r(row, A("Enemy_ID", k)) == 0x2f for k in range(5))
         compared += 1
-        if sorted(dump) != sorted(mod):
+        if sorted(dump) != sorted(mod) or dump_vine != mod_vine:
             bad += 1
             if bad <= 30 or opt["verbose"]:
-                print(f"row {row} (step {step}): model {sorted(mod)} vs dump {sorted(dump)}")
-    print(f"{bad} mismatching rows over {compared} compared (model rows {opt['first'] + 2}..{opt['first'] + 1 + len(model)}); wrong-warp-pipe plant rows in the model (no vine, F100): {extra_plants}")
+                print(f"row {row} (step {step}): model {sorted(mod)} vine={mod_vine} vs dump {sorted(dump)} vine={dump_vine}")
+    print(f"{bad} mismatching rows over {compared} compared (model rows {opt['first'] + 2}..{opt['first'] + 1 + len(model)}); wrong-warp-pipe plant rows in the model (should be 0 with the H34 vine; F100): {extra_plants}")
     return 1 if bad else 0
 
 

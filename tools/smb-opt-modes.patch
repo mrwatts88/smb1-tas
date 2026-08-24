@@ -1644,7 +1644,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..82ad512 100644
+index 350d469..538f1fa 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1960,7 +1960,7 @@ index 350d469..82ad512 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +343,1192 @@ fn calc_prng() {
+@@ -46,4 +343,1205 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2282,9 +2282,17 @@ index 350d469..82ad512 100644
 +  let mut lift_live = lift_u16 < 0x100;
 +  let frame = s.blocks.frame;
 +  let aptn_pre = pre.blocks.aptn;
++  // H34: a bump of the (64,3) vine cell (CELLS bit 3) runs Setup_Vine the same frame, BEFORE the enemy loop:
++  // slot 5 gets the growing vine (x 1024 = the block's column, y 80 = the block's top) and VineFlagOffset -> 1.
++  if s.blocks.used & (1 << 3) & !pre.blocks.used != 0 && slots.vineflag == 0 {
++    let t = &mut slots.s[5];
++    t.class = w42enemies::CLASS_VINE; t.state = 0; t.x = 1024; t.y = 80; t.itimer = 0; t.ftimer = 0; t.yhi = 1; t.dn = 0;
++    slots.vineflag = 1;
++  }
 +  let f = Frame {
 +    sl16: screen_left16(s),
 +    fc_odd: ((<case::w42::W42MainBlocks as BlockStates>::FC0 as u16 + frame as u16) & 1) != 0,
++    fc_b1: ((<case::w42::W42MainBlocks as BlockStates>::FC0 as u16 + frame as u16) & 2) != 0,
 +    itc_tick: ((<case::w42::W42MainBlocks as BlockStates>::IP0 as i32 - frame as i32 + 1) % 21 + 21) % 21 == 0,
 +    aptn_pre,
 +    px: s.x_pos >> 8, py: (s.y_pos >> 8) & 0xff, pys_pos: (s.y_spd >> 8) > 0,
@@ -2305,11 +2313,16 @@ index 350d469..82ad512 100644
 +    ext.set_u16(e);
 +    if e == 0x200 { let mut sl2 = Slots::unpack(&ext.0); for i in 0..6 { if sl2.s[i].class == w42enemies::CLASS_LIFT { sl2.s[i].class = w42enemies::CLASS_EMPTY; sl2.s[i].state = 0; } } sl2.pack(&mut ext.0); }
 +  }
-+  // H34: a bump of an item cell ((64,3) vine, (28,7)/(55,7) mushroom, (81,7) star — W42MainBlocks::CELLS bits 3/7/11/15)
-+  // spawns an object the model does not have (slot use, power-up): searches refuse the transition (ItemBump is
-+  // pruned like a death); traces only report it.
-+  const ITEM_MASK: u16 = (1 << 3) | (1 << 7) | (1 << 11) | (1 << 15);
++  // H34 (2026-08-24): the (64,3) vine bump is MODELED (slot-5 vine + the loader-injected inert occupant — the
++  // WR's slot management, F100); the remaining item cells ((28,7)/(55,7) mushroom, (81,7) star — CELLS bits
++  // 7/11/15) still spawn objects the model does not have: searches refuse those transitions; traces report them.
++  const ITEM_MASK: u16 = (1 << 7) | (1 << 11) | (1 << 15);
 +  if ev != EnemyEvent::Death && s.blocks.used & ITEM_MASK & !pre.blocks.used != 0 { return LiftEvent::ItemBump; }
++  // The grown vine's climbing column ((64, rows 0..2), written as $26 as the slot-5 vine grows): the model has no
++  // climbing, so Mario entering that region with a vine present is refused like an item bump (documented
++  // over-refusal: any of his collision points could touch a climbable cell there). x+2 <= 1039 && x+13 >= 1024
++  // -> x in [1011, 1037]; body above the brick row -> Y < 62.
++  if slots.vineflag != 0 && s.x_pos >= 1011 << 8 && s.x_pos < 1038 << 8 && s.y_pos < 0x13e00 { return LiftEvent::ItemBump; }
 +  match ev { EnemyEvent::Death => LiftEvent::Death, EnemyEvent::Stomp => LiftEvent::Stomp, EnemyEvent::Kick => LiftEvent::Kick, EnemyEvent::Nothing => lev }
 +}
 +
@@ -3409,10 +3422,10 @@ index e8c4d09..0d62041 100644
    }
 diff --git a/src/w42enemies.rs b/src/w42enemies.rs
 new file mode 100644
-index 0000000..e3ac1a5
+index 0000000..222a723
 --- /dev/null
 +++ b/src/w42enemies.rs
-@@ -0,0 +1,421 @@
+@@ -0,0 +1,458 @@
 +//! P2.5c-2 — the 4-2 main-area enemies as a per-step object hook for `W42Main` (`--enemies`): the enemy-data loader
 +//! (`ProcessEnemyData`), the `$3A` goomba group, the green koopa, the buzzy beetles, the piranha plants the area
 +//! parser inserts into the pipes, and the lift's slot occupancy, with the per-slot RAM packed into the record's ext
@@ -3439,8 +3452,15 @@ index 0000000..e3ac1a5
 +
 +pub const CLASS_EMPTY: u8 = 0; pub const CLASS_GOOMBA: u8 = 1; pub const CLASS_KOOPA: u8 = 2; pub const CLASS_BEETLE: u8 = 3;
 +pub const CLASS_PLANT: u8 = 4; pub const CLASS_LIFT: u8 = 5; pub const CLASS_ITEM: u8 = 6;
-+const ID_OF_CLASS: [u8; 7] = [0, 0x06, 0x00, 0x02, 0x0d, 0x27, 0x2e];
-+fn class_of_id(id: u8) -> u8 { match id { 0x06 => CLASS_GOOMBA, 0x00 => CLASS_KOOPA, 0x02 => CLASS_BEETLE, 0x0d => CLASS_PLANT, 0x27 => CLASS_LIFT, _ => CLASS_ITEM } }
++/// H34: the vine. The (64,3) bump runs `Setup_Vine` with X=5 (the special slot: x 1024, y 80, growing); the enemy
++/// loader's `CheckFrenzyBuffer` then injects ONE inert `VineObject` into the first free normal slot whose loader
++/// turn finds no level enemy in range (its init is `Setup_Vine` again, which raises `VineFlagOffset` to 2 and stops
++/// further injection; its position copy reads garbage and the object is never run/collided/bounds-checked — pure
++/// slot occupancy, which is what blocks the wrong-warp plant, F100). `KillVine` (run on slot 5's turn) erases every
++/// vine object once the slot-5 vine is moderately offscreen left (bits %00001100) and clears the flag.
++pub const CLASS_VINE: u8 = 7;
++const ID_OF_CLASS: [u8; 8] = [0, 0x06, 0x00, 0x02, 0x0d, 0x27, 0x2e, 0x2f];
++fn class_of_id(id: u8) -> u8 { match id { 0x06 => CLASS_GOOMBA, 0x00 => CLASS_KOOPA, 0x02 => CLASS_BEETLE, 0x0d => CLASS_PLANT, 0x27 => CLASS_LIFT, 0x2f => CLASS_VINE, _ => CLASS_ITEM } }
 +
 +const SETBITS: [u8; 7] = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02];
 +const XOFF: [u8; 16] = [0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01, 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff];
@@ -3497,26 +3517,28 @@ index 0000000..e3ac1a5
 +  }
 +  /// The horizontal speed for (class, state, dir): walkers ±8, kicked shells ±$30, defeated ±$10, lift/items 0.
 +  fn speed_of(class: u8, state: u8, dir: u8) -> u8 {
-+    if class == CLASS_LIFT || class == CLASS_ITEM { return 0; }
++    if class == CLASS_LIFT || class == CLASS_ITEM || class == CLASS_VINE { return 0; }
 +    let mag: u8 = if state & 0x20 != 0 { 0x10 } else if state & 0x80 != 0 { 0x30 } else { 0x08 };
 +    if dir == 1 { mag } else { mag.wrapping_neg() }
 +  }
 +}
 +
-+/// The packed enemy state of a record.
-+pub struct Slots { pub eoff: u8, pub epage: u8, pub epsel: bool, pub s: [Slot; 6] }
++/// The packed enemy state of a record. `vineflag` = `VineFlagOffset` (0 none, 1 bumped/injection pending, 2 both
++/// vine objects placed), packed into ext[3] bits 5..6 (the page is ≤ 5, so those bits were always 0 before H34:
++/// bump-free records stay byte-identical).
++pub struct Slots { pub eoff: u8, pub epage: u8, pub epsel: bool, pub vineflag: u8, pub s: [Slot; 6] }
 +impl Slots {
 +  pub fn unpack(ext: &[u8]) -> Slots {
 +    let mut s = [Slot::default(); 6];
 +    for i in 0..6 { s[i] = Slot::unpack(&ext[4 + 10 * i..14 + 10 * i]); }
-+    Slots { eoff: ext[2], epage: ext[3] & 0x7f, epsel: ext[3] & 0x80 != 0, s }
++    Slots { eoff: ext[2], epage: ext[3] & 0x1f, epsel: ext[3] & 0x80 != 0, vineflag: (ext[3] >> 5) & 3, s }
 +  }
 +  pub fn pack(&self, ext: &mut [u8]) {
-+    ext[2] = self.eoff; ext[3] = (self.epage & 0x7f) | ((self.epsel as u8) << 7);
++    ext[2] = self.eoff; ext[3] = (self.epage & 0x1f) | ((self.vineflag & 3) << 5) | ((self.epsel as u8) << 7);
 +    for i in 0..6 { self.s[i].pack(&mut ext[4 + 10 * i..14 + 10 * i]); }
 +  }
 +  pub fn describe(&self) -> String {
-+    let mut out = format!("eoff {} epage {}{}", self.eoff, self.epage, if self.epsel { "+" } else { "" });
++    let mut out = format!("eoff {} epage {}{}{}", self.eoff, self.epage, if self.epsel { "+" } else { "" }, if self.vineflag != 0 { format!(" vf{}", self.vineflag) } else { String::new() });
 +    for (i, s) in self.s.iter().enumerate() {
 +      if !s.live() { continue; }
 +      out.push_str(&format!(" | s{} id{:02x} st{:02x} x{} y{} spd{:02x} f{:02x} d{} it{} ft{} m{} cb{:02x} ys{:02x} yf{:02x}", i, s.id(), s.state, s.x, s.y, s.spd, s.force, s.dir, s.itimer, s.ftimer, s.masked as u8, s.cbits, s.yspd, s.yforce));
@@ -3657,28 +3679,30 @@ index 0000000..e3ac1a5
 +/// `bx`/`by`: the player's position after movement and before PlayerBGCollision (emu::pre_bg_pos) — the game builds
 +/// the player's hitbox from it (BoundingBoxCore before PlayerBGCollision), so a landing snap or a wall push-back in
 +/// the same frame does not move the box (F101); `px`/`py` are the final position (CheckPlayerVertical, plant range).
-+pub struct Frame { pub sl16: i32, pub fc_odd: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
++pub struct Frame { pub sl16: i32, pub fc_odd: bool, pub fc_b1: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
 +
 +impl Slots {
 +  /// ProcessEnemyData for free slot `slot` (CheckRightBounds / CheckRightExtBounds / HandleGroupEnemies).
-+  fn process_enemy_data(&mut self, slot: usize, sl16: i32) {
++  /// Returns true on the paths that fall through to `CheckFrenzyBuffer` in the game (the EOD terminator and
++  /// "beyond the extended right boundary") — where the H34 vine injection can happen.
++  fn process_enemy_data(&mut self, slot: usize, sl16: i32) -> bool {
 +    let sr16 = sl16 + 255;
 +    let ext16 = (sr16 + 48) & !15;
 +    loop {
 +      let off = self.eoff as usize;
-+      if off + 1 >= ENEMY_DATA.len() { return; }
++      if off + 1 >= ENEMY_DATA.len() { return true; }
 +      let b0 = ENEMY_DATA[off];
-+      if b0 == 0xff { return; }
++      if b0 == 0xff { return true; }
 +      let row = b0 & 0x0f;
-+      if row != 0x0e && slot >= 5 { if (ENEMY_DATA[off + 1] & 0x3f) != 0x2e { return; } }
++      if row != 0x0e && slot >= 5 { if (ENEMY_DATA[off + 1] & 0x3f) != 0x2e { return false; } }
 +      let b1 = ENEMY_DATA[off + 1];
 +      if b1 & 0x80 != 0 && !self.epsel { self.epsel = true; self.epage += 1; }
 +      if row == 0x0f && !self.epsel { self.epage = b1 & 0x3f; self.eoff += 2; self.epsel = true; continue; }
 +      let x16 = self.epage as i32 * 256 + (b0 & 0xf0) as i32;
-+      if x16 < sr16 { self.eoff += if row == 0x0e { 3 } else { 2 }; self.epsel = false; return; }
-+      if x16 > ext16 { return; }
-+      if row == 0x0e { self.eoff += 3; self.epsel = false; return; }
-+      if b1 & 0x40 != 0 { self.eoff += 2; self.epsel = false; return; }
++      if x16 < sr16 { self.eoff += if row == 0x0e { 3 } else { 2 }; self.epsel = false; return false; }
++      if x16 > ext16 { return true; }
++      if row == 0x0e { self.eoff += 3; self.epsel = false; return false; }
++      if b1 & 0x40 != 0 { self.eoff += 2; self.epsel = false; return false; }
 +      let eid = b1 & 0x3f;
 +      if 0x37 <= eid && eid < 0x3f {
 +        let v = eid - 0x37;
@@ -3700,7 +3724,7 @@ index 0000000..e3ac1a5
 +        init_enemy(t);
 +      }
 +      self.eoff += 2; self.epsel = false;
-+      return;
++      return false;
 +    }
 +  }
 +
@@ -3711,7 +3735,7 @@ index 0000000..e3ac1a5
 +    let sr16 = f.sl16 + 255;
 +    // NMI: interval timers on the wrap frames, frame timers every frame (TimerControl is 0 on every searched frame)
 +    for sl in self.s.iter_mut() {
-+      if !sl.live() || sl.class == CLASS_LIFT || sl.class == CLASS_ITEM { continue; }
++      if !sl.live() || sl.class == CLASS_LIFT || sl.class == CLASS_ITEM || sl.class == CLASS_VINE { continue; }
 +      if f.itc_tick && sl.itimer > 0 { sl.itimer -= 1; }
 +      if sl.ftimer > 0 { sl.ftimer -= 1; }
 +    }
@@ -3726,9 +3750,19 @@ index 0000000..e3ac1a5
 +        if !*lift_live { erase(&mut self.s[i]); }
 +        continue;
 +      }
-+      if self.s[i].class == CLASS_ITEM { continue; }
++      if self.s[i].class == CLASS_ITEM || self.s[i].class == CLASS_VINE { continue; }   // vine slots: inert (slot 5's growth/KillVine run after the loop)
 +      if !self.s[i].live() {
-+        if (f.aptn_pre & 7) != 7 { self.process_enemy_data(i, f.sl16); }
++        if (f.aptn_pre & 7) != 7 {
++          let frenzy = self.process_enemy_data(i, f.sl16);
++          // CheckFrenzyBuffer: reached only on the loader's "no level enemy here" paths (EOD / beyond the
++          // extended right boundary). With VineFlagOffset == 1 it stores VineObject into this free slot; the
++          // vine's init is Setup_Vine again, which raises the flag to 2 — exactly one injection. The object is
++          // inert (run = VineObjectHandler, exits off slot 5; position copy is garbage and never used).
++          if frenzy && self.vineflag == 1 {
++            occupy(&mut self.s[i], CLASS_VINE, 0, 0);
++            self.vineflag = 2;
++          }
++        }
 +        if self.s[i].class == CLASS_LIFT { *lift_live = true; }
 +        continue;
 +      }
@@ -3746,7 +3780,7 @@ index 0000000..e3ac1a5
 +        if let Some(sb) = bb {
 +          for j in (0..i).rev() {
 +            let t = self.s[j];
-+            if !t.live() || t.class == CLASS_PLANT || t.class == CLASS_LIFT || t.class == CLASS_ITEM || t.masked { continue; }
++            if !t.live() || t.class == CLASS_PLANT || t.class == CLASS_LIFT || t.class == CLASS_ITEM || t.class == CLASS_VINE || t.masked { continue; }
 +            let tb = match boxes[j] { Some(b) => b, None => continue };
 +            if overlap(sb, tb) {
 +              if (sl.state | t.state) & 0x80 == 0 {
@@ -3814,6 +3848,22 @@ index 0000000..e3ac1a5
 +        if (sl.x as i32) < left || sl.x as i32 >= right { erase(&mut sl); self.s[i] = sl; continue; }
 +      }
 +      self.s[i] = sl;
++    }
++    // H34: the slot-5 vine (VineObjectHandler, run on slot 5's turn). Order per the asm: (1) grow 1 px upward on
++    // the FrameCounter's d1 frames (2 of every 4) until the global height cap ($30 one vine, $60 once the second
++    // is injected; height = 80 - y); (2) with height >= 8 (RunVSubs' gate), KillVine — erase every vine object
++    // and clear the flag — once the slot-5 vine is moderately offscreen left (Enemy_OffscreenBits & %00001100 =
++    // the X byte's $c0|$80 bits, set from 0/8 px past ScreenLeft).
++    if self.s[5].class == CLASS_VINE {
++      if f.fc_b1 {
++        let height = 80u8.wrapping_sub(self.s[5].y);
++        let cap: u8 = if self.vineflag >= 2 { 0x60 } else { 0x30 };
++        if height < cap { self.s[5].y = self.s[5].y.wrapping_sub(1); }
++      }
++      if 80u8.wrapping_sub(self.s[5].y) >= 8 && (x_offscreen_bits(self.s[5].x as i32, f.sl16) >> 4) & 0x0c != 0 {
++        for i in 0..6 { if self.s[i].class == CLASS_VINE { erase(&mut self.s[i]); } }
++        self.vineflag = 0;
++      }
 +    }
 +    // the area parser after the enemy loop: a render task on a pipe's left column spawns a piranha plant
 +    if let Some(col) = plant_col {

@@ -49,7 +49,7 @@ MODEL_FIRST = 1048          # record index of model step 0 (= QuickNES frame 104
 MODEL_FRAME0 = 1046
 BOUNCE = "66:yspd=-1024"    # goomba stomp at row 1112 (F53)
 A, B, L, R = 0x01, 0x02, 0x40, 0x80  # NES order
-ITEM_MASK = (1 << 3) | (1 << 7) | (1 << 11) | (1 << 15)   # W42MainBlocks::CELLS bits of (64,3) (28,7) (55,7) (81,7)
+ITEM_MASK = (1 << 7) | (1 << 11) | (1 << 15)   # W42MainBlocks::CELLS bits of (28,7) (55,7) (81,7); the (64,3) vine bump is modeled (H34) — trials run through it
 BLOCKS_RE = re.compile(r"^blocks: bounce \d+ used (0x[0-9a-f]+|\d+) ")
 
 SYM = dict(X=0x86, PAGE=0x6D, XSUB=0x0400, XSPD=0x57, XFRAC=0x0705, Y=0xCE, YHI=0xB5, YSPD=0x9F,
