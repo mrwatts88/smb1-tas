@@ -9,7 +9,9 @@
 # Writes a provenance stamp (third_party/smb-opt/.built-from) that tools/mac_run.sh checks,
 # so a stale engine is caught rather than silently used.
 #
-# usage: tools/mac_sync_engine.sh
+# usage: tools/mac_sync_engine.sh   — RUN THIS ON THE MAC (its $REPO is the local clone: running it on
+#        the Fedora box resets the PRIMARY engine tree and git-cleans target/). From the Fedora box:
+#        ssh mac "cd /Users/mattwatts/code/smb && git pull -q laptop main && zsh -l -c tools/mac_sync_engine.sh"
 set -e
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 PINNED=daa44287bc9ccab7e85b430e80bf7dff77542542
