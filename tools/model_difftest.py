@@ -207,7 +207,7 @@ def main():
         elif a == "--require-event": opt["require_event"] = True; i += 1   # model first; core only if a Stomp/Kick occurs
         elif a == "--stop-x": opt["stop_x"] = int(args[i + 1]); i += 2     # stop a trial (no verdict) once the model's X >= this
         else: raise SystemExit(f"unknown option {a}")
-    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT, ENEMIES, STOP_X
+    global CASE, MODEL_FIRST, MODEL_FRAME0, LIFT, ENEMIES, STOP_X, ITEM_MASK
     if opt.get("stop_x") is not None: STOP_X = opt["stop_x"]
     if opt.get("lift") is not None: LIFT = opt["lift"]
     if opt.get("enemies") is not None: ENEMIES = opt["enemies"]
@@ -216,6 +216,7 @@ def main():
         MODEL_FIRST = opt["first"]
         MODEL_FRAME0 = MODEL_FIRST - 2
         if opt["root"] == 1232: opt["root"] = MODEL_FIRST
+        if CASE.startswith("W11Room1"): ITEM_MASK = 1 << 2   # W11Room1Blocks::CELLS bit of the (21,7) powerup block (P2.5b-1)
     wr = open(opt.get("wr_file") or WR, "rb").read()
     rng = random.Random(opt["seed"])
     tmp = opt["keep"] or tempfile.mkdtemp(prefix="difftest_")

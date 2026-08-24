@@ -50,7 +50,26 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- (none — P2.3c-7 closed same-session: kill criterion (a) fired in the asm read, see Done)
+- **P2.5b-1 — 1-1 room-1 enemy-aware exhaustive search (H29; started 2026-08-24 session 14,
+  continuing in-session).** Goal: the H29 verdict — can a goomba/koopa bounce beat the enemy-free
+  room-1 optimum 368 (WR = optimum, F63)? Deficit 1 ⇒ any 1-frame gain = a full framerule. Plan:
+  (1) port the validated P2.5a room-1 enemy rules (`tools/room1_enemy_sim.py`, F64/F65) into the
+  engine as a data-driven module adapting `w42enemies.rs` (goomba pairs; spawn at ScreenRight on
+  the parser frame; walk 0.5 px/f; pipe/enemy turnaround; stomp lifetime on the interval clock;
+  offscreen erase); new case with scroll tracking (spawns are scroll-driven), control = the
+  enemy-free 368 must reproduce; (2) difftest from the room-1 control frame (record 196, F69) to
+  0 differences incl. stomps/deaths; (3) exhaustive `bfscx --enemies` deadline **367** (~5M
+  states/layer at 1 frame slack, F82 — laptop-sized, proof-grade, no beam). Outcomes: goal ≤ 367
+  → core replay → two-emulator → a FRAMERULE; dry → H29 refuted proof-grade, 1-1 fully closed.
+  **CHECKPOINT (same session): the port is DONE and validated** — WR replay 368/368 vs the core
+  (0 diffs, pipe entry identical, stomps at the sim's exact rows); random battery **500 trials /
+  82,234 frames / 0 differences / 53 matching deaths / 169 stomps** (`runs/P2.5b/difftest_w11_*.log`).
+  **d367 (the verdict rung) = DRY** — root bound exactly 367, frontier extinct at layer 21,
+  `no goal found within 367` (`runs/P2.5b/w11_d367.log`). **RUNNING: d368 `--check-path 368`
+  (the positive control, pid 599229, watchdog 200M/40G armed)** — the WR's line must be
+  in-frontier all 368 layers with the goal at 368 (`runs/P2.5b/w11_d368.log`, 7G cap, layers
+  `runs/P2.5b/w11_d368/`). Pass ⇒ **H29 refuted proof-grade for bump-free routes** (the (21,7)
+  powerup refusal is the one documented exclusion) ⇒ 1-1 fully closed.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
