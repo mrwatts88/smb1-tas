@@ -20,6 +20,7 @@
 # example:
 #   tools/mac_run.sh -m 6g -- third_party/smb-opt/target/release/smb-opt bfscx W42Main ...
 set -e
+export PATH="$PATH:/usr/local/bin"   # docker is not on the non-interactive ssh PATH (P0.11d #4)
 MEM=8g
 while [ $# -gt 0 ]; do
   case "$1" in
