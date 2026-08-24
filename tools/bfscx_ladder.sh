@@ -23,7 +23,9 @@ while [ "$D" -le "$DMAX" ]; do
   done
   wait "$PID" 2>/dev/null
   if grep -q 'goal reached' "$LOG"; then echo "deadline $D: GOAL — $(grep 'earliest goal' "$LOG" | cut -c1-60)"; exit 0; fi
-  if grep -q 'no live states' "$LOG"; then echo "deadline $D: no path (last layer $(grep -c '^layer' "$LOG"))"; else echo "deadline $D: ended without verdict (see $LOG)"; exit 1; fi
+  if grep -q 'no live states' "$LOG"; then echo "deadline $D: no path (last layer $(grep -c '^layer' "$LOG"))"
+  elif grep -q 'no goal found within' "$LOG"; then echo "deadline $D: no goal (deadline reached with live states)"
+  else echo "deadline $D: ended without verdict (see $LOG)"; exit 1; fi
   D=$((D + STEP))
 done
 echo "no goal up to deadline $DMAX"; exit 1
