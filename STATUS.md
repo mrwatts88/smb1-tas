@@ -80,11 +80,25 @@ pre-cleanup narrative version of this file is archived at
   class from w42enemies + model the cheep frenzy (asm: FlyCheepCheepFrenzy/InitFlyingCheepCheep/
   MoveFlyingCheepCheep) into a `w84enemies` hook, difftest to 0 incl. cheep stomps, THEN the
   d194 rung `--enemies` + d195 check-path control.** `P2.2a-84-turnaround.md`.
-  **Sizing note (session 15, from P2.5b-1):** do NOT budget the d195 `--check-path` rung as a cheap
-  control — at one frame of slack the frontier explodes (1-1 room 1: 36 states at d367 vs 61M and
-  climbing at d368, ≈1.6 TB projected). Take the positive control from the reference-path audit
-  `--check-path` prints *before* layer 1 (goal test + `N bound violations over M steps`), and let the
-  d194 dry carry the negative side.
+  **CHECKPOINT 2 (session 15) — the room is now CUT AT THE APEX and the return leg is CLOSED (F125).**
+  Cutting at the WR's apex (max x 3457, record 16516 = prefix 162) gives a 33-frame tail: control
+  `… 16354 162 33 --check-path 33` = `at root: Some(33)`, 0 bound violations, **96 goals at layer 33**;
+  record rung `… 162 32` = **dry at layer 1**. h(apex) = 33 = the WR ⇒ zero slack ⇒ **H25's frame is
+  NOT in the turnaround/return** — it is in the approach or in reaching a different apex state.
+  Fixed a real bound hole: `W84Room3` returned `Some(0)` for every state with SL ≥ 3345 and
+  x ≤ PIPE_XMAX (admissible but never pruning — the `pruned 0` on every room-3 rung); added
+  `W84R3_PIPE_XMIN = 0xd4400` from the F124 foot geometry + the leftward branch (patch regenerated).
+  **Whole-room d194 is infeasible** (root 183 vs 194 = slack 11; horizon 96 → 200 leaves it at 183, so
+  the looseness is terrain + pipe-entry y-coupling, not truncation — F95 confirmed for 8-4).
+  **NEXT (not the enemy port):** segment the APPROACH (root → apex, 162 frames) — either a y-coupled
+  /ygate-style bound, or a further cut at the brake start (WR row 16492, x 3428) — then chain.
+  **The `w84enemies` port is DEFERRED and is bigger than budgeted (F126):** the cheep frenzy spawn law
+  reads `Player_X_Speed` and `Player_X_Position`, so it is NOT frame-indexed — different trajectories
+  see different cheep fields. Cheapest order: find a candidate enemy-free first (a goal replays on the
+  core, where cheeps are checked for ONE path), model only if a dry needs it.
+  **Ops rules learned (now in the runbook):** `max_steps` counts layers from the POST-prefix root, not
+  absolute frames (a prefix-162 rung at deadline 195 has 162 frames of slack — it hit 27 GB by layer
+  23); and read the `--check-path` startup audit before paying for the exhaustive part.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
@@ -152,6 +166,10 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 - 2026-08-21 — **P0.8** `docs/prior-tools.md` (F52); **P2.1a** `src/search/bfs.c` (F47–F49); **P1.1** QuickNES harness, RAM identical to FCEUX on every WR row (F45/F46); **P0.6** `docs/warp-model.md` (F38–F44; H5/H6/H13 refuted at table level); **P0.2** WR movie + ROM verified (F1, F15–F17); **P0.9** `docs/community-claims.md` (F35–F37); **P0.5** `docs/timing-model.md` (F31–F34); **P0.4** slack table (F27–F30, `tools/slack_table.py`); **P0.3** WR syncs in FCEUX + BizHawk (F23–F26); **P0.1** tooling (F18–F22); plan/process/status scaffolding, git init.
 
 ## Loose ends (small, unassigned)
+- **Mac engine is STALE (session 15):** `tools/smb-opt-modes.patch` changed (W84Room3 bound fix +
+  horizon 200). Before ANY Mac run: `tools/mac_sync_engine.sh`, then re-run the control gate
+  (`bfscx W42Main data/wr/wr_inputs.bin 6584 575 587 --lift 0 --check-path 12` → 6, 16, 34, 70, 134,
+  673, 3472, 16472, 69489, 257001). `mac_run.sh` refuses the binary on a sha mismatch (exit 3).
 - **Disk — Mac (133 GiB free):** stale layer dirs under `/Users/mattwatts/code/smb/runs/P2.3c-2c/`:
   `s4w4_d62_drift_layers` 212 G, `s4w4_d62_mac_layers` 142 G, `top_s4aip_mac_layers` 46 G (the
   1130 seam — moot since the G-line). All re-derivable; an `rm -rf` over ssh is blocked for the

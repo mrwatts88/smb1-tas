@@ -876,7 +876,7 @@ index 84463c9..d254e1e 100644
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w84.rs b/src/case/w84.rs
-index 3f1c53b..42d9f46 100644
+index 3f1c53b..09bfdf8 100644
 --- a/src/case/w84.rs
 +++ b/src/case/w84.rs
 @@ -55,6 +55,7 @@ impl super::SmbSearchCase for W84Speedup {
@@ -927,7 +927,7 @@ index 3f1c53b..42d9f46 100644
      };
      vec![s]
    }
-@@ -469,3 +475,89 @@ impl SearchGoal for W84Part4Speedup {
+@@ -469,3 +475,99 @@ impl SearchGoal for W84Part4Speedup {
      println!("best max_x_pos so far: {:x}", self.max_x_pos);
    }
  }
@@ -949,6 +949,11 @@ index 3f1c53b..42d9f46 100644
 +}
 +pub const W84R3_OVERSHOOT_X: i32 = 0xd8100;    // 3457 px: min max-x for SL >= 3345
 +pub const W84R3_PIPE_XMAX: i32 = (0xd4c << 8) | 0xff; // 3404 px: the entry window's right edge (WR enters at 3404)
++/// The entry window's LEFT edge. Pipe (212,5): entry needs the left foot on `cv 0x10` in col 212 AND the
++/// right foot on `cv 0x11` in col 213 (emu.rs `enter_vertical_pipe` call site). With the small-Mario adders
++/// BLOCK_BUFFER_X_ADDER_DATA[0x0f]=0x300 / [0x10]=0xc00 that is x in [0xd3d00,0xd4d00) AND x in
++/// [0xd4400,0xd5400) => x in [0xd4400, 0xd4d00). XMAX above is the top edge; this is the bottom.
++pub const W84R3_PIPE_XMIN: i32 = 0xd4400;      // 3396 px
 +impl Options for W84Room3 {
 +  type CoinHandler = IgnoreCoins;
 +  type Platform = NTSC;
@@ -998,7 +1003,7 @@ index 3f1c53b..42d9f46 100644
 +impl SearchGoal for W84Room3 {
 +  fn new() -> Self {
 +    let mut h = XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states());
-+    h.build_overshoot_bound(W84R3_OVERSHOOT_X, W84R3_PIPE_XMAX, 96);
++    h.build_overshoot_bound(W84R3_OVERSHOOT_X, W84R3_PIPE_XMAX, 200);
 +    Self { h }
 +  }
 +  /// Two-phase (as W42Warp, phase from the STATE's scroll — no ext needed): before SL 3345 the coupled
@@ -1008,6 +1013,11 @@ index 3f1c53b..42d9f46 100644
 +      Some(self.h.get_steps_overshoot(s, W84R3_OVERSHOOT_X))
 +    } else if s.x_pos > W84R3_PIPE_XMAX {
 +      Some(self.h.get_steps_until_x_pos_at_most(s, W84R3_PIPE_XMAX))
++    } else if s.x_pos < W84R3_PIPE_XMIN {
++      // P2.2a (session 15): without this branch every state left of the window returned h = 0 — admissible
++      // but useless, so `pruned 0` on every layer of every rung (the room-3 blowups). Entry needs x back
++      // inside [XMIN, XMAX], so the leftward-overshoot cost is a sound lower bound.
++      Some(self.h.get_steps_until_x_pos_at_least(s, W84R3_PIPE_XMIN))
 +    } else { Some(0) }
 +  }
 +  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }

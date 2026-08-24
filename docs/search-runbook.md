@@ -29,6 +29,17 @@ work loop; this file is what to do when you actually launch a search.
   one of three ways: **GOAL** (the segment's optimum, if the rung is the first feasible one
   and the previous rung was proof-grade dry), **no path** (frontier exhausted — a verdict),
   or **cap-killed** (a null result).
+- **`max_steps` is layers from the POST-prefix root, not absolute frames** (F125, session 15). A rung
+  written as `bfscx CASE INPUTS FIRST PREFIX DEADLINE` gives the search `DEADLINE` layers starting at
+  the state reached after `PREFIX` steps. Passing the WR's absolute frame count as the deadline on a
+  prefixed rung silently hands it `DEADLINE − h(root)` frames of slack: a prefix-162 rung given 195
+  had **162** frames of slack and hit 100M states / 27 GB by layer 23. Set the deadline from the root
+  bound the probe prints, not from the WR's frame numbering. (The 4-2 control gate `6584 575 587`
+  looks like a counterexample but is not — it stops at layer 10 because it finds goals.)
+- **Read the `--check-path` startup audit before paying for the search** (F124). `--check-path N`
+  replays the reference path and prints its goal test and `N bound violations over M steps` *before*
+  layer 1. That is usually the positive control you actually wanted; the exhaustive part behind it can
+  cost terabytes (the 1-1 d368 rung projected ≈1.6 TB to re-derive what the audit gave in 4.7 s).
 - **A cap/watchdog kill is never a "no"** (F121: the drift rungs were killed at 126M/249M
   records pinned at a wall the bound could not see). Only goal-or-exhaustion advances a
   decision tree.

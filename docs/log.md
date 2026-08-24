@@ -1011,3 +1011,48 @@ forensics checkpoint (WR margin over SL 3345 = ZERO px, `W84Room3` built, WR lin
 step is the `w84enemies` port: the piranha-plant class from `w42enemies` plus the flying-cheep frenzy
 (`FlyCheepCheepFrenzy`/`InitFlyingCheepCheep`/`MoveFlyingCheepCheep`), difftest to 0 differences
 including cheep stomps, then the d194 rung with `--enemies`.
+
+### Session 15 continued — P2.2a: the 8-4 room cut at the apex
+
+**Did.** Took the queued unit (port the plants + cheep frenzy into `w84enemies`) and deliberately did
+not write it. Two cheaper things came first, and both changed the plan.
+
+Cut the 195-frame room at the WR's **apex** — max x 3457, the frame its speed crosses zero, prefix 162
+— and the tail becomes a 33-frame segment inside the runbook's ruler. It answers immediately:
+`at root: Some(33)`, 0 bound violations, **96 goals at layer 33** (7.7 s); the d32 rung dies at layer 1.
+**h(apex) = 33 and the WR spends exactly 33** — the return leg is on its bound with zero slack, so
+**H25's frame is not in the turnaround**. It is in the approach, or in arriving at a different apex.
+
+**Learned.**
+- **A real hole in the case bound (F125).** `W84Room3`'s heuristic ended `} else { Some(0) }` — every
+  state with SL ≥ 3345 and x ≤ PIPE_XMAX scored zero. Admissible, so no wrong answers, but it can
+  never prune, and since Mario turns around only 53 px right of the pipe most of the frontier fell into
+  that half-plane and became immortal. That is the `pruned 0` on every room-3 rung, going back to the
+  first d194. The missing piece was the entry window's **left** rim, and it came from the same foot
+  geometry that closed 1-1 this morning: left foot `cv 0x10` in col 212 ∧ right foot `cv 0x11` in col
+  213 ⇒ x ∈ [0xd4400, 0xd4d00). Two rooms, two levels, one geometry — worth remembering that the
+  entry-window arithmetic is reusable.
+- **I got the deadline units wrong, and it cost 27 GB.** `max_steps` counts layers from the
+  *post-prefix* root; I passed the WR's absolute 195 on a prefix-162 rung and handed the search 162
+  frames of slack. It behaved exactly like the other blowups (`pruned 0`, 100M states by layer 23)
+  and I briefly read that as the bound bug rather than my own arithmetic. The tell I should have
+  trusted: `at root: Some(33) (deadline 195 steps)` — the two numbers printed side by side, and 195−33
+  is the slack, in plain sight. Now a runbook rule.
+- **The whole-room rung is not rescuable by horizon.** Root 183 vs deadline 194 = slack 11. The
+  obvious suspect was the overshoot horizon (96 steps for a ~162-frame approach, everything beyond it
+  extrapolated at max speed) — but horizon 200 leaves the root at **183 exactly**. So the 12-frame gap
+  is terrain plus the y-coupling of pipe entry. F95's ruler holds for 8-4: the room gets searched in
+  chained segments or not at all.
+- **The cheep frenzy is state-coupled, and the checkpoint's premise was wrong (F126).**
+  `InitFlyingCheepCheep` reads `Player_X_Speed` and `Player_X_Position` — cheeps spawn *relative to
+  Mario* with speed chosen by a seed his own velocity perturbs. So the LFSR is frame-indexed but the
+  spawn law is not: two trajectories differing in x or speed meet different cheep fields, and the ext
+  multiplies the state space instead of riding along as a frame index. That is a much larger port than
+  the goombas were, and it is now deferred behind a decidable rung. The right order is find-then-model:
+  an enemy-free **goal** is a candidate you replay on the core, where the cheeps are checked for one
+  path; only an enemy-free **dry** actually needs the model (enemy-free is neither an over- nor an
+  under-approximation — no deaths is a superset, no stomp bounces is a subset).
+
+**Next.** Segment the approach (root → apex, 162 frames): either a y-coupled/ygate-style bound for
+`W84Room3`, or a further cut at the brake start (WR row 16492, x 3428, speed 40), then chain the pieces
+with the seam protocol. `w84enemies` stays deferred until a rung needs it.
