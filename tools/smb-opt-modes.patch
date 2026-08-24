@@ -403,10 +403,10 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..ea6deec
+index 0000000..7f86931
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,292 @@
+@@ -0,0 +1,301 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -414,6 +414,7 @@ index 0000000..ea6deec
 +use emu::{Emu, EmuResult, SmbEmu};
 +#[allow(unused_imports)] use emu::inputs::*;
 +use heuristics::SearchGoal;
++use heuristics::drift::DriftBound;
 +use heuristics::xpos::XPosHeuristic;
 +use heuristics::ygate::{surfaces_from_blocks, Surface, YGate};
 +use options::*;
@@ -523,6 +524,8 @@ index 0000000..ea6deec
 +  goal_gate: Option<(i32, YGate)>,
 +  /// P2.5c-2: enemy-aware search — the gate carries the bounce band (see `set_bounce_band`).
 +  bounce_band: bool,
++  /// P2.3c-5: the scroll-aware drift bound for the case goal under the F40 refusal (see heuristics::drift).
++  drift: Option<DriftBound>,
 +}
 +impl Options for W42Main {
 +  type CoinHandler = W42MainCoins;
@@ -565,10 +568,16 @@ index 0000000..ea6deec
 +  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
 +}
 +impl SearchGoal for W42Main {
-+  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()), goal_gate: None, bounce_band: false }; }
++  fn new() -> Self { return Self { h: XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states()), goal_gate: None, bounce_band: false, drift: None }; }
 +  fn set_bounce_band(&mut self, on: bool) -> () { self.bounce_band = on; }
++  fn set_drift_bound(&mut self, on: bool) -> bool {
++    if on { let d = DriftBound::new::<BB42>(&self.h); println!("{}", d.note); self.drift = Some(d); } else { self.drift = None; }
++    true
++  }
++  /// The case bound: the x table to X 1348, joined with the drift bound when it is on (P2.3c-5).
 +  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
-+    Some(self.h.get_steps_until_x_pos_at_least(s, 0x54400))
++    let hx = self.h.get_steps_until_x_pos_at_least(s, 0x54400);
++    Some(match self.drift { Some(ref d) => ::std::cmp::max(hx, d.h(s)), None => hx })
 +  }
 +  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
 +  fn set_position_goal(&mut self, gx: i32, gy: i32) -> () {
@@ -1108,17 +1117,246 @@ index 947eef3..fc94a87 100644
        return EmuResult::Success; // grab coin
      } else if self.s.is_on_ground() && self.s.facing_dir == Dir::RIGHT && (cv == 0x6c || cv == 0x1f) {
        return EmuResult::StateChangeSidePipe(cx, cy); // sideways pipe entry
+diff --git a/src/heuristics/drift.rs b/src/heuristics/drift.rs
+new file mode 100644
+index 0000000..b714923
+--- /dev/null
++++ b/src/heuristics/drift.rs
+@@ -0,0 +1,222 @@
++//! P2.3c-5 (2026-08-24): the scroll-aware "drift" bound for the 4-2 wrong-warp finale — W42Main's case goal under
++//! the F40 refusal (`bfscx --enemies`, main.rs `w42_enemies`: states with ScreenLeft16 >= 1217 are pruned).
++//!
++//! The wrong warp needs ScreenLeft <= 1216 at the pipe entry (X in [1348, 1356]), i.e. a scroll offset
++//! rel = X - ScreenLeft >= 132 = 0x70 + 20 (F40, F120). In the model (emu.rs) rel changes per frame only by
++//!   * this frame's integer movement dx when it is NOT scrolled (scroll_handler_inner, F77): always while rel < 0x50;
++//!     dx - 1 for dx >= 2 while 0x50 <= rel < 0x70; never once rel >= 0x70 (exact tracking) -- EXCEPT while
++//!     side_collision_timer > 0: the <= 15 frames after a side collision, during which nothing scrolls. A side
++//!     collision keeps only the speed's fraction (impede_player_move: x_spd &= 0xff), so those 15 frames move
++//!     Mario by at most G(15) px (the x table's max displacement from a |speed| < 1/16 px/frame class), less than
++//!     1 px per frame (0xff + 14 * FRICTION_RUN < 0x1000);
++//!   * a collision push (impede_player_move, never scrolled): +1 px when moving_dir != RIGHT and x_spd < 0x100,
++//!     -1 px when moving right -- only when a collision point is inside a non-empty block-buffer cell: the feet
++//!     (X+3 / X+12, Player_Y + 32) at depth (Y & 0xf) >= 5 (BLOCK_SURFACE_THICKNESS), or a side point
++//!     (X+2 / X+13, Y + 24) with Y >= 8 -- the push SITES, read from the case's block buffer.
++//! The refusal makes X <= 1216 + rel = 1328 + m (m = rel - 0x70) a wall every surviving state respects.
++//!
++//! Relaxation (a graph whose BFS distance to X >= 1348 is the bound): state (X px, Y = Player_Y, m, credit c);
++//! per step either a move |dx| <= 3, |dy| <= 5 gaining any offset from min(dx, 0) up to the regime's maximum
++//! (losing offset when moving left is optional -- a superset), a credit move (+1 px unscrolled, c -= 1), a push at a
++//! site (+1 px / +1 m, optionally with a 1-px carry; or -1 / -1 after a move; both reset c = C), always inside the
++//! wall. Every model transition of a surviving state maps to one relaxed transition (the domain edges are handled
++//! by clamping with permissive gain ranges, Y < 0 / Y > 191 / X < X0 collapse onto the edge, X < X0 answers 0),
++//! and the query uses the full credit C (distance is monotone in c), so h is admissible. Audit: tools/drift_audit.py
++//! (consistency h(s) <= h(s') + 1 along random trajectories under the hook, h = 0 at goals).
++use blockbuffer::BlockBuffer;
++use emu::screen_left_abs;
++use heuristics::xpos::XPosHeuristic;
++use options::{Platform, NTSC};
++use state::{Dist, State};
++
++pub const GOAL_X: i32 = 1348;      // px: the case goal's x_pos >= 0x54400
++pub const SL_MAX: i32 = 1216;      // the F40 refusal: ScreenLeft16 >= 1217 is route-dead
++pub const REL_TRACK: i32 = 0x70;   // ScrollHandler: exact tracking from this relative x
++pub const REL_SCROLL_MIN: i32 = 0x50; // below this relative x nothing scrolls
++const WALL: i32 = SL_MAX + REL_TRACK; // 1328: X <= WALL + m for every surviving state
++const X0: i32 = 1180;
++const X1: i32 = 1360;
++const NY: i32 = 192;
++const M_LO: i32 = -40;
++const M_HI: i32 = 24;
++const DX_MAX: i32 = 3;
++const DY_MAX: i32 = 5;
++const FOOT_DEPTH: i32 = 5;
++const TIMER_FRAMES: usize = 15;
++const INF: u8 = 255;
++
++pub struct DriftBound {
++  cmax: i32,
++  nm: usize,
++  nc: usize,
++  dist: Vec<u8>,
++  sites: Vec<bool>,
++  pub note: String,
++}
++
++fn clamp(v: i32, lo: i32, hi: i32) -> i32 { if v < lo { lo } else if v > hi { hi } else { v } }
++/// Max offset gain of an unpushed move of dx px from offset pm (m units): the scroll regimes of scroll_handler_inner.
++fn gain_max(dx: i32, pm: i32) -> i32 {
++  if dx <= 0 { 0 }
++  else if pm + REL_TRACK < REL_SCROLL_MIN { dx }
++  else if pm < 0 { if dx >= 2 { 1 } else { 0 } }
++  else { 0 }
++}
++/// Push site: some collision point of Mario at (X, Player_Y) is inside a non-empty cell (any cell value counts: a
++/// superset of the impeding ones).
++fn site_at<B: BlockBuffer>(x: i32, y: i32) -> bool {
++  if x < 0 || y < 0 || y >= NY { return false; }
++  let solid = |cx: i32, cy: i32| -> bool { cx >= 0 && B::get_block_at(cx as usize, (cy & 0xf) as usize) != 0 };
++  if (y & 0xf) >= FOOT_DEPTH {
++    let row = y >> 4; // feet at Player_Y + 32: row ((y_pos + 0x2000 - 0x2000) >> 12) & 0xf
++    if solid((x + 3) >> 4, row) || solid((x + 12) >> 4, row) { return true; }
++  }
++  if y >= 8 {
++    let row = (y + 248) >> 4; // side points at Player_Y + 24: row ((y_pos + 0x1800 - 0x2000) >> 12) & 0xf
++    if solid((x + 2) >> 4, row) || solid((x + 13) >> 4, row) { return true; }
++  }
++  false
++}
++/// Offset-change range of a relaxed transition kind: 0 = plain move dx=p, 1 = credit move of p px, 2 = push right
++/// with carry p in {0,1}, 3 = push left after a move of p px.
++fn delta_range(kind: u8, p: i32, pm: i32) -> (i32, i32) {
++  match kind {
++    0 => (::std::cmp::min(p, 0), gain_max(p, pm)),
++    1 => (p, p),
++    2 => (1, 1 + p),
++    _ => (-1, -1 + ::std::cmp::max(gain_max(p, pm), ::std::cmp::min(p, 1))),
++  }
++}
++/// Predecessor offsets pm whose transition (kind, p) can land on offset m (with clamping to [M_LO, M_HI]).
++fn pm_list(m: i32, kind: u8, p: i32) -> Vec<i8> {
++  let mut v = Vec::new();
++  for pm in M_LO..=M_HI {
++    let (lo, hi) = delta_range(kind, p, pm);
++    let mut ok = false;
++    let mut d = lo;
++    while d <= hi { if clamp(pm + d, M_LO, M_HI) == m { ok = true; break; } d += 1; }
++    if ok { v.push(pm as i8); }
++  }
++  v
++}
++
++impl DriftBound {
++  pub fn new<B: BlockBuffer>(xt: &XPosHeuristic) -> DriftBound {
++    let t0 = ::std::time::Instant::now();
++    // the credit: max movement in the <= 15 unscrolled frames after a side collision (speed fraction only), plus one
++    // integer-crossing slop; per frame < 1 px (checked against the platform's acceleration).
++    assert!(0xff + (TIMER_FRAMES as i32 - 1) * (<NTSC as Platform>::FRICTION_RUN as i32) < 0x1000, "timer-window speed reaches 1 px/frame: the credit move needs dx > 1");
++    let mut gains: Vec<i32> = Vec::new();
++    let mut best = 0i32;
++    for k in 1..=TIMER_FRAMES { let g = xt.max_gain_below_speed(0x100, k); gains.push(g); if g > best { best = g; } }
++    let cmax = best / 256 + 1;
++    let nm = (M_HI - M_LO + 1) as usize;
++    let nc = (cmax + 1) as usize;
++    // push sites over the domain; the edge column X0 also carries every site left of it (states left of X0 collapse onto it)
++    let nx = (X1 - X0 + 1) as usize;
++    let mut sites = vec![false; nx * NY as usize];
++    for x in X0..=X1 { for y in 0..NY { sites[((x - X0) as usize) * NY as usize + y as usize] = site_at::<B>(x, y); } }
++    for x in 0..X0 { for y in 0..NY { if site_at::<B>(x, y) { sites[y as usize] = true; } } }
++    let nsites = sites.iter().filter(|&&b| b).count();
++    // transition tables: predecessor offsets per (kind, p, m)
++    let tab = |kind: u8, p: i32| -> Vec<Vec<i8>> { (M_LO..=M_HI).map(|m| pm_list(m, kind, p)).collect() };
++    let t_plain: Vec<Vec<Vec<i8>>> = (-DX_MAX..=DX_MAX).map(|dx| tab(0, dx)).collect();
++    let t_credit: Vec<Vec<i8>> = tab(1, 1);
++    let t_pushr: Vec<Vec<Vec<i8>>> = (0..=1).map(|k| tab(2, k)).collect();
++    let t_pushl: Vec<Vec<Vec<i8>>> = (0..=DX_MAX).map(|dx| tab(3, dx)).collect();
++    let mut b = DriftBound { cmax, nm, nc, dist: vec![INF; nx * NY as usize * nm * nc], sites, note: String::new() };
++    // BFS from the goal set over predecessors
++    let mut frontier: Vec<u32> = Vec::new();
++    for x in GOAL_X..=X1 { for y in 0..NY { for m in M_LO..=M_HI { if x > WALL + m { continue; } for c in 0..=cmax { let i = b.idx(x, y, m, c); b.dist[i] = 0; frontier.push(i as u32); } } } }
++    let mut level: u8 = 0;
++    let mut reached = frontier.len();
++    let site = |b: &DriftBound, x: i32, y: i32| -> bool { x >= X0 && x <= X1 && y >= 0 && y < NY && b.sites[((x - X0) as usize) * NY as usize + y as usize] };
++    while !frontier.is_empty() && level < INF - 2 {
++      let mut next: Vec<u32> = Vec::new();
++      for &ti in &frontier {
++        let (x, y, m, c) = b.decode(ti as usize);
++        // plain moves (credit unchanged)
++        for dx in -DX_MAX..=DX_MAX {
++          let px = x - dx; if px < X0 || px > X1 { continue; }
++          for &pm8 in &t_plain[(dx + DX_MAX) as usize][(m - M_LO) as usize] {
++            let pm = pm8 as i32; if px > WALL + pm { continue; }
++            for dy in -DY_MAX..=DY_MAX { let py = y - dy; if py < 0 || py >= NY { continue; }
++              let pi = b.idx(px, py, pm, c); if b.dist[pi] == INF { b.dist[pi] = level + 1; next.push(pi as u32); } }
++          }
++        }
++        // credit move: 1 px unscrolled, from credit c + 1
++        if c + 1 <= cmax {
++          let px = x - 1;
++          if px >= X0 {
++            for &pm8 in &t_credit[(m - M_LO) as usize] {
++              let pm = pm8 as i32; if px > WALL + pm { continue; }
++              for dy in -DY_MAX..=DY_MAX { let py = y - dy; if py < 0 || py >= NY { continue; }
++                let pi = b.idx(px, py, pm, c + 1); if b.dist[pi] == INF { b.dist[pi] = level + 1; next.push(pi as u32); } }
++            }
++          }
++        }
++        // pushes land with full credit; the collision happened at the post-move position (x -/+ 1, y)
++        if c == cmax {
++          if site(&b, x - 1, y) {
++            for k in 0..=1 {
++              let px = x - 1 - k; if px < X0 { continue; }
++              for &pm8 in &t_pushr[k as usize][(m - M_LO) as usize] {
++                let pm = pm8 as i32; if px > WALL + pm { continue; }
++                for dy in -DY_MAX..=DY_MAX { let py = y - dy; if py < 0 || py >= NY { continue; }
++                  for pc in 0..=cmax { let pi = b.idx(px, py, pm, pc); if b.dist[pi] == INF { b.dist[pi] = level + 1; next.push(pi as u32); } } }
++              }
++            }
++          }
++          if site(&b, x + 1, y) {
++            for dx in 0..=DX_MAX {
++              let px = x + 1 - dx; if px < X0 || px > X1 { continue; }
++              for &pm8 in &t_pushl[dx as usize][(m - M_LO) as usize] {
++                let pm = pm8 as i32; if px > WALL + pm { continue; }
++                for dy in -DY_MAX..=DY_MAX { let py = y - dy; if py < 0 || py >= NY { continue; }
++                  for pc in 0..=cmax { let pi = b.idx(px, py, pm, pc); if b.dist[pi] == INF { b.dist[pi] = level + 1; next.push(pi as u32); } } }
++              }
++            }
++          }
++        }
++      }
++      reached += next.len();
++      frontier = next;
++      level += 1;
++    }
++    let total = b.dist.len();
++    let valid = { let mut n = 0usize; for x in X0..=X1 { for m in M_LO..=M_HI { if x <= WALL + m { n += NY as usize * nc; } } } n };
++    b.note = format!("drift bound: X [{}, {}] x Y [0, {}) x m [{}, {}] x credit [0, {}] (G(1..15) px {:?}); {} push sites; BFS {} levels, {} of {} wall-valid states reached ({} total); {:.1}s",
++      X0, X1, NY, M_LO, M_HI, cmax, gains.iter().map(|g| g / 256).collect::<Vec<i32>>(), nsites, level, reached, valid, total, t0.elapsed().as_secs() as f64 + t0.elapsed().subsec_nanos() as f64 / 1e9);
++    b
++  }
++  #[inline]
++  fn idx(&self, x: i32, y: i32, m: i32, c: i32) -> usize {
++    ((((x - X0) as usize) * NY as usize + y as usize) * self.nm + (m - M_LO) as usize) * self.nc + c as usize
++  }
++  fn decode(&self, i: usize) -> (i32, i32, i32, i32) {
++    let c = (i % self.nc) as i32; let i = i / self.nc;
++    let m = (i % self.nm) as i32 + M_LO; let i = i / self.nm;
++    let y = (i % NY as usize) as i32; let x = (i / NY as usize) as i32 + X0;
++    (x, y, m, c)
++  }
++  /// Lower bound on the steps until the pipe entry with the scroll condition; 0 outside the domain.
++  pub fn h(&self, s: &State) -> Dist {
++    let x = s.x_pos >> 8;
++    if x >= GOAL_X || x < X0 || x > X1 { return 0; }
++    let sl16 = screen_left_abs(x, s.left_screen_edge_pos);
++    let m = clamp(x - sl16 - REL_TRACK, M_LO, M_HI);
++    if x > WALL + m { return 0; } // beyond the refusal wall: not a surviving state
++    let y = clamp((s.y_pos >> 8) - 0x100, 0, NY - 1);
++    let c = if s.side_collision_timer > 0 { self.cmax } else { 0 };
++    let d = self.dist[self.idx(x, y, m, c)];
++    if d == INF { 1000 } else { d as Dist }
++  }
++  /// The relaxed distance table entry for a (X, Y, m, credit) query (tests / traces).
++  pub fn h_at(&self, x: i32, y: i32, m: i32, c: i32) -> u16 {
++    if x >= GOAL_X { return 0; } if x < X0 || x > X1 { return 0; }
++    let m = clamp(m, M_LO, M_HI); if x > WALL + m { return 0; }
++    let d = self.dist[self.idx(x, clamp(y, 0, NY - 1), m, clamp(c, 0, self.cmax))];
++    if d == INF { 1000 } else { d as u16 }
++  }
++  pub fn credit_max(&self) -> i32 { self.cmax }
++}
 diff --git a/src/heuristics/mod.rs b/src/heuristics/mod.rs
-index 39e4b06..d883213 100644
+index 39e4b06..628c0b1 100644
 --- a/src/heuristics/mod.rs
 +++ b/src/heuristics/mod.rs
-@@ -1,4 +1,5 @@
+@@ -1,4 +1,6 @@
++pub mod drift;
  pub mod xpos;
 +pub mod ygate;
  pub mod ypos;
  
  use emu::EmuResult;
-@@ -7,9 +8,42 @@ use state::{Dist, State};
+@@ -7,9 +9,45 @@ use state::{Dist, State};
  use std::cmp::{max, min};
  use std::marker::PhantomData;
  
@@ -1156,13 +1394,16 @@ index 39e4b06..d883213 100644
 +  /// P2.5c-2: enemy-aware searches — the position-goal bound must admit stomp bounces (ygate bounce band); call
 +  /// before set_position_goal. Default: nothing.
 +  fn set_bounce_band(&mut self, _on: bool) -> () {}
++  /// P2.3c-5: enable the scroll-aware drift bound for the case goal (W42Main under the F40 refusal); returns whether
++  /// the case supports it. Default: unsupported.
++  fn set_drift_bound(&mut self, _on: bool) -> bool { false }
 +  /// P2.3c-2c: lower bound on the steps until `x_pos >= gx && y_pos <= gy` hold at the same step; default = x-only.
 +  fn steps_until_xy(&self, s: &mut State, gx: i32, _gy: i32) -> Option<Dist> { self.steps_until_x_at_least(s, gx) }
    fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool;
  
    fn track_metric(&mut self, _: &State) -> () {}
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..279368f 100644
+index c9bbf89..4b83b01 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
 @@ -6,22 +6,100 @@ use std::io::Write;
@@ -1303,10 +1544,22 @@ index c9bbf89..279368f 100644
    }
    pub fn get_steps_until_x_pos_between(&self, s: &State, min_x_pos: i32, max_x_pos: i32) -> Dist {
      if s.x_pos < min_x_pos { self.get_steps_until_x_pos_at_least(s, min_x_pos) }
-@@ -117,6 +202,23 @@ impl XPosHeuristic {
+@@ -117,6 +202,35 @@ impl XPosHeuristic {
    pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
      s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
    }
++  /// P2.3c-5: max displacement (x_pos units, 256 = 1 px) in exactly k steps over the classes with |x_spd| < spd_lim
++  /// (a side collision leaves Mario in one of them: impede_player_move keeps only the speed's fraction); beyond a
++  /// class's table the gain is extrapolated at max_x_distance per step, as in get_steps_until_x_pos_at_least.
++  pub fn max_gain_below_speed(&self, spd_lim: i16, k: usize) -> i32 {
++    let mut best = 0i32;
++    for (c, v) in self.max_distance.iter() {
++      if c.x_spd.abs() >= spd_lim { continue; }
++      let g = if v.len() >= k { v[k - 1] } else { let last = if v.is_empty() { 0 } else { v[v.len() - 1] }; last + (k - v.len()) as i32 * self.max_x_distance };
++      if g > best { best = g; }
++    }
++    best
++  }
 +  /// Dump the max-distance table: one line per class
 +  /// "x_spd x_spd_abs moving facing on_ground running_speed max_x_distance len d1 d2 ..." (decimal)
 +  pub fn dump(&self, path: &str) -> () {
@@ -1644,7 +1897,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..91ab88f 100644
+index 350d469..4504b7d 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1655,7 +1908,7 @@ index 350d469..91ab88f 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,304 @@ mod ida;
+@@ -20,8 +21,310 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -1688,7 +1941,7 @@ index 350d469..91ab88f 100644
 +    // checks admissibility on these traces (P2.3c-2c).
 +    let first: usize = args[3].parse().unwrap();
 +    let n: usize = args[4].parse().unwrap();
-+    let (mut lift, mut enemies, mut aptn0, mut gx, mut gy) = (false, false, 0u16, None, None);
++    let (mut lift, mut enemies, mut aptn0, mut gx, mut gy, mut no_drift) = (false, false, 0u16, None, None, false);
 +    let mut files: Vec<String> = Vec::new();
 +    let mut i = 5;
 +    while i < args.len() {
@@ -1696,11 +1949,14 @@ index 350d469..91ab88f 100644
 +      else if args[i] == "--enemies" { enemies = true; i += 1; if i < args.len() && !args[i].starts_with("--") && args[i].parse::<u16>().is_ok() { aptn0 = args[i].parse().unwrap(); i += 1; } } // P2.5c-2: lift + enemies, bounce band in the bound
 +      else if args[i] == "--goal-x" { gx = Some(args[i + 1].parse::<i32>().unwrap() << 8); i += 2; }
 +      else if args[i] == "--goal-y" { gy = Some(((args[i + 1].parse::<i32>().unwrap() + 0x100) << 8) | 0xff); i += 2; }
++      else if args[i] == "--no-drift" { no_drift = true; i += 1; } // P2.3c-5: case-goal mode without the drift bound
 +      else { files.push(args[i].clone()); i += 1; }
 +    }
-+    let (gx, gy) = (gx.expect("--goal-x"), gy.expect("--goal-y"));
++    // P2.3c-5: without --goal-x/--goal-y the CASE goal and bound are traced (W42Main: x table + drift bound under
++    // --enemies), with the scroll offset and side-collision timer appended per row ("rel N t N") for tools/drift_audit.py.
++    let gxy = match (gx, gy) { (Some(gx), Some(gy)) => Some((gx, gy)), (None, None) => None, _ => panic!("--goal-x and --goal-y go together") };
 +    match args[2].as_str() {
-+      "W42Main" => traceh_run::<case::w42::W42Main>(&files, first, n, if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, gx, gy),
++      "W42Main" => traceh_run::<case::w42::W42Main>(&files, first, n, if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None }, 0x100 | aptn0, gxy, enemies && !no_drift),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1716,6 +1972,7 @@ index 350d469..91ab88f 100644
 +    let mut lift = false; let mut enemies = false; let mut aptn0: u16 = 0; let mut layer_dir: Option<String> = None; let mut resume: Option<usize> = None;
 +    let mut acc_mb: usize = 64; let mut stop_step: usize = ::std::usize::MAX; let mut stage = false;
 +    let mut goal_x: Option<i32> = None; let mut goal_y: Option<i32> = None; // P2.3c-2c: position goal override (px)
++    let mut no_drift = false; // P2.3c-5: `--no-drift` keeps the case bound x-only under --enemies (A/B, regressions)
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
@@ -1730,13 +1987,15 @@ index 350d469..91ab88f 100644
 +      else if args[i] == "--stop-step" { stop_step = args[i + 1].parse().unwrap(); i += 2; }
 +      else if args[i] == "--goal-x" { goal_x = Some(args[i + 1].parse::<i32>().unwrap() << 8); i += 2; } // goal = x_pos >= PX (after a Success step)
 +      else if args[i] == "--goal-y" { goal_y = Some(((args[i + 1].parse::<i32>().unwrap() + 0x100) << 8) | 0xff); i += 2; } // and Player_Y <= PY
++      else if args[i] == "--no-drift" { no_drift = true; i += 1; }
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    let hook: Option<Hook> = if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None };
++    let drift = enemies && !no_drift && goal_x.is_none(); // P2.3c-5: the drift bound joins the case bound under the F40 refusal
 +    match args[2].as_str() {
-+      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y)),
-+      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y)),
-+      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y)),
++      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, 0x100 | aptn0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift),
++      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false),
++      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, 0, layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -1960,7 +2219,7 @@ index 350d469..91ab88f 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +343,1214 @@ fn calc_prng() {
+@@ -46,4 +349,1223 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2343,34 +2602,42 @@ index 350d469..91ab88f 100644
 +/// `first`, optionally tracing each step in the trace11pipe row format. Returns (state, alive).
 +fn replayc<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool) -> (State, bool) { let (s, _, a) = replayce::<C>(data, first, n, trace, None, 0); (s, a) }
 +/// P2.3c-2c: replay each input file with the position-goal bound printed per step (see the `traceh` mode).
-+fn traceh_run<C: case::SmbSearchCase>(files: &[String], first: usize, n: usize, hook: Option<Hook>, ext0: u16, gx: i32, gy: i32) {
++fn traceh_run<C: case::SmbSearchCase>(files: &[String], first: usize, n: usize, hook: Option<Hook>, ext0: u16, gxy: Option<(i32, i32)>, drift: bool) {
 +  use emu::{Emu, EmuResult};
 +  use case::SmbSearchCase;
 +  use heuristics::SearchGoal;
 +  let mut goal = C::SearchGoal::new();
 +  goal.set_bounce_band(hook.map_or(false, |h| h as usize == w42_enemies as usize));
-+  goal.set_position_goal(gx, gy);
-+  let hof = |g: &C::SearchGoal, st: &State| -> String { match g.steps_until_xy(&mut st.clone(), gx, gy) { Some(d) => d.to_string(), None => "?".to_string() } };
++  match gxy { Some((gx, gy)) => goal.set_position_goal(gx, gy), None => { goal.set_drift_bound(drift); } }
++  let hof = |g: &C::SearchGoal, st: &State, e: u16, step: usize| -> String {
++    let d = match gxy { Some((gx, gy)) => g.steps_until_xy(&mut st.clone(), gx, gy), None => g.distance_to_goal_heuristic_ext(&mut st.clone(), e, step as state::Dist) };
++    match d { Some(d) => d.to_string(), None => "?".to_string() }
++  };
++  let track = <<C as options::Options>::ScrollPos as options::ScrollPos>::TRACK_SCROLL_POS;
++  let extra = |st: &State| -> String { if gxy.is_none() && track { format!(" rel {} t {}", (st.x_pos >> 8) - screen_left16(st), st.side_collision_timer) } else { String::new() } };
 +  for f in files {
 +    let data = ::std::fs::read(f).unwrap();
 +    let mut s = C::start_states()[0].clone();
 +    let mut ext = Ext::from_u16(ext0);
 +    println!("=== {}", f);
 +    println!("step x_pos y_pos x_spd y_spd state h goal result");
-+    println!("0 {:#x} {:#x} {:#x} {:#x} {:?} {} {} Root", s.x_pos, s.y_pos, s.x_spd, s.y_spd, s.player_state, hof(&goal, &s), (s.x_pos >= gx && s.y_pos <= gy) as u8);
++    println!("0 {:#x} {:#x} {:#x} {:#x} {:?} {} {} Root{}", s.x_pos, s.y_pos, s.x_spd, s.y_spd, s.player_state, hof(&goal, &s, ext.u16(), 0), gxy.map_or(false, |(gx, gy)| s.x_pos >= gx && s.y_pos <= gy) as u8, extra(&s));
 +    for i in 0..n {
 +      let input = nes_to_model(data[first + i]);
 +      let (mut ns, res) = <C as SmbSearchCase>::Emu::run_step(s.clone(), input);
 +      let mut dead = false;
 +      let mut bump = false;
 +      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&s, &mut ns, &mut ext); dead = ev == LiftEvent::Death; bump = ev == LiftEvent::ItemBump; } }
-+      let g = !dead && res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy;
-+      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {} {} {:?}{}{}", i + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hof(&goal, &ns), g as u8, res, if dead { " DEAD" } else { "" }, if bump { " ITEMBUMP" } else { "" });
++      let g = match gxy { Some((gx, gy)) => !dead && res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy, None => goal.is_goal_state(&ns, &res) && !goal_refused(hook, &ns) };
++      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {} {} {:?}{}{}{}", i + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hof(&goal, &ns, ext.u16(), i + 1), g as u8, res, if dead { " DEAD" } else { "" }, if bump { " ITEMBUMP" } else { "" }, extra(&ns));
 +      s = ns;
 +      if res != EmuResult::Success || dead { break; }
 +    }
 +  }
 +}
++/// P2.3c-5: the F40 refusal also applies to the goal transition itself (the search tests the goal before the hook
++/// runs): a pipe entry whose own frame scrolled ScreenLeft16 to >= 1217 warps wrong, like any refused state.
++fn goal_refused(hook: Option<Hook>, ns: &State) -> bool { hook.map_or(false, |h| h as usize == w42_enemies as usize) && screen_left16(ns) >= 1217 }
 +/// replayc with an optional per-frame object hook (e.g. the 4-2 lift) carrying `ext`; returns (state, ext, alive).
 +fn replayce<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool, hook: Option<Hook>, ext0: u16) -> (State, Ext, bool) {
 +  use emu::{Emu, EmuResult};
@@ -2458,7 +2725,7 @@ index 350d469..91ab88f 100644
 +    _ => g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize),
 +  }
 +}
-+fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>))
++fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: u16, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>), drift: bool)
 +    where C::SearchGoal: Send + Sync {
 +  // P2.3c-2c: `--goal-x PX [--goal-y PY]` replaces the case's goal by "x_pos >= PX (and Player_Y <= PY) after a Success step" and its
 +  // bound by the case's x-only table to PX (SearchGoal::steps_until_x_at_least) — segment searches whose results chain into a reference path.
@@ -2491,6 +2758,7 @@ index 350d469..91ab88f 100644
 +  let mut goal0 = C::SearchGoal::new();
 +  goal0.set_bounce_band(hook.map_or(false, |h| h as usize == w42_enemies as usize)); // P2.5c-2: enemy-aware -> the y bound admits stomp bounces
 +  if let (Some(gx), Some(gy)) = (goal_x, goal_y) { goal0.set_position_goal(gx, gy); }
++  if drift { assert!(goal0.set_drift_bound(true), "this case has no drift bound"); println!("drift bound ON (P2.3c-5: case bound = max(x table, drift); --no-drift disables)"); }
 +  let goal = Arc::new(goal0);
 +  let hval = |g: &C::SearchGoal, st: &State, e: &Ext, step: usize| -> Option<usize> { xy_h(g, st, e.u16(), step, goal_x, goal_y) };
 +  if let Some(gx) = goal_x { println!("position goal: x_pos >= {:#x} (X {}){}; bound = x table to that x, y-coupled (ygate) when the case supports --goal-y", gx, gx >> 8, match goal_y { Some(gy) => format!(", y_pos <= {:#x} (Y <= {})", gy, (gy >> 8) - 0x100), None => String::new() }); assert!(hval(&goal, &s, &e0, 0).is_some(), "this case has no x-only table for --goal-x"); }
@@ -2581,7 +2849,7 @@ index 350d469..91ab88f 100644
 +            let ps = key.decompress();
 +            for &ib in &inputs {
 +              let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+              if xy_goal(&*goal, &ns, &res, goal_x, goal_y) { goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
++              if xy_goal(&*goal, &ns, &res, goal_x, goal_y) { if goal_x.is_none() && goal_refused(hook, &ns) { dead += 1; continue; } goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
 +              match res {
 +                EmuResult::Success => {
 +                  let mut ne = pe;

@@ -833,3 +833,28 @@ removed came back as a requirement.
 **Next.** The rung verdicts → the decision tree in STATUS (record-verify path or d64/d66 or the bottom-route
 pivot). Then: BizHawk re-run, the full-movie assembly + framerule math, the optimality note (552/553), the
 fork decision (Needs user input), P0.11d fold-in.
+
+## 2026-08-24 — Session 13: the rungs blew up on a blind bound; the scroll-aware drift bound is the fix
+**Did.** Read the two drift-campaign rung verdicts: both WATCHDOG-KILLED at layer 37 (local d58 126M > 120M; Mac
+d62 248M > 200M, its container ran on to layer 38 = 329M until I `docker kill`ed it — a Mac-watchdog loose end:
+it killed only the docker client). Both pinned at `max x 0x530f0` = 1328.94 = the F40 refusal wall, `goals 0` —
+**memory blowups, not "no path."** Diagnosed the cause: `W42Main`'s `--enemies` case bound was the x-only x-table
+to X 1348, blind to the F120 scroll latch, so every wall-pinned state (millions, differing only in Y / blocks /
+enemy ext) looked ~2 frames from the goal and survived to the deadline. Built the fix — `heuristics::drift::DriftBound`
+(new engine file): a sound lower bound from a relaxed BFS over (X, Player_Y, scroll offset m, side-collision credit)
+with the exact scroll regimes + collision pushes at BB42 sites, distance to X ≥ 1348 inside the `X ≤ 1328+m` wall.
+Case bound → `max(x table, drift)`, ON under `--enemies`, `--no-drift` disables; also refused the goal transition
+itself when its own frame scrolled `sl16 ≥ 1217` (`goal_refused`). Validated: control gate byte-identical (drift
+off); the WR's real warp survives `--check-path` with 0 violations and reaches the goal (drift on) while 32,472
+wrong-scroll entries are pruned; `tools/drift_audit.py` — 400 trajectories + WR, 211,675 consistency pairs, 0
+violations, minting exercised to rel 132, h up to 67 in the wall band. Patch regenerated (26 files incl. drift.rs),
+verified applying cleanly to the pinned commit. Launched the decisive local d58 rung with the bound, resumed from
+the pre-drift layer 37.
+**Learned.** A watchdog kill is a null result, never a "no" — the campaign's decision tree only advances on a real
+goal-or-exhaustion verdict, and the frontier explosion was our own heuristic wasting effort on states the scroll
+rule already rules out. The x-only bound had been carrying every segment (S1–S4) because those were open terrain;
+the wrong-warp finale is the first place the missing scroll term actually bites. F121; write-up in
+`docs/experiments/P2.3c-2c-main-area.md` §P2.3c-5.
+**Next.** Read the d58-drift verdict (layer 38 = the with/without datapoint). GOAL at d ≤ 66 → the record pipeline
+(path → core → splice → FCEUX warp-dest check → BizHawk); dry through d66 → pivot to the bottom route. Resync the
+Mac to the drift patch and run d62/d66 in parallel. Then the P0.11d Mac-watchdog `docker kill` fix.
