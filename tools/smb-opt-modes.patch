@@ -1644,7 +1644,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..538f1fa 100644
+index 350d469..91ab88f 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -1960,7 +1960,7 @@ index 350d469..538f1fa 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +343,1205 @@ fn calc_prng() {
+@@ -46,4 +343,1214 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2323,6 +2323,15 @@ index 350d469..538f1fa 100644
 +  // over-refusal: any of his collision points could touch a climbable cell there). x+2 <= 1039 && x+13 >= 1024
 +  // -> x in [1011, 1037]; body above the brick row -> Y < 62.
 +  if slots.vineflag != 0 && s.x_pos >= 1011 << 8 && s.x_pos < 1038 << 8 && s.y_pos < 0x13e00 { return LiftEvent::ItemBump; }
++  // F40 (the wrong-warp condition, learned from emulator round 1): the warp destination is AreaPointer as last
++  // written by a parsed row-$0e command; the wrong warp needs the (page 5, col 15) command (module ENEMY_DATA
++  // offsets 15..18: 0xfe, 0x42, 0x68 -> pointer $42, EntrancePage 8) still UNPARSED through the area load. A
++  // state whose loader consumed it (eoff jumps 15 -> 18) warps to the page-8 garbage; a state whose scroll
++  // reached the command's parse range (ScreenRight + 48 >= 1520 <=> sl16 >= 1217; the WR enters at exactly
++  // 1216) lets the cutscene consume it. Both are route-dead for the wrong warp: refuse like an item bump.
++  // Only the final approach (Mario x >= ~1329) can reach sl16 1217, so earlier segments are unaffected.
++  if slots.eoff >= 16 { return LiftEvent::ItemBump; }
++  if screen_left16(s) >= 1217 { return LiftEvent::ItemBump; }
 +  match ev { EnemyEvent::Death => LiftEvent::Death, EnemyEvent::Stomp => LiftEvent::Stomp, EnemyEvent::Kick => LiftEvent::Kick, EnemyEvent::Nothing => lev }
 +}
 +
