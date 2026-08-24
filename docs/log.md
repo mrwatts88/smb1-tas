@@ -679,3 +679,24 @@ arrival time). Goal-boundary hygiene: check the arrival state against the map be
 **Next.** S4 verdict → chain_s4.bin, core-verify, **the chain total vs 575/577** (the headline) → full replay_check,
 slack accounting, the seam-merge question if the number lands just above a framerule boundary; then the P0.11d
 fold-in, the goal-print engine fix, run 4 resume.
+
+## 2026-08-23 — Session 11 (cont. 3): S4 needs the big-run treatment — dedicated d112 on the Mac overnight; run 4 resumed
+**Did.** S4 (case pipe-entry goal, x-only bound 137): the slack-0 rung blew the ladder's 20M cap at layer 62
+(x ≈ 1161, dead 0) — F95's y-variety explosion; split into **S4a** (x ≥ 1284 ∧ Y ≤ 112, y-gated, root bound 112)
++ **S4b** (the ~64-px pipe-entry stub). S4a's own slack-0 rung then blew 20M at **layer 30** (x ≈ 1081, growing
+30 %/layer): the y-term is dormant until ~25 frames from its goal, so this segment's middle is effectively x-only
+over the climb approach — the ladder cap is simply too small here, as it would have been for S1's d149. Since the
+rung was *growing* (feasible-looking), d112 got the d149 pattern **on the Mac** (506 G disk): `s4a_big_launch.sh`,
+`mac_run.sh -m 8g`, 10 threads, `watchdog.sh` 120M/80G + a local 5-min ssh poll as backstop (P0.11d #8). First
+launch was mine to own: I dropped the `--goal-x/--goal-y` flags — the case bound (137) > deadline → dead at layer 1
+in 2.6 s; the backstop watcher caught it inside a minute, relaunched correctly (root Some(112) = deadline, search
+pid 30712, watchdog 30713 both verified alive). **Run 4 RESUMED ~19:50** (`kill -CONT 172117`) — the local box is
+free while the Mac grinds, per the user's priority (S4 outranks run 4, but S4's decisive run no longer needs this
+box tonight). Local d137/d112 layer remnants deleted (19G + partial).
+**Learned.** The ladder's 20M economy assumes the y-term covers most of the segment; when the goal sits > ~25
+frames past high-variety terrain, budget for the d149 pattern up front. And a launcher written in a hurry loses
+flags — the root-bound line (`at root: Some(N) (deadline D)`) is the launch check: N must equal D's plan, read it
+before walking away. The backstop watcher earned its place in P0.11d.
+**Next.** The Mac's d112 verdict (hours): GOAL → prefix-recover + `bfscx-path` ON the Mac, scp the path, chain →
+`chain_s4a.bin`, core-verify, S4b probe/ladder (the plant tax read-out) → **the chain total vs 575/577**. "No live
+states" → d114, same treatment. Then the P0.11d fold-in, the goal-print fix, the slack accounting.
