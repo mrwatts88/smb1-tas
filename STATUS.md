@@ -8,6 +8,9 @@ pre-cleanup narrative version of this file is archived at
 **Updated:** 2026-08-25 (session 19 — **E9a DONE and positive-controlled** (F246): no face admits a *full-speed* lateral entry, and the classifier reproduces 1-2's known clip frame for frame. **8-2's 114-frame site is real on the core** (F247): the jump clears the wall at speed 40 and reaches the pole 112 frames early, but loses HappyLee's flag glitch and ends the level 63-126 frames LATE. **Track E now runs natively on the Mac, byte-identical and 3x faster** (F248), and E9b-1 is RUNNING there.)
 
 ## Where we are
+- ## >>> **`docs/open-threads.md` (2026-08-25) is the full enumeration of what is left** — 49
+  hypotheses, 22 closed with proof, ~8 real threads, tiered by whether they are running, ready,
+  blocked on a missing primitive, or structural long shots. Read it before picking anything up.
 - ## >>> NEXT UNIT: **finish E9b-1 — the 8-2 flag-glitch window (H48/F247).** Two archives are
   **RUNNING ON THE MAC** (`ssh mac`, `~/code/smb/runs/E9b/{arc16,arc32}.log`, 6 h each, both
   reproduce the control `GOAL frame=12953`). The question is now exact and small: **the fast line
