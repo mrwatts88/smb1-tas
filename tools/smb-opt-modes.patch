@@ -2154,7 +2154,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..1a768c3 100644
+index 350d469..adb1133 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2904,7 +2904,7 @@ index 350d469..1a768c3 100644
 +    t.class = w42enemies::CLASS_VINE; t.state = 0; t.x = 1024; t.y = 80; t.itimer = 0; t.ftimer = 0; t.yhi = 1; t.dn = 0;
 +    slots.vineflag = 1;
 +  }
-+  let f = Frame {
++  let f = Frame { edata: &w42enemies::ENEMY_DATA[..], pipes: &w42enemies::PIPES[..],
 +    sl16: screen_left16(s),
 +    fc_odd: ((<case::w42::W42MainBlocks as BlockStates>::FC0 as u16 + frame as u16) & 1) != 0,
 +    fc_b1: ((<case::w42::W42MainBlocks as BlockStates>::FC0 as u16 + frame as u16) & 2) != 0,
@@ -4575,10 +4575,10 @@ index 0000000..d8adad9
 +}
 diff --git a/src/w42enemies.rs b/src/w42enemies.rs
 new file mode 100644
-index 0000000..222a723
+index 0000000..7f5e385
 --- /dev/null
 +++ b/src/w42enemies.rs
-@@ -0,0 +1,458 @@
+@@ -0,0 +1,477 @@
 +//! P2.5c-2 — the 4-2 main-area enemies as a per-step object hook for `W42Main` (`--enemies`): the enemy-data loader
 +//! (`ProcessEnemyData`), the `$3A` goomba group, the green koopa, the buzzy beetles, the piranha plants the area
 +//! parser inserts into the pipes, and the lift's slot occupancy, with the per-slot RAM packed into the record's ext
@@ -4603,6 +4603,22 @@ index 0000000..222a723
 +/// column (F100). Col 84 is the wrong-warp pipe (goal), col 89 pipe C.
 +pub const PIPES: [(u8, u8); 4] = [(72, 8), (78, 4), (84, 8), (89, 8)];
 +
++/// P2.2f (H42): 8-4's enemy-object bytes (`E_CastleArea6`, `data/disasm/smbdis.asm:4564`, 58 bytes).
++/// This module is the enemy *engine*; `Frame::edata`/`Frame::pipes` select which area it runs.
++pub const W84_ENEMY_DATA: [u8; 58] = [
++  0x0f, 0x03, 0x8e, 0x65, 0xe1, 0xbb, 0x38, 0x6d, 0xa8, 0x3e, 0xe5, 0xe7,
++  0x0f, 0x08, 0x0b, 0x02, 0x2b, 0x02, 0x5e, 0x65, 0xe1, 0xbb, 0x0e,
++  0xdb, 0x0e, 0xbb, 0x8e, 0xdb, 0x0e, 0xfe, 0x65, 0xec, 0x0f, 0x0d,
++  0x4e, 0x65, 0xe1, 0x0f, 0x0e, 0x4e, 0x02, 0xe0, 0x0f, 0x10, 0xfe, 0xe5, 0xe1,
++  0x1b, 0x85, 0x7b, 0x0c, 0x5b, 0x95, 0x78, 0x2d, 0x90, 0xb5,
++  0xff];
++/// 8-4 plant-bearing pipes (col, row). Derived from the WR dump — col = (plant_x - 8)/16,
++/// row = (resting_y - 32)/16 — which is exactly the spawn formula this module uses below
++/// (`occupy(t, CLASS_PLANT, pc*16 + 8, pr*16 + 32)`), and is confirmed by room 3's x-3400 plant
++/// landing on (212, 5), i.e. `W84Room3`'s own `EnterVerticalPipe<U212, U5>`.
++pub const W84_ROOM2_PIPES: [(u8, u8); 3] = [(115, 9), (122, 8), (132, 9)];
++#[allow(dead_code)]
++pub const W84_ROOM3_PIPES: [(u8, u8); 4] = [(195, 9), (204, 6), (212, 5), (228, 6)];
 +pub const CLASS_EMPTY: u8 = 0; pub const CLASS_GOOMBA: u8 = 1; pub const CLASS_KOOPA: u8 = 2; pub const CLASS_BEETLE: u8 = 3;
 +pub const CLASS_PLANT: u8 = 4; pub const CLASS_LIFT: u8 = 5; pub const CLASS_ITEM: u8 = 6;
 +/// H34: the vine. The (64,3) bump runs `Setup_Vine` with X=5 (the special slot: x 1024, y 80, growing); the enemy
@@ -4832,23 +4848,26 @@ index 0000000..222a723
 +/// `bx`/`by`: the player's position after movement and before PlayerBGCollision (emu::pre_bg_pos) — the game builds
 +/// the player's hitbox from it (BoundingBoxCore before PlayerBGCollision), so a landing snap or a wall push-back in
 +/// the same frame does not move the box (F101); `px`/`py` are the final position (CheckPlayerVertical, plant range).
-+pub struct Frame { pub sl16: i32, pub fc_odd: bool, pub fc_b1: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
++/// P2.2f: `edata`/`pipes` are the AREA's enemy-object bytes and plant-bearing pipes. They used to be the
++/// 4-2 constants `ENEMY_DATA`/`PIPES` hard-coded below; parameterising them lets 8-4 reuse this machinery
++/// unchanged (4-2 passes its own, so behaviour is bit-identical — regression: the F101/F102 difftest).
++pub struct Frame { pub edata: &'static [u8], pub pipes: &'static [(u8, u8)], pub sl16: i32, pub fc_odd: bool, pub fc_b1: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
 +
 +impl Slots {
 +  /// ProcessEnemyData for free slot `slot` (CheckRightBounds / CheckRightExtBounds / HandleGroupEnemies).
 +  /// Returns true on the paths that fall through to `CheckFrenzyBuffer` in the game (the EOD terminator and
 +  /// "beyond the extended right boundary") — where the H34 vine injection can happen.
-+  fn process_enemy_data(&mut self, slot: usize, sl16: i32) -> bool {
++  fn process_enemy_data(&mut self, slot: usize, sl16: i32, edata: &[u8]) -> bool {
 +    let sr16 = sl16 + 255;
 +    let ext16 = (sr16 + 48) & !15;
 +    loop {
 +      let off = self.eoff as usize;
-+      if off + 1 >= ENEMY_DATA.len() { return true; }
-+      let b0 = ENEMY_DATA[off];
++      if off + 1 >= edata.len() { return true; }
++      let b0 = edata[off];
 +      if b0 == 0xff { return true; }
 +      let row = b0 & 0x0f;
-+      if row != 0x0e && slot >= 5 { if (ENEMY_DATA[off + 1] & 0x3f) != 0x2e { return false; } }
-+      let b1 = ENEMY_DATA[off + 1];
++      if row != 0x0e && slot >= 5 { if (edata[off + 1] & 0x3f) != 0x2e { return false; } }
++      let b1 = edata[off + 1];
 +      if b1 & 0x80 != 0 && !self.epsel { self.epsel = true; self.epage += 1; }
 +      if row == 0x0f && !self.epsel { self.epage = b1 & 0x3f; self.eoff += 2; self.epsel = true; continue; }
 +      let x16 = self.epage as i32 * 256 + (b0 & 0xf0) as i32;
@@ -4906,7 +4925,7 @@ index 0000000..222a723
 +      if self.s[i].class == CLASS_ITEM || self.s[i].class == CLASS_VINE { continue; }   // vine slots: inert (slot 5's growth/KillVine run after the loop)
 +      if !self.s[i].live() {
 +        if (f.aptn_pre & 7) != 7 {
-+          let frenzy = self.process_enemy_data(i, f.sl16);
++          let frenzy = self.process_enemy_data(i, f.sl16, f.edata);
 +          // CheckFrenzyBuffer: reached only on the loader's "no level enemy here" paths (EOD / beyond the
 +          // extended right boundary). With VineFlagOffset == 1 it stores VineObject into this free slot; the
 +          // vine's init is Setup_Vine again, which raises the flag to 2 — exactly one injection. The object is
@@ -5020,7 +5039,7 @@ index 0000000..222a723
 +    }
 +    // the area parser after the enemy loop: a render task on a pipe's left column spawns a piranha plant
 +    if let Some(col) = plant_col {
-+      for &(pc, pr) in PIPES.iter() {
++      for &(pc, pr) in f.pipes.iter() {
 +        if pc == col {
 +          if let Some(free) = (0..5).find(|&i| !self.s[i].live()) {
 +            let t = &mut self.s[free];
