@@ -385,12 +385,22 @@ pre-cleanup narrative version of this file is archived at
   **Controls, all green (F151, `tools/parser_check.py` — the new per-frame control on `AreaParserTaskNum`,
   `ScreenLeft_X_Pos`, `ScrollLock`, coin metatiles):** 1-2 **1280/1280**, 4-2 **587/587**, 8-4 room 2
   **267/267**; 4-2's `--lift 0` gate byte-identical; 1-2's 400-trial battery **58,984 frames, 0 diffs**.
-  **NEXT UNIT — re-run 1-2's pipeline on the corrected model and CORE-VERIFY it.** The clip search
-  (`bfscx W12Warp … 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64`, log `runs/P2.3e/sl_d79_f150.log`)
-  is running. Then the carry from its arrival, then the final segment, then `replay_check` — which is what
-  rejected the last two attempts and is the only thing that makes a candidate real.
-  `runs/P2.3e/{clip78b.bin,carry3_60.bin,seg138b.bin}` are the OLD, INVALID templates (built on the
-  pre-F149/F150 model); keep them only as shapes. F142/F143's rungs must be re-run too.
+  **s17 re-run on the corrected model — DONE, and the clip's three frames survived:**
+    - clip `2486 1080 79 --goal-x 2784 --goal-y 64` -> **goal at layer 77** (the WR pays 80), 2,868,570 goal
+      transitions; path `runs/P2.3e/clip77_f150.bin`, **core-verified 77/77, 0 mismatches**.
+    - F142's rungs re-run: prefix 1230 d49 **dry at layer 4**, prefix 1220 d59 **dry at layer 14** — the same
+      verdicts as before (root bounds moved because the goal is now `warp_armed`, the conclusions did not).
+    - `runs/P2.3e/{clip78b.bin,carry3_60.bin,seg138b.bin}` are the OLD, INVALID templates (pre-F149/F150).
+  **RUNNING — the joint two-segment bucketed beam, i.e. §21's named residue run as one piece.** Chaining
+  clip -> carry cannot optimise the scroll, because the clip's arrival is picked by a position goal and the
+  rest inherits whatever scroll it has. So: steps **1080 -> the pipe in ONE search**, no intermediate goal.
+  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 199 --enemies 0 --beam 5000 --beam-buckets x,off,y,spd,e
+  --beam-max 3000000 --check-path 200`, log `runs/P2.3e/joint_beam_d199b.log`, layers
+  `runs/P2.3e/joint_layers`. **Deadline 199 vs the WR's 200, so any goal is at least one frame.** Root bound
+  146 (53 slack — far past exhaustive, hence the beam). `--check-path` reports **0 bound violations over the
+  WR's 200 steps**. Runbook §7.2: a goal is a candidate to core-verify; no goal proves nothing.
+  If it finds one: `bfscx-path` -> `replay_check --down` -> then re-price the level. If it does not, widen
+  the beam or bucket on the scroll more aggressively before concluding anything.
   **AFTER that: `P2.2f-bound` — a TWO-level unlock.** 1-2 loses ~22 frames of bound slack over its
   open region and 8-4 room 2 loses 14, for the same reason: **an x-only bound cannot price a turnaround's
   vertical half.** Build the coupled end-game term and both ladders go deeper. After that: re-run 1-2's
