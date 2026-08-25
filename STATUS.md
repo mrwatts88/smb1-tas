@@ -65,8 +65,22 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, all layer dirs deleted).
-  The 1-2 wall-clip rung **finished: goal at layer 77 vs the WR's 80** — see F144 and P2.3e §16-18.
+- **[TRACK A] RUNNING — the one experiment that could bank 1-2's three frames.**
+  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64 **--goal-sl 2658**
+  --threads 5 --layer-dir runs/P2.3e/sl_layers` under `systemd-run … MemoryMax=6G`. Log `runs/P2.3e/sl_d79.log`.
+  Expect ~470 s and ~19 GB (the goal narrowing does not change the frontier, only termination).
+  **`--goal-sl` is new this session:** the goal transition must ALSO have absolute ScreenLeft >= N. F144 showed
+  the clip's 3 frames are real but the scroll refunds them, because 1-2's warp zone arms on ScreenLeft, not on
+  Mario. 2658 is **the WR's own ScreenLeft at its step 1160**, so this asks: *can the clip be done in 79 frames
+  while keeping the WR's scroll?*
+  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.3e/sl_d79.log`.
+  **GOAL** ⇒ the 3 frames are bankable: reconstruct → chain → `replay_check --enemies 0` → re-run the carry and
+  the final rung (F144's recipe, `runs/P2.3e/{clip77.bin,carry60.bin,seg137.bin}` are the templates).
+  **No goal** ⇒ the refund is structural and **1-2 is closed** (F145) — move to 4-1, whose block map already
+  extracts cleanly (`blockmap_from_dump.py … 3816 5424 --rust BB41`, array staged at `runs/P2.3e/bb41.txt`).
+  No separate control is needed: the same rung without `--goal-sl` already found goals at layer 77, and adding
+  a conjunct can only remove them.
+  Delete `runs/P2.3e/sl_layers` either way.
 The P2.2f cross-seam shot **finished: no goal within
   196 steps** (697 s, frontier extinct at layer 190) and is **uninformative by its own diagnostic** — the
   same run reports the WR's path leaving the frontier at layer 41 (F138). Layers deleted. `pgrep -x smb-opt`
