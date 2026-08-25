@@ -150,10 +150,21 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
+- **[L4, session 21] 8-4 ROOM 2'S EXIT PIPE, LINUX — a direct record attempt in the only 1:1 level.**
+  `runs/L4-w84r2/a.log` (root 16050, horizon 200, `--cells 40000`, `MemoryMax=700M`, 6 h). Goal
+  `GameEngineSubroutine == 3` (pipe entry), **baseline 16182 = the WR's own, reproduced exactly by the
+  control gate**; the goal is the record quantity, with the monotonicity argument written down (F267).
+  **A goal < 16182 is a banked frame and in 8-4 one frame IS the record** — but the control run itself
+  produced a **wrong-pipe** rollout (`AreaPointer = 229`, 255 px jump), so every candidate is
+  core-replayed and DESTINATION-checked (runbook §4.3) before it is called anything, then synced in
+  FCEUX + BizHawk. Second root **`w` (15905, the whole room, lets the approach state vary) is written and
+  NOT launched — RAM.** When the E7 archives exit: `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh`
+  (relaunches `a` at full size and starts `w`). Write-up: `docs/experiments/L4-w84r2-pipe.md`; fact F267.
 - **[L7, session 21] THE 8-4 NOVELTY SWEEP, LINUX.** `runs/L7-w84/` — `r5.log` (Bowser room, root 17577,
   `--cells 40000`, `MemoryMax=800M`, 6 h) is **running now**; `r1`-`r4` (roots 15210 / 15905 / 16342 / 16707,
-  `--cells 80000`, `MemoryMax=1500M`) are **queued**: a detached `WAIT=1 WAITN=1 SKIP=r5 ./runs/L7-w84/launch.sh`
-  polls every 60 s and fires them when only one `explore` remains (i.e. when the E7 archives exit). If that waiter
+  `--cells 80000`, `MemoryMax=1500M`) are **queued**: a detached `WAIT=1 WAITN=2 SKIP=r5 ./runs/L7-w84/launch.sh`
+  polls every 60 s and fires them when at most two `explore` remain (r5 and L4's `a`, i.e. when the E7
+  archives exit). If that waiter
   is gone (`pgrep -af "L7-w84/launch.sh"` empty) just run the launcher by hand — it is idempotent per tag.
   **How to read it:** `grep ANOMALY runs/L7-w84/*.log`, then `tools/e3_replay.py runs/L7-w84/anom_<class>_f<frame>.path`.
   **Priced:** a class-18 hit (`*** SECOND STAR FLAG ***`) that is live is **857 frames** (1,329 with the music,
@@ -799,6 +810,10 @@ speed-killing mint is the only mechanism 4-2 has.
 count and go in the table above; and **a search goal must be the quantity the record is measured in
 and monotone with it** — three proxy goals produced three fake records this session (F230, F237).
 
+**Added session 21 (L4 follow-up, the first thing to do when RAM frees):** relaunch
+`runs/L4-w84r2/launch.sh` at `CELLS=150000 MEMMAX=2500M` (both roots) — the 40,000-cell job now running
+evicts hard on a deliberately fine key, and the second root (`w`, the whole room) has never run at all.
+
 **Added session 21 (L7, both cheap and both un-run):** (i) **read the L7 sweep out** once `runs/L7-w84/r1`-`r5`
 finish — `grep ANOMALY runs/L7-w84/*.log`, replay each hit, and record the verdict per sub-area (a dry is a
 statement about the rollout policy from that root, not a proof); (ii) **re-run E6's six roots with the object
@@ -857,6 +872,12 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s21 (Linux) — **L4 claimed and launched: 8-4 room 2's exit pipe, control-gated** (F267,
+  `docs/experiments/L4-w84r2-pipe.md`). The 15 priced frames are an approach *arc* onto the pipe mouth
+  (cols 150-151, speed 38→23 against blocks at c152/c153), and MrWint's 40-frame segment optimum does not
+  cover them — it fixes the state at x 2373, which is exactly what the approach chooses (H39's seam
+  corollary). Goal = the record quantity with the monotonicity argument recorded; the wrong-pipe trap was
+  observed in the control, not assumed. Root `a` running at 40,000 cells; root `w` written, RAM-blocked.
 - 2026-08-25 s21 (Linux) — **L7 claimed: 8-4's novelty sweep built, controlled and launched, and the sweep's
   object-slot blind spot closed** (F265, F266, `docs/experiments/L7-w84-sweep.md`). `explore --anomaly` gained
   class 17 (`Enemy_ID` novel in a **live** slot, calibrated against every id the reference line parks anywhere)

@@ -2073,3 +2073,42 @@ attribution the day before: **check what the evidence covers, not the summary of
 **Next.** Read the sweep out when the five jobs finish (`grep ANOMALY runs/L7-w84/*.log`, replay
 each hit, verdict per sub-area). Then the cheap follow-up F266 opens: re-run E6's six roots with the
 object lens, because 1-1 / 1-2 / 4-1 / 4-2 / 8-2 / 8-3 have never been looked at through it either.
+
+## 2026-08-25 — Session 21 (Linux, cont.): L4 — the first search ever aimed at 8-4 room 2's pipe
+
+**Did.** Took the second un-run board item, since it fits the same budget: a launcher, a 40 s
+control, and one small job. L4 is 15 priced frames at 8-4 room 2's exit pipe (F245: 23 off-cap
+frames at cols 150-151, speed 38 → 23 against the block stack at c152/c153). Two things had kept it
+looking closed and neither survives reading:
+
+- **MrWint's `W84Part2VertPipeEntry` proves 40 frames optimal and the WR matches it** — *from
+  x 2373*. That segment fixes the state at x 2373 by construction; the 15 frames lie inside exactly
+  that given. H39's seam corollary, again: the approach chooses the state the proof assumes.
+- **No 8-4 search has ever keyed subpixels**, and F245/F247 put these windows at 1-2 px. E9b learned
+  that lesson in 1-2 in session 19; this is the same defect one level over.
+
+**The goal question, taken seriously.** Session 18 produced three fake records from proxy goals
+(F230/F237), so the argument is written down before the search runs (F267): goal =
+`GameEngineSubroutine == 3` (pipe entry), baseline **16182** = the WR's own; monotone with the
+record because 8-4 is unquantized and an area load costs a constant 122 frames with exactly one lag
+frame at every ITC phase (F264/F265) — so entering the **correct** pipe k frames earlier reaches the
+axe k frames earlier. And the caveat is not hypothetical: the 40 s control itself produced a
+wrong-pipe rollout (`AreaPointer = 229`, a 255 px position jump at frame 16223, x 1536) that
+satisfies the goal and is worth nothing. Every candidate gets a core replay and a destination check.
+
+**Control green:** `GOAL frame=16182 (baseline 16182, +0)` — the seeded WR line reproduces its own
+entry to the frame, 9,658 rollouts / 2 goals / 0 deaths in 40 s, so the goal is reachable by the
+rollout policy rather than a needle.
+
+**Running:** root `a` (16050, the 132-frame approach) at 40,000 cells under `MemoryMax=700M`. Root
+`w` (15905, the whole room, which lets the approach *state* vary rather than just the arc) is
+written and deliberately not launched — the box was holding 7.2 GB of E7 archives.
+
+**Memory accounting for the next session** (this was the binding constraint all session): E7's
+three archives are 2.58 + 2.59 + 2.03 GB and exit within ~2 h; L7's `r5` is 0.53 GB, L4's `a` 0.53
+GB, and L7's queued `r1`-`r4` are 1.2 GB each when they fire. The L7 waiter was restarted with
+`WAITN=2` once L4 started, or it would have waited for `a` and `r5` to finish instead of for E7.
+
+**Next.** When E7 exits: `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh` (both roots at full
+size). Then read out L7's five sweeps. The board's remaining un-run item after that is **L3**
+(8-4 room 3's approach, 38 frames), which is an engine/`bfscx` unit, not a Track E one.
