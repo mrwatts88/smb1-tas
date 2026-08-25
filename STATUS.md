@@ -5,9 +5,12 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-24 (session 16 — P2.3c-8 done: the beam was a per-layer seam; F122 refuted, 4-2 top route REOPENED; no search running)
+**Updated:** 2026-08-25 (session 18 — PRIORITY REBUILT: `docs/strategy-review.md` is the official way forward; Track E "the finder" replaces the exhaustive-ladder programme; no search running)
 
 ## Where we are
+- **READ `docs/strategy-review.md` FIRST (2026-08-25).** It is the official way forward: the
+  bottleneck is the state space not the bound, proof is no longer a deliverable, and the plan is
+  Track E ("the finder") — an archive-based stochastic search on the real QuickNES core.
 - **Target:** beat 17,868 frames (HappyLee, TASVideos #1715M). A new movie must finish with an
   earlier last input than frame 17848 (0-based); framerule = 21 frames (F27–F29).
 - **Our best full movie:** none yet.
@@ -84,6 +87,12 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **E1 + E2 — declared 2026-08-25 session 18 (Track E, `docs/strategy-review.md`).**
+  E1 = the free-knob check (is level-entry state a pure function of the entry frame?).
+  E2 = the last-input reformulation of 8-4 (earliest frame after which the null-input continuation
+  still reaches the axe). Both are small and both are read/replay work on artifacts that already
+  exist (`data/wr/fceux_wr.ram`, `build/harness`). Acceptance in the Next-up table.
+  Write-up: `docs/experiments/P4E-finder.md`.
 - **P3.2 — RAM oracle (Track B) — declared 2026-08-24 session 17. THIS IS A SECOND, PARALLEL SESSION.**
   Goal: per-level single-byte perturbation sweep on the QuickNES fast core -> the "jackpot cell" map
   (which `(address, value)` writes make the game end earlier), which turns P3.3's write-reachability
@@ -523,15 +532,23 @@ pre-cleanup narrative version of this file is archived at
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
-**Priority (decisions.md 2026-08-24, session 14 evening): THE 8-4 CAMPAIGN IS THE PRIMARY
-TRACK.** 8-4 is unquantized — one frame = the record; an earlier last input (longer ending
-coast, F17) also wins. Order: H25 turnaround stop → H1 ending coast → water room (no solved
-optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. One Track B unit
-(P3.2 oracle) interleaved every few sessions. Framerule levels (P2.3e) demoted to third.
-1-1 and 4-2 are closed. Big single runs → cloud; segments run locally (unchanged).
+**PRIORITY REBUILT 2026-08-25 (session 18) — see `docs/strategy-review.md`, which is now the
+official way forward and supersedes the 2026-08-24 "8-4 campaign" ordering where they disagree.**
+Two things changed. **(1) User doctrine: proof and exhaustiveness are no longer deliverables — we
+want a record, full stop.** Beams, stochastic search and restarts are legitimate finders; only a
+*positive* needs verification (core replay, then two emulators). **(2) The other session settled
+that the bottleneck is the state space, not the bound** (`P2.3e-framerule-scan.md` §41: with the
+bound only 4 frames loose the frontier is 36.7M wide by layer 24) — so `P2.2f-bound` is retired as
+an unlock and the exhaustive-ladder programme with it. What is left is a search whose *shape* can
+hold a "pay first, gain later" trade, which is Track **E** below.
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
+| E1 | **S7 — the free-knob check (do first, it is cheap).** Is level-entry state a pure function of the entry frame? Check the LFSR ($07A7-$07AE), `IntervalTimerControl`, `FrameCounter` and the frame timers across every level entry in `data/wr/fceux_wr.ram`; establish whether anything at all carries across a level boundary that is not determined by the entry frame. **If yes:** the game decomposes exactly into 7 framerule lotteries + 8-4, per-level greedy is right, and H9/P2.4 close. **If no:** the framerule levels' slack (3-20 frames each, FREE) is a zero-cost knob on 8-4's Bowser/cheep RNG, and 8-4 is the unquantized level. F62 already shows the LFSR and `FrameCounter` are not welded together (pause steps one and freezes the other). | E | S | — | A stated verdict in `docs/experiments/P4E-*.md` + H9 status; if a knob exists, its size in distinct reachable 8-4 entry RNG states |
+| E2 | **The last-input reformulation of 8-4 (H1).** The movie ends at the last input (F17): WR last input 17848, axe 19 frames later. Reformulate the endgame as *"earliest frame after which the null-input continuation still reaches the axe"* — a LATER axe touch with a longer coast is a strict win, which is a different question from the one anyone has asked. Step 1 is free: truncate the WR's own input on the core and find how far back it still finishes. Step 2: search the last ~120 frames with coast as the objective (airborne frames keep the x speed ground friction eats, so a final jump whose last A-press is the last input is the shape). | E | S-M | — | The truncation curve; then a last input < 17848 that reaches the ending on the core, or the measured cost of the best coast found |
+| E3 | **The Go-Explore finder on the QuickNES core (the main engineering item).** Archive keyed on a coarse cell (x band, y band, x-speed band, scroll band, block/enemy digest, frame band); per cell keep the best state under the level's own objective; loop = pick cell (weighted to under-visited / recently-improved), restore, roll out 15-60 frames of sampled input, insert. No bound, no frontier; memory bounded by cell count, not layer width. Holds "pay first, gain later" natively because the paid state keeps its own cell. Substrate exists: `build/harness` at 15.0k fps/instance, 104k fps on 12 threads, save+load 2.5 us (F46). Runs on the REAL emulator, so no model-gap class (F147/F149/F150) and every path is core-verified by construction. | E | L | E0 substrate | A driver in `src/fastcore/` that reproduces a known optimum (4-2 main 553, or 1-1 room 1 368) from a cold archive, then is pointed at 8-4 |
+| E4 | **Point the finder at territory nobody has pinned.** Order: **1-2's 540-frame intro** (fceux rows 1946-2486 — never modelled by anyone, and Maru's 3-frame advantage over the WR in 1-2 has to be somewhere), 8-3 (deficit 7 with FPG), 4-1 (9), then 8-1/8-2. Whole regions, seam-free, no intermediate goals — the gate is the thing that deletes the answer (H39). | E | L | E3 | Best-found per region vs the WR, with the archive kept so a later run resumes rather than restarts |
+| E5 | **Re-rank every reachable area by card / quantization / timer reload / distance to the axe.** H44 has never been asked with those columns filled in. `DisplayIntermediate` skips the card when `AltEntranceControl != 0`, or `DisableIntermediate != 0` and `AreaType != 3`; `DisableIntermediate` is set by `IntroEntr` gated on the DESTINATION area's `PlayerEntranceCtrl` = 6/7 header bits — a ROM constant readable with `tools/area_data.py`. An area entered without a card is also **unquantized**, worth ~117 frames plus the framerule. Only Track B work with a frame attached to it. | B | S-M | — | A table in `docs/warp-model.md` with the four columns for every area reachable by any known or hypothesised redirect |
 | P2.3c-9 | **F131 — model the wrong-warp ENTRY FRAME, then ladder the top-route warp cost.** Part A (was 'small', is not): the warp needs the entry frame's latched `Player_X_Scroll` to be 0 (F129), but that frame is one the search does not simulate — the model's goal fires when Mario *reaches* the entry x (the WR's own goal step has d = 2), so a goal-side `SL + 48*d <= 1216` test **rejects the WR's own warp** (F131, verified). The fix is case-level: make the goal fire on the entry frame under Down (or carry one extra simulated step), not a refusal tweak. The sound necessary condition `screen_left16 >= 1217` is what ships today, so **the search still emits candidates that do not warp** — the core-replay destination check (runbook §4.3) is the gate. **Part B — the exact shape of the search (do NOT run a whole-level pass; F132 proved that fails).** Root on the known 553 chain at one of the G-line cumulative points — the G-line is 149+184+82+34+35+25+44, so the roots are prefixes **415 / 449 / 484 / 509** (= 138 / 104 / 69 / 44 frames from the pipe). Horizon = (553 − prefix) + slack, laddered **downward** until dry: from 509 that is d87 (the F127 result) → d84 → d80 → d76 → d72; if the ladder bottoms out above 22 frames of key cost, step the root back to 484 and repeat, because a cheaper mint may need a different *arrival* state at the wall and a fixed root pre-commits it (the seam problem one level up — F123's ops lesson was already "root ≥ step 200"). Short horizon (tens of layers) is what lets the bucketed beam be wide enough to matter, and it is the same shape as P2.3c-11a. Every goal core-replayed + destination-checked. | A | M–L | — | Part A: the reference-path audit still marks the WR's warp GOAL **and** a d>0 entry is refused; beam-off gate byte-identical. Part B: a measured minimum top-route key cost vs the 22 the 575 line allows, with the root stepped back until the number stops improving |
 | P2.3c-10 | **Re-audit every beam-derived verdict with `--beam-buckets` (F128).** Any conclusion resting on "the search never found X" was produced by a single-key beam. First: **F123's bottom-route mint economics** (`mint_cost_beam.log`, 2M offset-first) — its 27-frame minimum mint and the 584-585 floor gate the whole "4-2 closed both ways" claim. Then the F122 table's remaining rows. | A | M | P2.3c-9 | Per-verdict: the bucketed rerun's number vs the original, and an explicit statement of which conclusions survive |
 | P2.2a′ | **8-4 room 3: the multi-apex seam, ENEMY-FREE FIRST (the real next 8-4 unit).** F125 proved the return leg optimal *from the WR's apex* (h = 33 = WR, the 32-rung dry at layer 1), so H25's frame can only be in **reaching a different apex state** — which an approach search goaled on the WR's apex deletes by construction (H39's seam corollary). Search the 162-frame approach with **generic** buckets (mechanism unknown ⇒ discovery keys, H40) including an apex-band axis, emit a **set** of apex-region states, and compute the return cost for each. Run it **enemy-free** and let the core adjudicate the plants/cheeps per candidate (the F126 cheapest-order note, line 117): one core replay checks one path exactly, which is far cheaper than modelling the frenzy up front. | A | M | — | A set of ≥1 non-WR apex states with per-apex return costs; either a 32-frame return from one of them (= the H25 frame, then the record pipeline) or a dry across the whole set |
