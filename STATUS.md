@@ -67,11 +67,20 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **[TRACK E, session 18] THREE `build/explore` archives on 4-2's wrong warp** — `runs/E3-w42/{r200,r380,r460}.log`,
-  launched by `runs/E3-w42/launch.sh` (`SECS=10800`), each `systemd-run --user --scope -p MemoryMax=2500M`.
-  Check with `tail -n 4 runs/E3-w42/*.log`; the verdict line is `mint curve`, and any
-  `*** WARP-CAPABLE` line names a dumped path in `runs/E3-w42/warpable_rel*_f*.path`.
-  A path is a candidate only: replay it and confirm the destination on the core before believing it.
+- **[TRACK E, session 18] FIVE `build/explore` archives running** (each `systemd-run --user --scope -p MemoryMax=1800M/2500M`).
+  Check them all: `tail -n 3 runs/E3-w42/*.log runs/E3-w84/*.log`.
+  • **4-2 mint curve** — `runs/E3-w42/r460.log`, launcher `runs/E3-w42/launch.sh`. Verdict line is
+    `mint curve` (earliest frame at each screen-lead in the pipe window, `*` = `Player_X_Scroll == 0`);
+    `*** WARP-CAPABLE` names a dumped path in `runs/E3-w42/warpable_rel*_f*.path`. **Budget: a goal at
+    core <= 7156 is a framerule** (WR 7218; the mint-free 553 chain enters at 7134). Best so far ~7195.
+  • **8-4 rooms** — `runs/E3-w84/{room2,room3,water}.log`, launcher `runs/E3-w84/launch.sh`. Goals are
+    DESTINATION-checked (F230); baselines room2 16255 / room3 16620 / water 17490. **Any `GOAL frame`
+    below the baseline is a candidate record** (8-4 is unquantized) — replay it and confirm the
+    destination on the core before believing it. Room 1 was stopped: closed by F231.
+  • **8-4 Bowser room** — `runs/E3-w84/bowser.log` (no launcher; the command is in `docs/log.md`
+    session 18 and in this file's In-progress block). Objective is the **last input** (F17), incumbent
+    17846; the null-coast probe fires past x 4600. A `COAST GOAL` under 17846 is the record.
+  Standing rule unchanged: **never start a search without a cgroup cap**.
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
 - **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
   The coin-fixed clip + carry both finished and reproduced their pre-fix results exactly — and **the core

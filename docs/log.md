@@ -1541,3 +1541,91 @@ a **three-level unlock** and the highest-value unblocked engineering item on the
 
 **Next.** Read the joint beam. Then `P2.2f-bound`, which is now the thing standing between 1-2 and an
 answer rather than a beam-shaped guess.
+
+---
+
+## Session 18 (2026-08-25) — a fresh-look strategy review, and Track E: a finder that runs on the real game
+
+**The user's prompt was not "continue working".** It was: we have failed to find a record over and
+over; agents keep answering "search new territory", which abandons ground we may have been close on;
+if you truly think no route beats the WR then say so, otherwise work out what *would* find it.
+
+### 1. The review (`docs/strategy-review.md` — now the official plan)
+Verdict: **roughly 3-in-4 that a sub-17,868 movie exists**, nearly all of it in 8-4. The evidence for
+optimality (zdoroviy_antony's 2019 subpixel rewrite landing on exactly 17,868, MrWint's optimiser
+tying the WR on all ten segments it solved, humans matching the framerule in 7 of 8 levels) all
+shares one decomposition; it says the WR is optimal *with respect to that decomposition*, not over
+all inputs. Diagnosis, in five parts, every one of them visible in this repo's own record: (a) every
+decomposition we build is a first-arrival gate and therefore structurally blind to "pay first, gain
+later" — rediscovered four times (F115, H39/F128, F143, H42); (b) the bottleneck is the state space,
+not the bound (the other session's `P2.3e` §41 settled this the same morning); (c) the searches
+optimise the wrong scalar (time is worth zero inside a framerule — H41, written down, never built);
+(d) effort went where the frames are not — the two biggest non-movement pools on the route
+(1,492 frames of countdown, ~700 of intermission card) had never been audited, and both are rigid;
+(e) the unit loop rewards turnover, and the cheapest verdict is a beam.
+
+**User doctrine change, recorded:** proof and exhaustiveness are no longer deliverables. Only
+positives get verified.
+
+### 2. The finder (`src/fastcore/explore.c`, `tools/build_explore.sh`)
+Archive-based exploration (Go-Explore) **on the QuickNES core**, i.e. on the real game: no model, so
+the F147/F149/F150 class cannot occur and every path is core-verified as produced. Cells are a
+coarse projection (x, y, x-speed, Player_State, **rel = x − ScreenLeft at 2 px**, a scroll-frozen
+bit, AreaPointer, GES, enemy digest); best-per-cell is kept and **any cell can be resumed at any
+time — there are no layers, so the H39 defect is impossible by construction.** `--seed-wr` seeds the
+movie's own continuation so the run starts from an incumbent; `--seed-path` seeds a search artifact
+(the 553-frame 4-2 chain); a **null-coast probe** implements F17's objective directly (release every
+button and see whether Mario still finishes); `--goal-ram`/`--require-ram` give arbitrary goals and
+sound invariant pruning; `--watch-x` prints a cost curve. Control: it re-derives F223's last-input
+17846 from scratch.
+
+### 3. What the cheap checks settled
+- **F224 (E1)** — level-entry state is a pure function of (entry frame, area-load count). **H9/P2.4
+  refuted.** Corollary: every area load costs exactly one lag frame and **four are inside 8-4**
+  (H2 reopened, sharpened, low prior).
+- **F225 (the cap survey, `tools/cap_survey.py`)** — the WR is at the relevant speed cap for 80–97%
+  of every level's control frames. **4-1, 8-1 and 8-3 are at 97%** and their off-cap frames are the
+  single forced acceleration after the level-start card, against deficits of 9/18/10: **those three
+  cannot deliver a framerule from movement at all.** This retires "go search a level nobody has
+  searched" and retrospectively justifies the concentration on 1-2 and 4-2.
+- **F226** — 1-2's "unexplored 540-frame intro" is 499 frames with the joypad overridden. Not
+  territory. Maru's 3 frames are in the modelled body.
+- **§4 of the review** — the countdown and the intermission card are rigid at code level
+  (`DigitsMathRoutine`'s Y is constant at every call site; `DisplayIntermediate` is gated on
+  `AltEntranceControl`/`AreaType`/`DisableIntermediate`, none of which a warp can set).
+
+### 4. 4-2, taken to the code
+- **F228** — the wrong warp is a race against one area-change command (`page 5 col 15 -> $42`), and
+  there is exactly one enterable pipe before it. The destination flips the frame `ScreenLeft` hits
+  **1217**. WR: x 1348 / SL 1216 / rel 132. The 553 chain: x 1349 / SL 1237 / rel 112 → `$42`.
+  **H37 refuted** (cols 78–79 is a decoration pipe; `VerticalPipeData` gives its top `$13/$12` and
+  `HandlePipeEntry` demands `$11`/`$10`).
+- **F227** — **every** way to freeze the SMB1 scroll, enumerated from `ScrollHandler`. 4-2 has only
+  `SideCollisionTimer`, whose sole writer `ImpedePlayerMove` zeroes `Player_X_Speed` on the same
+  path. **H38's proof artifact, and it is negative.** What stays open is *where* the mint is paid.
+- **F229 — the scroll law:** `ScreenLeft <= (largest x ever reached) − 112`. It governs both attacks
+  in opposite directions.
+- **Measured (`runs/E3-w42/r460.log`, the "mint cost curve" the 4-2-hope thread says was never
+  taken):** a genuinely warp-capable entry (rel ≥ 132 **and** `Player_X_Scroll == 0`, the second
+  condition being why F129's candidate failed) is reachable at core frame **~7195**. The 553 chain
+  enters at 7134 and a framerule needs **≤ 7156**, so the key budget is 22 and the measured key is
+  ~61. **This is the first real number for that question and it is discouraging.**
+
+### 5. 8-4, and a mistake worth remembering
+- **F230** — 8-4 is a maze built out of area-change commands; most of its pipes send you back to
+  page 1. My first pass used `GES == 3` ("a pipe was entered") as the goal and **immediately
+  reported −54 frames in room 3 and −102 in room 2. Both were wrong-pipe entries.** Same defect as
+  F129/F131, in a new place. The goal is now the destination (`GES 7` + `alt 2` + the next room's
+  page + `X 56`) and all four controls reproduce their baselines.
+- **F231** — 8-4 room 1 is a full lap of a *looping* corridor: Mario sprints x 40 → 1270 at the cap,
+  the coordinates wrap (x 1270 → 261, ScreenLeft with it), and the pipe is 6 frames later. The lap
+  is forced because the parser must read `page 5 col 3 -> $65/7` (at x ~1150, so `max_x >= 1135` by
+  F229) before the pipe will open on room 2. **No turnaround, pure running at the cap: closed.**
+- Room 3 *is* a scroll-gated turnaround (run to x 3456 to parse `page 14 col 4 -> $02`, then back to
+  the pipe at x 3404); F229 makes the overshoot minimal, so only the **return leg** is searchable.
+
+### 6. Running
+Five archives: `runs/E3-w42/r460.log` (4-2 mint curve) and `runs/E3-w84/{room2,room3,water,bowser}.log`.
+The water room is 696 frames nobody has ever searched; `bowser` uses the last-input objective (F17).
+**Next:** read the curves; if 4-2's stalls far above 22, retire it and put everything on 8-4, where
+one frame is the record.
