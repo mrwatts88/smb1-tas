@@ -67,21 +67,23 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **[TRACK E, session 18] SIX `build/explore` novelty sweeps running** — `runs/E6-vram/{w11,w12,w41,w42,w82,w83}.log`,
-  launcher `runs/E6-vram/launch.sh` (read its header: it explains both jobs). Each is
-  `systemd-run --user --scope -p MemoryMax=1500M`, 6 h budget. Check: `grep -h 'ANOMALY\|MAX ' runs/E6-vram/*.log`.
-  **Two jobs in one run.** (a) `--max-addr 0x300` maximises `VRAM_Buffer1_Offset`: **227 reaches
-  `Block_BBuf_Low` and would redirect a block write to `$06D6 WarpZoneControl` — world 8 straight from
-  1-2, ~3,957 frames.** WR max is 67, and 44 during play (F234). (b) `--anomaly` is **P3.4, run for the
-  first time**: 17 self-calibrated classes (anything the WR's own line never produces here), including
-  `WorldNumber`, `WarpZoneControl`, out-of-table `Enemy_ID`, `EnemyFrenzyBuffer`, and a clip/teleport
-  detector. Every hit dumps a path; replay with `tools/e3_replay.py FILE --around N`.
-  **Read hits by VALUE, not by banner** — the WORLD 8 banner fires on `WorldNumber == 7`; 35 is the
-  Minus World (H6). Triage so far is in `docs/experiments/P4E-finder.md` §P3.4; nothing has beaten the
-  record and nothing has produced an unexplained primitive yet.
-  **Stopped and why:** the 8-4 room searches (closed by F231/F232), the 8-4 Bowser room (at its bound,
-  F223+F225), and the 4-2 mint curve (`runs/E3-w42/r460.log`, last curve line kept: a warp-capable
-  entry costs ~61 frames against a 22-frame budget). All three launchers are committed and re-runnable.
+- **[TRACK E, session 18] FIVE `build/explore` archives running.** All under `systemd-run --scope -p MemoryMax=`;
+  check with `tail -n 3 runs/E7-w12/*.log runs/E3-w42/late.log runs/E6-vram/*.log`.
+  • **E7 — 1-2's endgame, the live record attempt.** `runs/E7-w12/{pre,mid}.log`, launcher
+    `runs/E7-w12/launch.sh`. Goal is the thing itself (`WorldNumber == 3`, the world-4 warp actually
+    taken), baseline core **3763**, so **a goal at core <= 3755 IS THE RECORD** (1-2's deficit is 8).
+    Posed end-to-end with no intermediate gate, which is the point: F236 shows the clip mints screen
+    lead and F229 shows lead pushes the apex out, so the two costs trade — every earlier search here
+    goaled on a position and let the scroll fall out, which is why F144's three frames were refunded.
+    Both controls reproduce 3764 (= baseline + the tool's 1-frame reporting offset).
+  • **E3 — 4-2's key, late-mint variant.** `runs/E3-w42/late.log`. **Measured verdict so far: a
+    warp-capable entry (rel >= 132 AND `Player_X_Scroll` 0) costs ~58-66 frames against a 22-frame
+    budget** (best: rel 133 at core 7200; the mint-free 553 chain enters at 7134, the line needs
+    <= 7156). That is the number the "4-2 hope" thread says was never measured. It is now measured.
+  • **E6 — P3.4 novelty sweeps + the VRAM-offset machine-check.** `runs/E6-vram/{w11,w12,w82}.log`
+    (4-1/4-2/8-3 stopped: only mundane hits). Max `VRAM_Buffer1_Offset` seen **67** (8-2, the
+    flagpole sequence) against the **227** needed — consistent with F234. Anomaly triage in
+    `docs/experiments/P4E-finder.md` §P3.4; nothing unexplained so far.
   Standing rule unchanged: **never start a search without a cgroup cap**.
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
 - **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
