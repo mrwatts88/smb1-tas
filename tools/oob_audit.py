@@ -53,8 +53,10 @@ def load_symbols(lines):
     return syms
 
 def target_mode(args):
-    """--target $ADDR: every store base,x / base,y (absolute base) with 0 <= ADDR - base <= 255, i.e. a write that
-    reaches ADDR when the index equals ADDR - base; with the index provenance."""
+    """--target $ADDR: every store base,x / base,y that can reach ADDR, with the index value it needs and
+    that index register's provenance.  Absolute bases need 0 <= ADDR - base <= 255.  A ZERO-PAGE target is
+    handled separately: zp,x/zp,y wrap inside the zero page, so every zero-page base reaches it at index
+    (ADDR - base) mod 256."""
     tgt = int(args[args.index("--target") + 1].lstrip("$"), 16)
     lines = open(DISASM, encoding="utf-8", errors="replace").read().split("\n")
     syms = load_symbols(lines)
@@ -82,8 +84,18 @@ def target_mode(args):
         if baddr is None:
             if mode == "(zp),y": print(f"{n}\t{routine}\t{op}\t({base}),y\t?\t?\t(zp),y\tpointer")
             continue
-        dist = tgt - baddr
-        if baddr < 0x100 and tgt >= 0x100: continue          # zero-page indexed wraps inside the zero page
+        if baddr < 0x100 and tgt < 0x100:
+            # ZERO-PAGE TARGET: zp,x / zp,y wrap inside the zero page, so EVERY zero-page-based
+            # indexed store can reach EVERY zero-page address -- the only question is the index
+            # value it needs.  (This class was excluded outright before: the earlier audits all
+            # aimed at page 6/7 targets like $06D6/$0750/$075F, for which the wrap makes zero-page
+            # bases unreachable.  Enemy_ID ($16) and Enemy_Flag ($0f) are IN the zero page, so for
+            # H50 the exclusion threw away exactly the relevant class.  F252/F253, H50.)
+            dist = (tgt - baddr) % 256
+        elif baddr < 0x100:
+            continue                                          # zp base, non-zp target: unreachable
+        else:
+            dist = tgt - baddr
         if 0 <= dist <= 255:
             # provenance (same walk as the table mode, simplified): last ldx/ldy/tax/tay in the routine
             prov = "?"

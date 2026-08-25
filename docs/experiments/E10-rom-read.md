@@ -278,3 +278,81 @@ Still unread, and still on E10's list: the sprite/OAM paths (`SpriteShuffler`,
 two-player/demo/attract paths, and the remaining `JumpEngine` call sites outside the enemy and
 area-object tables. The `VRAM_Buffer` class is the most interesting of those: it is the one
 unaudited write class that H43 still rests on after §1.
+
+
+---
+
+## 7. Pass 2 — the zero-page write class, and the complete `Enemy_ID` writer census
+
+**Why this class, and why it had never been read.** H50 needs `$31` in a spare `Enemy_ID` — and
+`Enemy_ID` is **`$16`**, `Enemy_Flag` is **`$0f`**: both in the **zero page**. Every audit before
+this aimed at page 6/7 targets ($06D6, $0750, $075F), and because zero-page indexed addressing
+wraps inside the zero page, `tools/oob_audit.py` **excludes zero-page bases by construction**
+(`docs/oob-audit.md` line 6). So the one class that can reach H50's target had been filtered out
+of every previous pass.
+
+`tools/oob_audit.py --target` now handles a zero-page target (index needed = `(target - base) mod
+256`, since the wrap makes every zero-page base reach every zero-page address). Result for `$16`:
+**320 stores can reach `Enemy_ID`** — 13 because their base *is* `Enemy_ID` (the normal in-range
+writes), and **299 only with an index register ≥ 7**, which no index in the enemy code takes
+(`ObjectOffset` ≤ 5, and every loop counter is bounded by its own `cpx`/`cpy`).
+
+### The census that settles it
+Rather than bound 299 index registers, enumerate the other side — **every store into `Enemy_ID`
+in the ROM, and the value it writes**:
+
+| line | value written | reachable? |
+|---|---|---|
+| 3762 `CastleObject` | **`#StarFlagObject` = $31** | the one and only $31 writer; guarded by `lda CurrentPageLoc / beq ExitCastle` and `FindEmptyEnemySlot` (x ≤ 5) |
+| 7874 `ChkEnemyFrenzy` | **`EnemyFrenzyQueue` ($06CD)** | arbitrary byte — but only writable via the block-buffer mechanism, closed by F252/F253 |
+| 8010 `StrFre` | **`EnemyFrenzyBuffer` ($06CB)** | same |
+| 3873, 4158, 6679, 6805, 7995, 8301, 9176, 10289, 11485 | constants ($0d, $32, $2f, $33, $02, $11, $00, $2d, $fd) | — |
+| 8705 `Set17ID` | `SwimCC_IDData,y` — a **2-entry** constant table | — |
+| 8791 `HandleGroupEnemies` | `$01`, set by `sty $01` from Y ∈ {$00, $06, $02} | constants; index bounded by `cpx #$05` |
+| 11152 | `BowserIdentities,y` (constant table) | — |
+| 12465 `Demote` | `and #%00000001` → 0 or 1 | — |
+
+**So the injector set is exactly {`CastleObject`, `$06CB`, `$06CD`} and nothing else.** Every
+other path writes a compile-time constant. That is a much stronger statement than "we haven't
+found one".
+
+### The closest structural near-miss, and why it does not fire
+`CopyFToR` (10275–10289, Bowser's rear) is the only place in the game where zero-page object
+arrays are indexed by a **RAM cell** rather than by a slot counter — `DuplicateObj_Offset`
+($06CF), which is **exactly F203's proven OOB write ceiling**, i.e. the one index byte in the
+game that the block-buffer mechanism can reach at all. It does:
+
+```
+CopyFToR: … ldy DuplicateObj_Offset
+          sta Enemy_X_Position,y      ; $87+y  <- Bowser's X ± $10   (a CONTROLLABLE value)
+          sta Enemy_Y_Position,y      ; $cf+y  <- Bowser's Y
+          sta Enemy_State,y / sta Enemy_MovingDir,y
+          ldx DuplicateObj_Offset
+          lda #Bowser / sta Enemy_ID,x
+```
+Reaching `Enemy_ID+0` through the value-carrying write needs `y = ($16-$87) mod 256 = 143`, and
+the `sta Enemy_ID,x` writes the constant `$2d`, not `$31`. Three independent reasons it is dead:
+(a) the only value the surviving block-buffer writer can place in $06CF is **`$00`** (F253);
+(b) `DuplicateObj_Offset`'s own writer is `DuplicateEnemyObj`'s `FSLoop`, which stops at the first
+zero `Enemy_Flag,y` from $0f up — `$15` (a seventh flag byte) is **never written by any other code
+in the ROM**, so the scan halts at y ≤ 6; (c) it is Bowser/firebar code, i.e. castle levels only —
+8-4, which has no flagpole.
+
+Worth recording as a mechanism even so: **`DuplicateEnemyObj` is a monotonically advancing
+zero-page write walker.** Each call writes `x|$80` into the zero byte it lands on, so the *next*
+call necessarily lands further up. Its budget is the number of firebar/Bowser inits in the level,
+and its collateral writes ($6e+y, $87+y, $b6+y, $cf+y) scribble player state as y grows.
+
+### Verdict for pass 2
+**The zero-page class is closed.** It contains no new injector: the only writer of `$31` is
+`CastleObject` (page-0 guarded, once per non-page-0 castle, and no route level has two), and the
+only variable-valued writers of `Enemy_ID` are the two frenzy cells. So H50's remaining question
+is not "what can write `Enemy_ID`" — it is unchanged and now provably singular:
+
+> **Can anything write a non-zero byte into `$06CB` or `$06CD`?**
+
+and the block-buffer mechanism (the only candidate anyone had) is closed on both axes by F252 and
+F215. What is left is the two write classes still unread: **stack over/underflow** and
+**`VRAM_Buffer` overflow** (writes indexed by `VRAM_Buffer1_Offset`, advanced +7 by
+`GetPlayerColors`, +10 by `WriteBlockMetatile` and +3 by `OutputNumbers`, with only
+`ColorRotation` bounding itself at `cpx #$31`). That is pass 3.

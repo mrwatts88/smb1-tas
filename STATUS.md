@@ -200,7 +200,7 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- **E10 pass 2 — the write-primitive audit, retargeted at the ZERO PAGE** (Mac, started
+- **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started
   2026-08-25 s20). *Claimed here first specifically to avoid the H50 duplication that happened
   earlier today — if the Linux box wants it, say so and I will drop it.*
   **Goal:** exhibit any store that can put `$31` into a spare `Enemy_ID` ($16-$1b) with its
