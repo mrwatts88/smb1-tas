@@ -18,8 +18,9 @@ The main thread is an endless loop. Consequences:
   NOT `InitScreen`/`InitializeNameTables`.** The RAM clear is 1,868 bytes at 18 cycles each
   (~33,370) plus ~2,000 of NMI prologue against an NTSC frame's 29,780 — 119 %, so exactly one
   NMI is lost and never two. `InitScreen` fits at ~21,500. **Irreducible** (overrun ~5,600
-  cycles; the only parameter can save 1,368) — H2 refuted, `docs/experiments/H2-lag-frames.md`. None depends on input.
-  (Argument, not yet a proof that a load frame can never be made shorter — H2 stays parked.)
+  cycles; the only parameter can save 1,368) — **H2 refuted**, `docs/experiments/H2-lag-frames.md`.
+  None depends on input, position, RNG or route: the lag lands at exactly load+2 across ITC phases
+  0-19, every level and both entry modes.
 - Input read this frame acts this frame (`SavedJoypadBits` used by the logic later in the NMI).
 
 ## 2. Timers (`DecTimers`)
