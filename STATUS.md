@@ -5,15 +5,29 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-24 (session 15 — P2.5b-1 done: H29 refuted, 1-1 closed; no search running)
+**Updated:** 2026-08-24 (session 16 — P2.3c-8 done: the beam was a per-layer seam; F122 refuted, 4-2 top route REOPENED; no search running)
 
 ## Where we are
 - **Target:** beat 17,868 frames (HappyLee, TASVideos #1715M). A new movie must finish with an
   earlier last input than frame 17848 (0-based); framerule = 21 frames (F27–F29).
 - **Our best full movie:** none yet.
+- **!! SESSION 16 — F122 IS REFUTED AND THE 4-2 TOP ROUTE IS REOPENED (F127/F128/F129).** The
+  "top route cannot mint scroll offset" verdict was an artifact of the search method, not the game.
+  `--beam N` (lowest-h) and `--beam-offset` are *global single-key* orders = **per-layer
+  first-arrival gates**, so any maneuver that pays before it gains dies on the layers it must
+  survive (H39/F128). A **bucketed beam** (best N per scroll-offset x y-band x x-speed x subpixel)
+  on F122's *own* root and deadline carries the offset **112 -> 132** and reaches a real,
+  **core-verified pipe entry** (87/87 frames, 0 mismatches; x 1348 / ScreenLeft 1216 / AreaPointer
+  $2F — byte-identical to the WR's entry). The minting maneuver is **19 frames of held Left**,
+  which every earlier beam deleted on its first frame. Two of F122's five table rows had never
+  measured the offset at all. **It still warps WRONG (F129):** the sct-freeze mint is *transient* —
+  the scroll catches up during the descent, crosses 1217 two frames in, destination flips $2F ->
+  $42. **The warp needs `Player_X_Scroll` = 0 at entry, a second condition the case never
+  modelled** => the engine's `goal_refused` is under-constrained and **every wrong-warp GOAL it
+  reports is suspect**. Open question is now cost, not feasibility. `P2.3c-8-beam-diversity.md`.
 - **Headline result:** 4-2 main area in **553** frames (movement) vs the WR's 588 — model +
-  QuickNES-verified, every segment at its movement bound (F118). **Not a record, and the top
-  route CANNOT become one (F122, session 14):** the wrong warp needs +20 px of collision-minted
+  QuickNES-verified, every segment at its movement bound (F118). **Not a record. The top-route
+  claim below is SUPERSEDED by F127 above — read it first (F122, session 14):** the wrong warp needs +20 px of collision-minted
   scroll offset (F40/F120), and the top route **cannot mint it** — minting is the bottom route's
   col-30 floor wall walk; the top route can't reach floor past pipe A (F117) and its offset stays
   frozen at 112 across 5 beam+exhaustive searches. Strong evidence (not formal proof) the top-
@@ -25,6 +39,10 @@ pre-cleanup narrative version of this file is archived at
   optimal-ish); continuation probe from the chained mint: **total ≥ 584 > 575**. Bottom-route
   floor ≈ 584–585 = deficit ~9–10. **4-2 = 553 movement + ~31 warp-key tax + ~4 slack, conserved
   across routes — closed for a framerule both ways** (residual: H38, a speed-preserving mint).
+  **CAVEAT (session 16):** this closure is no longer safe. F123's 27-frame minimum mint came from a
+  **single-key** 2M offset-first beam (`mint_cost_beam.log`) — the exact defect F128 documents — so
+  it is an upper bound that may be loose the same way F122's was. 4-2 is **not** closed; re-run the
+  mint-economics probe with `--beam-buckets` before relying on 584-585.
 - **1-1 is now closed END TO END (session 15, F124):** the enemy-aware room-1 rung `bfscx W11Room1E
   … 0 367 --enemies 0` is **dry in 4.7 s** (root bound exactly 367, frontier extinct at layer 21) and
   the bound is provably admissible with enemies — `w11enemies.rs` never touches `x_pos`/`x_spd` (its
@@ -46,7 +64,9 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **None** (2026-08-24 session 15: the P2.5b-1 `w11_d368` control was stopped as infeasible —
+- **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
+  Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
+  ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
   see Done/F124 — and its 94 GB layer dir deleted; `pgrep -x smb-opt` empty; 147G free). Beam-tooling
   lesson recorded: layer dirs MUST live on the NVMe (`/home`), never the tmpfs scratchpad (`/tmp`,
   7.7G RAM-backed) — a run filling tmpfs OOM/quota-dies AND starves the shell of fork memory.
@@ -99,6 +119,13 @@ pre-cleanup narrative version of this file is archived at
   **Ops rules learned (now in the runbook):** `max_steps` counts layers from the POST-prefix root, not
   absolute frames (a prefix-162 rung at deadline 195 has 162 frames of slack — it hit 27 GB by layer
   23); and read the `--check-path` startup audit before paying for the exhaustive part.
+  **CORRECTION (session 16, H39): the "segment the APPROACH, then chain" plan above cannot find
+  H25's frame.** F125 proved the return leg optimal *from the WR's apex* (h(apex) = 33 = WR; the
+  32-rung dry at layer 1), so the WR's apex yields nothing; an approach search whose goal IS the
+  WR's apex can therefore only find "reach that same dead apex sooner". The frame, if it exists,
+  is in **a different apex state** — which the apex cut deletes by construction. The approach unit
+  must emit a **set** of apex-region states, each with its own return cost (multi-goal seam, or a
+  multi-root return search), not a single first-arrival goal. Blocked behind P2.3c-8.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
@@ -111,6 +138,9 @@ optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. O
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
+| P2.3c-9 | **F129 — constrain the wrong-warp goal, then re-run (THE TOP UNIT: the engine currently reports goals that do not warp).** `goal_refused` (`main.rs`) tests only `screen_left16 >= 1217` at the goal transition; F129 shows the warp also needs the entry frame to advance Mario's integer x by **0** (`Player_X_Scroll` = 0 — the WR's is 0 for the whole descent, ours was 2 and the offset decayed 132 -> 107). The model already computes it (`emu.rs:388` `x_scroll`). Add the condition, regression the control gate, re-run the d90 rung with `--beam-buckets`. | A | S | — | Beam-off gate byte-identical; a GOAL whose core replay shows AreaPointer $2F **and** re-entry at x 24 on ScreenLeft page 0 (runbook §4.3), or a dry rung + the cost of entering stopped at x 1348 |
+| P2.3c-10 | **Re-audit every beam-derived verdict with `--beam-buckets` (F128).** Any conclusion resting on "the search never found X" was produced by a single-key beam. First: **F123's bottom-route mint economics** (`mint_cost_beam.log`, 2M offset-first) — its 27-frame minimum mint and the 584-585 floor gate the whole "4-2 closed both ways" claim. Then the F122 table's remaining rows. | A | M | P2.3c-9 | Per-verdict: the bucketed rerun's number vs the original, and an explicit statement of which conclusions survive |
+| P2.2a′ | **8-4 room 3 approach as a MULTI-APEX seam (the H39 corollary, now unblocked).** F125 proved the return optimal *from the WR's apex* and the 32-rung dry, so an approach search goaled on that apex can only find a dead end sooner. The approach must emit a **set** of apex-region states each carrying its own return cost — a multi-goal seam or a multi-root return search, or `--beam-buckets` over the approach with the apex band as a bucket axis. | A | M | — | A set of ≥ 1 non-WR apex states with per-apex return costs; either a 32-frame return from one of them (= the H25 frame) or the refutation across the whole set |
 | P2.2a | **H25 — the 8-4 turnaround-room stop (Maru's idea, the campaign opener).** The room-3 wrong warp needs the (14,4) → $02 p0 command parsed ⇔ SL ≥ 3345 (= 3648 − 303, the F40 threshold); the WR overshoots rightward to drag the scroll, stops, turns, enters the pipe (clip from x 3388 = 74 = optimal, F66 — the candidate frame is in the APPROACH/stop, subspeed $705-dependent, F11/F37). Forensics from the dump (max SL vs 3345 margin; the stop row), then the exact-model segment search (W84 cases exist; land room, no swimming). | A | M | — | The margin arithmetic in `docs/experiments/P2.2a-84-turnaround.md`; if margin ≥ 1 frame of scroll: a searched, core-replayed 1-frame gain (= the record pipeline) or the refutation |
 | P2.2b | **H1 — the ending coast:** earliest last input that still reaches the axe (WR: last input 17848, 19-frame coast). Exhaustive small search over the final approach/jump from the Bowser-room states; every coast frame = a record by F17. | A | S | — | Earliest-last-input proof record; any gain → P4.1 |
 | P2.2c | **The 8-4 water room** (control 16720 → side pipe 17416, 102 frames to x ≥ 185 with NO solved optimum, F66): swimming difftest first (the model's swim code is unvalidated), then the segment search with the side-pipe goal. | A | M | swim difftest | Difftest 0 diffs; segment optimum vs the WR's 102 with a proof record |
@@ -144,6 +174,18 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-24 s16 — **P2.3c-8 — BEAM DIVERSITY: the search method itself was losing solutions, and it cost us F122.**
+  H39 confirmed (F128): `--beam N`/`--beam-offset` are global single-key orders = per-layer first-arrival gates,
+  the same lossy operation as a segment seam applied every frame. Shipped `bfscx --beam N --beam-buckets
+  off,y,spd,sub[,vf] [--beam-max M]` (best N per physical bucket; `--beam-max` shrinks per-bucket width first and
+  logs `WARNING capped` if it ever drops whole buckets) + `smb-opt offset-census CASE LAYER_FILE` (pick_parent.py
+  cannot decode `left_screen_edge_pos`). **Regression: beam-off byte-identical** (control gate 6/16/34/70/134/673/
+  3472/16472/69489/257001). Re-ran F122's own probe: offset **112 -> 132**, a **core-verified** pipe entry at 596
+  frames (87/87, 0 mismatches), mint maneuver = 19 frames of held Left. **F122 refuted (F127)**; two of its five
+  rows had never measured the offset. **But the warp is still wrong (F129)**: the sct-freeze mint is transient, the
+  scroll catches up during the descent, and the warp needs `Player_X_Scroll` = 0 at entry — an unmodelled second
+  goal condition, so every wrong-warp GOAL the engine reports is suspect. H36 reopened; F123's closure caveated.
+  `docs/experiments/P2.3c-8-beam-diversity.md`.
 - 2026-08-24 s15 — **P2.5b-1**: **H29 refuted proof-grade — 1-1 room 1 is optimal at 368 with the enemies (F124)**. The d367 rung is dry in 4.7 s (root bound exactly 367, frontier 1→36 then extinct at layer 21); admissibility proved at code level (pipe entry forces `x_pos ≥ 0x39400` via the right-foot `cv 0x11` adder 0x0c00 = exactly the case bound's target; `w11enemies.rs` never references `x_pos`/`x_spd`, only the stomp bounce). Positive control = the reference-path audit that runs *before* layer 1: WR line → `StateChangeVerticalPipe(57,7)` GOAL at step 368, **0 bound violations / 368 steps**. The d368 *exhaustive* rung was stopped as infeasible (94 GB at layer 90/368, ≈1.6 TB projected) and was never needed; 94 GB reclaimed. **H21 closes too** — 1-1 is done end to end. `P2.5b-room1-search.md` §"The verdict".
 - 2026-08-24 s14 — **P2.3c-7**: the vine-snap mint refuted at code level (kill criterion (a), same-session): every 4-2 vine grab is an irreversible autoclimb warp commitment (side-point grabs × rows-≤2 cells ⇒ Y < 32 ⇒ GES 1 ⇒ forced Up ⇒ area change to $2F), and a leave-able grab would net ≤ +14 px at wall-mint rates (~578–581 > 575); H38's x-writer enumeration completed ⇒ **H38 refuted for 4-2 — the level rests (F122 + F123 + this)**. Pivot queue: **1-1 room-1 H29 (deficit 1, exhaustive-sized at d367, port w42enemies classes) → 1-2 → 8-3**. `P2.3c-2c-main-area.md` §P2.3c-7.
 - 2026-08-24 s14 — **P2.3c-6b**: `--goal-offset` mint-economics probe — min 132-mint = 27 frames but speed-priced (the WR's sct-frozen sprint already ~optimal); continuation probe ≥ 584 > 575 ⇒ **the bottom route is closed too (F123)**; 4-2 = 553 movement + ~31 key + ~4 slack, conserved. Mac: resync d679bb8 + gate exact, 401 GB stale layers reclaimed (133→533 GiB). H38 added (speed-preserving mint, parked). `P2.3c-2c-main-area.md` §P2.3c-6b.
@@ -166,6 +208,10 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 - 2026-08-21 — **P0.8** `docs/prior-tools.md` (F52); **P2.1a** `src/search/bfs.c` (F47–F49); **P1.1** QuickNES harness, RAM identical to FCEUX on every WR row (F45/F46); **P0.6** `docs/warp-model.md` (F38–F44; H5/H6/H13 refuted at table level); **P0.2** WR movie + ROM verified (F1, F15–F17); **P0.9** `docs/community-claims.md` (F35–F37); **P0.5** `docs/timing-model.md` (F31–F34); **P0.4** slack table (F27–F30, `tools/slack_table.py`); **P0.3** WR syncs in FCEUX + BizHawk (F23–F26); **P0.1** tooling (F18–F22); plan/process/status scaffolding, git init.
 
 ## Loose ends (small, unassigned)
+- **The Mac's engine is STALE (session 16 changed `tools/smb-opt-modes.patch`).** Per PROCESS/runbook §5,
+  run `tools/mac_sync_engine.sh` **on the Mac** before trusting any Mac number, then the control gate
+  (`bfscx W42Main data/wr/wr_inputs.bin 6584 575 587 --lift 0 --check-path 12` -> 6, 16, 34, 70, 134, 673,
+  3472, 16472, 69489, 257001). `tools/mac_run.sh` refuses to run the binary until the sha stamp matches (exit 3).
 - **Mac engine is STALE (session 15):** `tools/smb-opt-modes.patch` changed (W84Room3 bound fix +
   horizon 200). Before ANY Mac run: `tools/mac_sync_engine.sh`, then re-run the control gate
   (`bfscx W42Main data/wr/wr_inputs.bin 6584 575 587 --lift 0 --check-path 12` → 6, 16, 34, 70, 134,

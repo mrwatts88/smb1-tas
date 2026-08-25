@@ -1056,3 +1056,38 @@ Cut the 195-frame room at the WR's **apex** — max x 3457, the frame its speed 
 **Next.** Segment the approach (root → apex, 162 frames): either a y-coupled/ygate-style bound for
 `W84Room3`, or a further cut at the brake start (WR row 16492, x 3428, speed 40), then chain the pieces
 with the seam protocol. `w84enemies` stays deferred until a rung needs it.
+
+## 2026-08-24 — session 16: the beam was the bug
+
+**Did.** P2.3c-8. The user argued that a beam ordered by one global key "essentially falls back to
+the greedy search by segment, because we're getting rid of anything that you would pay for early to
+gain back later." That is right, and it was load-bearing: `--beam N` (lowest-h) and `--beam-offset`
+are per-layer first-arrival gates — the same lossy operation as a segment seam, applied every frame.
+Recorded as H39, shipped the fix (`--beam-buckets off,y,spd,sub[,vf]`, `--beam-max`, plus
+`smb-opt offset-census` because `pick_parent.py` cannot decode `left_screen_edge_pos`), regressed
+beam-off to byte-identical, then re-ran the one verdict that rested on beams.
+
+**Learned.**
+- **F128 / H39 confirmed.** Under the same root, deadline and budget, a bucketed beam finds what a
+  global one cannot. The specific casualty: F122.
+- **F127 — F122 is refuted.** "The top route cannot mint scroll offset; the offset never leaves 112"
+  was an artifact. The bucketed beam carries it **112 → 132** and reaches a **core-verified** pipe
+  entry (87/87 frames, 0 mismatches, x 1348 / ScreenLeft 1216 / AreaPointer $2F — the WR's own entry
+  condition). The minting maneuver is **19 frames of held Left**: motion away from the goal, deleted
+  by h-first on frame 1. Also: two of F122's five table rows never measured the offset at all — the
+  `--log-offset` print postdates them, so those entries were inferred from max-x.
+- **F129 — but it warps to the wrong place, for a new reason.** The scroll keeps advancing during
+  the pipe descent, crosses the 1217 threshold two frames in, and the destination flips $2F → $42.
+  The WR's `Player_X_Scroll` is **0** at entry and stays 0 (offset pinned at 132); ours is 2 and the
+  offset decays 132 → 107. The WR's mint is a *latch* (collision-push, F120); the sct-freeze mint the
+  top route uses is *transient*. **The warp needs a second, unmodelled condition: zero integer-x
+  advance on the entry frame.** So `goal_refused` is under-constrained and every wrong-warp GOAL the
+  engine currently reports is suspect — including the 900 at layer 87.
+- **Blast radius.** F123's bottom-route economics also came from a single-key beam, so "4-2 closed
+  both ways" is caveated, not retracted — it needs a bucketed rerun. And the same defect lives in
+  every first-arrival segment gate: P2.2a's planned approach-cut is provably incapable of finding
+  H25's frame, because F125 already proved the WR's apex dead and the cut goals on that apex.
+
+**Next.** P2.3c-9 (add the F129 condition to `goal_refused`, re-run the d90 rung) — nothing else in
+the 4-2 line is trustworthy until the engine stops reporting non-warping goals. Then P2.3c-10
+(re-audit beam-derived verdicts, F123 first) and P2.2a′ (multi-apex seam).
