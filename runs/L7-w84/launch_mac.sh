@@ -19,6 +19,13 @@
 # eviction, so RSS is flat; --cells 60000 is ~0.77 GB each, ~3.1 GB for the four.  The RSS
 # watchdog below is the belt-and-braces version of the standing never-uncapped rule.
 #
+# TWO BUGS FIXED 2026-08-25 AFTER THIS SCRIPT KILLED SOMEONE ELSE'S JOBS.  (1) The wait predicate
+# used `pgrep -x -c explore`, and BSD pgrep does not count the way GNU pgrep does, so WAIT=1 fell
+# straight through and launched on a busy machine.  It now counts with `pgrep -x explore | wc -l`,
+# which is the same on both platforms.  (2) The watchdog killed EVERY `explore` over its threshold,
+# including the two E9b archives already running at ~2.0 GB.  It now only ever kills the PIDs THIS
+# script started.  A watchdog must never be able to reach a process it did not start.
+#
 # Usage: [SECS=21600] [CELLS=60000] [WAIT=1] [WAITN=0] ./runs/L7-w84/launch_mac.sh
 #   WAIT=1 blocks until at most WAITN explore processes remain (use it to queue behind E9b).
 # Read the results:  grep ANOMALY runs/L7-w84/*.log
@@ -33,7 +40,7 @@ K="--enemycell 0 --xcell 8 --ycell 16 --spdcell 16 --relcell 32"
 
 if [ "${WAIT:-0}" = "1" ]; then
   n=0
-  while [ "$(pgrep -x -c explore 2>/dev/null || echo 0)" -gt "${WAITN:-0}" ]; do
+  while [ "$(pgrep -x explore 2>/dev/null | wc -l | tr -d ' ')" -gt "${WAITN:-0}" ]; do
     n=$((n+1))
     [ "$n" -gt 720 ] && { echo "WAIT: still busy after 12 h, giving up"; exit 4; }
     sleep 60
@@ -41,20 +48,23 @@ if [ "${WAIT:-0}" = "1" ]; then
   echo "WAIT: launching at $(date -u +%FT%TZ)"
 fi
 
+MINE=""
 go() { # go TAG ROOT HORIZON SEED
   ./build/explore "$CORE" "$ROM" "$IN" --root $2 --horizon $3 \
     --max-addr 0x300 --max-weight 20 --prog-fw 1 --anomaly \
     --cells "$C" --rollout 6,50 $K --seed $4 --secs "$S" --report 300 --out runs/L7-w84 \
     > "runs/L7-w84/$1.log" 2>&1 &
+  MINE="$MINE $!"
   echo "launched l7-$1 pid $! root=$2 horizon=$3 cells=$C"
 }
 go r1 15210  800 81   # room 1  — control 15224, pipe 15748
 go r2 15905  550 82   # room 2  — control 15918, pipe 16185 (L4's site)
 go r3 16342  500 83   # room 3  — control 16355, pipe 16550 (L3's site)
 go r4 16707  950 84   # water   — control 16720, side pipe 17416; never searched at all
-# RSS watchdog: kill any explore over 1.5 GB, check every 60 s
+# RSS watchdog: kill THIS SCRIPT'S jobs if one exceeds 1.5 GB, check every 60 s.  Scoped to $MINE
+# on purpose -- see the note above; a machine-wide pgrep here killed two unrelated searches.
 ( while true; do
-    for p in $(pgrep -x explore); do
+    for p in $MINE; do
       rss=$(ps -o rss= -p "$p" 2>/dev/null | tr -d ' ')
       [ -n "$rss" ] && [ "$rss" -gt 1572864 ] && kill "$p" && echo "watchdog killed $p rss=$rss" >> runs/L7-w84/watchdog.log
     done

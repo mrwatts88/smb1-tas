@@ -150,6 +150,15 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
+- **[INCIDENT, session 21 — read this before writing any watchdog] My L7 Mac launcher killed the two
+  E9b archives.** Two bugs, both now fixed in `runs/L7-w84/launch_mac.sh`: (1) `WAIT=1` used
+  `pgrep -x -c explore`, and **BSD `pgrep` does not count like GNU `pgrep`**, so the wait fell straight
+  through and launched on a busy machine; (2) its RSS watchdog killed **every** `explore` over 1.5 GB,
+  and E9b's two were at ~2.0 GB. Killed at 13,800 s of 21,600 (64 %, ~2.2 h of search lost, both still
+  at the control with nothing banked, so no *result* was lost). **E9b was relaunched immediately and
+  reproduced its control** (`GOAL frame=12953 (baseline 12952, +1)`, `runs/E9b/relaunch.log`, pids
+  78956/78957, fresh 6 h). Standing rule from this: **a watchdog must only ever kill PIDs it started**
+  — never a machine-wide `pgrep`; and any portable process count is `pgrep -x NAME | wc -l`.
 - **[L4, session 21] 8-4 ROOM 2'S EXIT PIPE, LINUX — a direct record attempt in the only 1:1 level.**
   `runs/L4-w84r2/a.log` (root 16050, horizon 200, `--cells 40000`, `MemoryMax=700M`, 6 h). Goal
   `GameEngineSubroutine == 3` (pipe entry), **baseline 16182 = the WR's own, reproduced exactly by the
@@ -160,7 +169,14 @@ pre-cleanup narrative version of this file is archived at
   FCEUX + BizHawk. Second root **`w` (15905, the whole room, lets the approach state vary) is written and
   NOT launched — RAM.** When the E7 archives exit: `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh`
   (relaunches `a` at full size and starts `w`). Write-up: `docs/experiments/L4-w84r2-pipe.md`; fact F267.
-- **[L7, session 21] THE 8-4 NOVELTY SWEEP, LINUX.** `runs/L7-w84/` — `r5.log` (Bowser room, root 17577,
+- **[L7, session 21] THE 8-4 NOVELTY SWEEP — `r5` ON LINUX, `r1`-`r4` NOW BOUND FOR THE MAC.**
+  The four queued Linux sweeps were cancelled: the Linux box is reserved for **L3**, which needs the
+  machine to itself. `r1`-`r4` run on the Mac instead (`runs/L7-w84/launch_mac.sh`, native, ~3x faster,
+  `--cells 60000`), queued behind E9b's relaunched pair — start them with
+  `ssh mac "cd ~/code/smb && nohup env WAIT=1 WAITN=0 ./runs/L7-w84/launch_mac.sh &"` once E9b is done.
+  **The Mac's binary was rebuilt from this session's `explore.c` by scp, not `git pull`** (the Mac's
+  https credential is not available over ssh: `could not read Username for github.com`), so it carries
+  classes 17/18 but its tree is otherwise at 3b15721. `runs/L7-w84/` — `r5.log` (Bowser room, root 17577,
   `--cells 40000`, `MemoryMax=800M`, 6 h) is **running now**; `r1`-`r4` (roots 15210 / 15905 / 16342 / 16707,
   `--cells 80000`, `MemoryMax=1500M`) are **queued**: a detached `WAIT=1 WAITN=2 SKIP=r5 ./runs/L7-w84/launch.sh`
   polls every 60 s and fires them when at most two `explore` remain (r5 and L4's `a`, i.e. when the E7
