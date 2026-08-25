@@ -5,7 +5,7 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 18 — PRIORITY REBUILT: `docs/strategy-review.md` is the official way forward; Track E "the finder" replaces the exhaustive-ladder programme; no search running)
+**Updated:** 2026-08-25 (session 18 — Track E: the finder is built and running on 4-2's wrong warp; F224-F228 recorded; three archive searches live)
 
 ## Where we are
 - **READ `docs/strategy-review.md` FIRST (2026-08-25).** It is the official way forward: the
@@ -67,6 +67,11 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
+- **[TRACK E, session 18] THREE `build/explore` archives on 4-2's wrong warp** — `runs/E3-w42/{r200,r380,r460}.log`,
+  launched by `runs/E3-w42/launch.sh` (`SECS=10800`), each `systemd-run --user --scope -p MemoryMax=2500M`.
+  Check with `tail -n 4 runs/E3-w42/*.log`; the verdict line is `mint curve`, and any
+  `*** WARP-CAPABLE` line names a dumped path in `runs/E3-w42/warpable_rel*_f*.path`.
+  A path is a candidate only: replay it and confirm the destination on the core before believing it.
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
 - **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
   The coin-fixed clip + carry both finished and reproduced their pre-fix results exactly — and **the core
@@ -87,6 +92,52 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **E1 + E2 — DONE. E3/E-W42 — RUNNING (Track E, `docs/strategy-review.md`, write-up `docs/experiments/P4E-finder.md`).**
+  **E1 done (F224):** level-entry state is a pure function of (entry frame, area-load count). H9/P2.4
+  refuted; H2 reopened and sharpened (every area load costs exactly one lag frame; four are inside 8-4).
+  **E2 done in part:** F223 had already closed the WR's final jump; the finder reproduces its 17846
+  independently (control passes). The open half — the *approach* — needs 8-4's last room searched, and
+  F225 says that room is at the movement cap for 246 of its 286 control frames, so the prior is poor.
+  **F225 (the cap survey) reprioritised the board:** the WR is at the relevant speed cap for 80-97% of
+  every level's control frames; **4-1, 8-1 and 8-3 are at 97% and their off-cap frames are the single
+  forced acceleration after the level-start card**, so those three cannot deliver a framerule from
+  movement and E4-as-written is retired for them. **F226:** 1-2's "unexplored intro" is 499 frames with
+  the joypad overridden — not territory; Maru's 3 frames are in the modelled body.
+  **E-W42 is the live unit.** 4-2 is the one place with a distance win in hand (top route 553 vs WR 588).
+  Read out of the code this session:
+  • **F228 — the wrong warp is a race against one area-change command.** 4-2's row-$0E commands are page 2
+    col 1 -> `$2F`, **page 5 col 15 -> `$42`**, page 11 col 14 -> `$25`; the only d3 (enterable) pipes are
+    page 5 col 4 (x 1344-1375, the WR's) and page 13 col 6. Measured: the destination flips the frame
+    `ScreenLeft` reaches **1217**. WR enters x 1348 / SL 1216 / rel 132; the 553 chain enters x 1349 /
+    SL 1237 / rel 112 and warps to `$42`. **H37 refuted** (cols 78-79 is a decoration pipe; its top
+    metatiles are `$13/$12` and `HandlePipeEntry` demands `$11`/`$10`).
+  • **F227 — every way to freeze the SMB1 scroll, enumerated; 4-2 has only the expensive one.**
+    `ScrollHandler`: no scroll iff `ScrollLock != 0` / rel < 80 / `SideCollisionTimer != 0` /
+    `Player_X_Scroll + Platform_X_Scroll == 0`; otherwise movement **minus one** below rel 112 and the
+    **full** amount at rel >= 112 — so **rel cannot exceed 112 without a freeze**. 4-2's `ScrollLockObject`s
+    are at columns 196/230 (past the pipe), its platforms are the vertical `MoveLiftPlatforms`, and
+    `SideCollisionTimer`'s only writer is `ImpedePlayerMove`, which zeroes `Player_X_Speed` on the same
+    path. **This is H38's proof artifact and it is negative.** What stays open: *where* the mint is paid
+    is free, and the WR pays it mid-sprint at x 468 (core 6782-6815, SL frozen at 357, +1 px/frame).
+  • **The second condition, from F129 and confirmed here:** `Player_X_Scroll` is written only by
+    `OnGroundStateSub`/`JumpSwimSub`, so during the 48-frame pipe descent it keeps its last value and the
+    screen keeps scrolling by it — the top route's SL runs 1237 -> 1270 during the descent and the
+    destination flips. **The entry frame needs `Player_X_Scroll == 0`**, i.e. Mario moved 0 whole pixels
+    that frame. `HandlePipeEntry`'s foot-metatile window pins x to **[1348, 1356]**, so the WR's x 1348
+    is already the minimum and there are no pixels to save there: **rel >= 132 is exact.**
+  **RUNNING — `runs/E3-w42/launch.sh`, three archives on the real core** (roots at steps 200/380/460 of
+  the 553 chain, horizons 470/290/210, 150k cells each under `MemoryMax=2500M`), goal = the `$2f` commit,
+  `--require-ram 0x750=0x2f` (a state whose destination already flipped is never archived),
+  `--watch-x 1341,1363` printing **the mint cost curve** — earliest frame at each screen-lead inside the
+  pipe-entry window, starred where `Player_X_Scroll == 0`. **That curve is the measurement STATUS's
+  "4-2 hope" thread says has never been taken.**
+  **First result: a genuinely warp-capable state exists and the finder reaches it** — x 1351, rel 132,
+  `Player_X_Scroll` 0, at core frame **7240**. The WR enters at **7169** and a framerule needs **<= 7156**
+  (553 chain enters at 7134, so the key budget is **22**). So the first found key costs ~106; the run is
+  now pushing that curve down. Read `grep 'mint curve' runs/E3-w42/*.log` for the frontier.
+  **Next if the curve stalls above 22:** root directly on the mint site (floor at x ~1280, pipe B's right
+  face on Mario's left) instead of letting the archive discover it, and/or widen to the bottom route,
+  whose own mint economics (F123's 27-frame minimum) were measured with the single-key beam F128 discredits.
 - **E1 + E2 — declared 2026-08-25 session 18 (Track E, `docs/strategy-review.md`).**
   E1 = the free-knob check (is level-entry state a pure function of the entry frame?).
   E2 = the last-input reformulation of 8-4 (earliest frame after which the null-input continuation

@@ -53,6 +53,7 @@
 #define PSTATE   0x1d
 #define SLX      0x71c
 #define SLPAGE   0x71a
+#define SCTIMER  0x785
 #define ENID     0x16
 #define ENX      0x87
 
@@ -178,7 +179,8 @@ int main(int argc, char **argv) {
     if (argc < 4) { fprintf(stderr,"usage: %s CORE.so ROM.nes INPUTS.bin --root N [opts]\n",argv[0]); return 2; }
     const char *core=argv[1], *rom=argv[2], *inputs=argv[3], *outdir="runs/E3";
     long root=-1, input_skip=2, ncells=150000, rlo=8, rhi=64, horizon=900, secs=300, report=15, coast=400;
-    long xcell=4, ycell=8, scell=16, spdcell=8, ecell=16, seedwr=1, probex=-1, nullmax=200;
+    long xcell=4, ycell=8, scell=64, spdcell=8, ecell=16, seedwr=1, probex=-1, nullmax=200, relcell=2;
+    long wlo=-1, whi=-1;
     double tournp=0.75;
     long gaddr[8], gval[8]; int ngoal=0; long baseline=-1; const char *seedpaths[8]; int nseed=0;
     long raddr[8], rval[8]; int nreq=0; long progx=-1, progoff=0, progfw=5;
@@ -195,6 +197,9 @@ int main(int argc, char **argv) {
         else if(!strcmp(argv[i],"--xcell")) xcell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--ycell")) ycell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--scell")) scell=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--relcell")) relcell=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--watch-x")){ char*t=argv[++i]; wlo=strtol(t,NULL,0);
+            char*c2=strchr(t,','); if(c2) whi=strtol(c2+1,NULL,0); else whi=wlo; }
         else if(!strcmp(argv[i],"--spdcell")) spdcell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--enemycell")) ecell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--no-seed-wr")) seedwr=0;
@@ -274,10 +279,12 @@ int main(int argc, char **argv) {
 
     #define KEYOF(r) ({ long ax=(r)[PPAGE]*256+(r)[PX]; long ay=(r)[PYHI]*256+(r)[PY]; \
         long sl=(r)[SLPAGE]*256+(r)[SLX]; int8_t sp=(int8_t)(r)[PXSPD]; \
+        long rl=ax-sl; if(rl<0) rl=0; if(rl>255) rl=255; \
         uint64_t ed=0; if(ecell) for(int q=0;q<5;q++) if((r)[ENID+q]) \
             ed = ed*1000003ULL + (uint64_t)((r)[ENID+q])*131ULL + (uint64_t)((r)[ENX+q]/ecell); \
         uint64_t k = (uint64_t)(ax/xcell) | ((uint64_t)(ay/ycell)<<14) | ((uint64_t)((sp+128)/spdcell)<<26) \
-                   | ((uint64_t)((r)[PSTATE]&3)<<32) | ((uint64_t)(sl/scell)<<34) | ((uint64_t)(r)[AREAPTR]<<48) \
+                   | ((uint64_t)((r)[PSTATE]&3)<<32) | ((uint64_t)(rl/relcell)<<34) | ((uint64_t)((r)[SCTIMER]!=0)<<42) \
+                   | ((uint64_t)(sl/scell)<<43) | ((uint64_t)(r)[AREAPTR]<<48) \
                    | ((uint64_t)((r)[GES]&15)<<56); \
         k ^= ed*0x9e3779b97f4a7c15ULL; k ^= k>>29; k *= 0xbf58476d1ce4e5b9ULL; k ^= k>>32; k|1ULL; })
 
@@ -285,14 +292,35 @@ int main(int argc, char **argv) {
     /* promise: how far ahead of a constant-max-speed schedule this cell is (2.5 px/frame),
      * minus a visit penalty so exploration spreads instead of collapsing onto one cell. */
     #define PROMISE(c) ((long)tab[c].prog*2 - ((long)tab[c].frame-root)*progfw - (long)tab[c].visits*3)
-    long best_last=1L<<30, best_prog=0, best_frame=1L<<30, best_off=0;
+    long best_last=1L<<30, best_prog=0, best_frame=1L<<30, best_off=0, best_off_near=0, best_watch=0;
+    long wcurve[256], wcurve0[256];   /* earliest frame reaching each rel in the window; ...0 = with Player_X_Scroll==0 */
+    for(int i=0;i<256;i++){ wcurve[i]=1L<<30; wcurve0[i]=1L<<30; }
 
     #define INSERT(F,PL) do { \
         uint64_t k_=KEYOF(ram); size_t p_=k_&(cap-1); \
         while(tab[p_].key && tab[p_].key!=k_) p_=(p_+1)&(cap-1); \
         long ax_=(long)ram[PPAGE]*256+ram[PX]; if(ax_>best_prog) best_prog=ax_; \
-        long off_=ax_-((long)ram[SLPAGE]*256+ram[SLX]); if(off_>best_off) best_off=off_; \
-        int32_t pg_=(int32_t)((progx>=0 ? progx-labs(ax_-progx) : ax_) + progoff*off_); \
+        long off_=ax_-((long)ram[SLPAGE]*256+ram[SLX]); \
+        if(ram[GES]==8 && off_>=0 && off_<=255){ if(off_>best_off) best_off=off_; \
+            if(progx>=0 && ax_>=progx-96 && off_>best_off_near) best_off_near=off_; \
+            if(wlo>=0 && ax_>=wlo && ax_<=whi){ \
+                if((long)(F)<wcurve[off_]) wcurve[off_]=(long)(F); \
+                if(ram[0x6ff]==0 && (long)(F)<wcurve0[off_]){ wcurve0[off_]=(long)(F); \
+                    if(off_>=132){ char fn3[512]; snprintf(fn3,sizeof fn3,"%s/warpable_rel%ld_f%ld.path",outdir,off_,(long)(F)); \
+                        FILE *o3=fopen(fn3,"wb"); \
+                        if(o3){ fprintf(o3,"root %ld len %ld x %ld rel %ld frame %ld xscroll 0\n",root,(long)(PL),ax_,off_,(long)(F)); \
+                                fwrite(path,1,(size_t)(PL),o3); fclose(o3); } \
+                        printf("  *** WARP-CAPABLE: x=%ld rel=%ld frame=%ld Player_X_Scroll=0 (WR entry 7169) ***\n", \
+                               ax_,off_,(long)(F)); fflush(stdout); } } } \
+            if(wlo>=0 && ax_>=wlo && ax_<=whi && off_>best_watch){ best_watch=off_; \
+                char fn2[512]; snprintf(fn2,sizeof fn2,"%s/watch_rel%ld.path",outdir,off_); \
+                FILE *o2=fopen(fn2,"wb"); \
+                if(o2){ fprintf(o2,"root %ld len %ld x %ld rel %ld frame %ld xscroll %u\n", \
+                        root,(long)(PL),ax_,off_,(long)(F),ram[0x6ff]); \
+                        fwrite(path,1,(size_t)(PL),o2); fclose(o2); } \
+                printf("  WATCH x=%ld rel=%ld frame=%ld Player_X_Scroll=%u %s\n",ax_,off_,(long)(F), \
+                       ram[0x6ff], off_>=132?"  <-- WARP-CAPABLE LEAD":""); fflush(stdout); } } \
+        int32_t pg_=(int32_t)((progx>=0 ? -labs(ax_-progx) : ax_) + progoff*off_); \
         if(!req_ok(ram)) break; \
         if(!tab[p_].key){ \
             if(nlive>=ncells) evict++; \
@@ -431,8 +459,12 @@ int main(int argc, char **argv) {
             double el=now()-t0; char bl[32]; long bb = g_ngoal?best_frame:best_last;
             if(bb==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",bb);
             printf("[%6.0fs] cells=%ld rollouts=%ld frames=%.2fM (%.0fk fps) goals=%ld deaths=%ld "
-                   "best=%s maxx=%ld maxoff=%ld improved=%ld probes=%ld evict=%ld\n",
-                   el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,best_off,improved,probes,evict);
+                   "best=%s maxx=%ld maxrel=%ld relnear=%ld improved=%ld evict=%ld\n",
+                   el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,best_off,best_off_near,improved,evict);
+            if(wlo>=0){ printf("          mint curve (rel: earliest frame | x-scroll 0):");
+                for(int q=112;q<=160;q+=2) if(wcurve[q]<(1L<<30))
+                    printf(" %d:%ld%s",q,wcurve[q],wcurve0[q]<(1L<<30)?"*":"");
+                printf("\n"); }
             fflush(stdout); tnext=now()+report;
         }
     }
