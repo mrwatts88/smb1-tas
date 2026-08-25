@@ -67,23 +67,26 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **[TRACK E, session 18] FIVE `build/explore` archives running.** All under `systemd-run --scope -p MemoryMax=`;
-  check with `tail -n 3 runs/E7-w12/*.log runs/E3-w42/late.log runs/E6-vram/*.log`.
-  • **E7 — 1-2's endgame, the live record attempt.** `runs/E7-w12/{pre,mid}.log`, launcher
-    `runs/E7-w12/launch.sh`. Goal is the thing itself (`WorldNumber == 3`, the world-4 warp actually
-    taken), baseline core **3763**, so **a goal at core <= 3755 IS THE RECORD** (1-2's deficit is 8).
-    Posed end-to-end with no intermediate gate, which is the point: F236 shows the clip mints screen
-    lead and F229 shows lead pushes the apex out, so the two costs trade — every earlier search here
-    goaled on a position and let the scroll fall out, which is why F144's three frames were refunded.
-    Both controls reproduce 3764 (= baseline + the tool's 1-frame reporting offset).
-  • **E3 — 4-2's key, late-mint variant.** `runs/E3-w42/late.log`. **Measured verdict so far: a
-    warp-capable entry (rel >= 132 AND `Player_X_Scroll` 0) costs ~58-66 frames against a 22-frame
-    budget** (best: rel 133 at core 7200; the mint-free 553 chain enters at 7134, the line needs
-    <= 7156). That is the number the "4-2 hope" thread says was never measured. It is now measured.
-  • **E6 — P3.4 novelty sweeps + the VRAM-offset machine-check.** `runs/E6-vram/{w11,w12,w82}.log`
-    (4-1/4-2/8-3 stopped: only mundane hits). Max `VRAM_Buffer1_Offset` seen **67** (8-2, the
-    flagpole sequence) against the **227** needed — consistent with F234. Anomaly triage in
-    `docs/experiments/P4E-finder.md` §P3.4; nothing unexplained so far.
+- **[TRACK E, session 18] FIVE `build/explore` archives running** (each `systemd-run --scope -p MemoryMax=2000M`).
+  Check all: `tail -n 3 runs/E7-w12/*.log runs/E8-w82/*.log`.
+  • **E7 — 1-2's endgame. THE LIVE RECORD ATTEMPT.** `runs/E7-w12/{early,pre,mid}.log`, launcher
+    `runs/E7-w12/launch.sh` (read its header). Goal is the thing itself: `WorldNumber == 3`, the world-4
+    warp actually taken. Baseline core **3763**; **a goal at core <= 3755 IS A NEW RECORD** (deficit 8).
+    Promise = `ScreenLeft`, the actual gate, not Mario's x. Three roots — 3400 / 3540 / 3600 — so the
+    approach to the clip, the clip, and only the turnaround are each free in turn (H39: never
+    pre-commit the part that might have to pay first). All three controls reproduce 3764.
+  • **E8 — 8-2's ending, the last unexamined pocket.** `runs/E8-w82/{climb,wide}.log`, launcher
+    `runs/E8-w82/launch.sh`. 8-2 has 213 off-cap frames (F225), ~105 of them one shaft climb at
+    x 3261-3313 that nobody has ever searched (MrWint solved no 8-2 segment). Goal = the flagpole grab
+    (`GES == 5`), baseline core **12472**; **deficit 19, so a grab at core <= 12453 is the record.**
+    Poor prior, but it is the only place left nobody has looked.
+  **Verification recipe for any candidate: `docs/experiments/P4E-finder.md` §"If a search reports a
+  candidate"** — validated end-to-end this session. Check the DESTINATION, not the goal flag (F230).
+  **Retired this session with measurements, not guesses:** the 4-2 key costs **~58-66 frames against a
+  22-frame budget** (`runs/E3-w42/late.log`, two independent roots agree) — that is the "4-2 hope"
+  thread's never-taken measurement, now taken; the 8-4 room searches (F231/F232 closed the level); the
+  P3.4 novelty sweeps on 1-1/4-1/4-2/8-3 (only mundane hits; `VRAM_Buffer1_Offset` peaked at 67 vs the
+  227 needed, matching F234). All launchers are committed and re-runnable.
   Standing rule unchanged: **never start a search without a cgroup cap**.
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
 - **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
