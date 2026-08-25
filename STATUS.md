@@ -810,6 +810,28 @@ explicitly *without* conceding the question.
   xorg-x11-server-Xvfb mono-core mono-devel libgdiplus lsb_release cmake clang gdb strace`)
   would let `tools/fceux_run.sh` skip the container. Convenience only.
 
+## Banked frames — sub-threshold gains still count (user, 2026-08-25)
+
+A level only pays out when its end crosses a 21-frame boundary, so a 3-frame gain in 1-2 buys nothing
+*today*. **It is still a real result**: it reduces that level's remaining deficit permanently, so the
+next find has a smaller gap to close. Record every verified sub-threshold gain here and subtract it,
+rather than discarding it because it did not cross the cliff.
+
+| level | deficit (F29) | banked so far | remaining | note |
+|---|---|---|---|---|
+| 1-1 | 1 | — | 1 | closed proof-grade (F116/F124); the one frame does not exist |
+| **1-2** | **8** | 0 | **8** | 1 frame is known-available at step 487 (x 1183, mid-jump at x-speed 38 not 40) and has never been probed. The coin/parser-stall idea is **dead** (F240). |
+| 4-1 | 9 | — | 9 | no movement frames exist (F225: 97% at cap) |
+| 4-2 | 10-13 | **35 of movement** (F118: top route 553 vs WR 588) | key costs ~60 vs a 22 budget (measured) | the movement is banked and real; the warp key eats it |
+| 8-1 | 18 | — | 18 | no movement frames exist (F225) |
+| 8-2 | 19 | 0 | 19 | the shaft climb is unexplored (E8 running) |
+| 8-3 | 10 (7 with FPG) | — | 7 | no movement frames exist (F225) |
+| 8-4 | unquantized | — | 1 frame = the record | closed on movement, route and structure (F231/F232) |
+
+Track E's searches already report sub-threshold gains (the `best=` field is the earliest goal frame
+ever reached, not just threshold crossings) and dump the path for each improvement — so any partial
+frame that turns up gets a fact and a row here, not a shrug.
+
 ## The premise behind every closure (H47 — read before trusting the list)
 
 Every "closed" verdict on this board — 1-1 end to end (F124), 4-1/8-1/8-3 cannot deliver a framerule
