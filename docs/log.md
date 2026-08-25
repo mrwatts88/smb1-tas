@@ -1419,3 +1419,65 @@ MrWint's own exhaustively-searched segment. If the end-game term does not open t
 should be declared closed rather than ground on.
 
 **Next.** The coupled end-game term, then re-run the step-70 cross-seam question exhaustively.
+
+### 2026-08-25 — session 17 (cont.): the allocation was wrong, 1-2 was the level, and it has three real frames
+
+**The user challenged the whole campaign** — we have compute, three days, and a state-of-the-art agent, and
+we cannot find a frame that a 2011 TAS did not already have. Two of the premises were wrong and the
+conclusion was right.
+
+**Wrong premises.** The WR is 2011, not thirty years ago, and it is itself tool-assisted; and MrWint's
+`smb-opt` — *the engine we run* — already brute-forced it segment by segment, with F66 recording the WR at
+**gap 0 on all ten segments anyone ever solved**. We are not racing a person with a controller.
+
+**Right conclusion.** Those ten segments are **1-1 ×4, the 1-2 OPENING, and 8-4 ×5** — and F52, written in
+P0 and never acted on, says plainly: *"no whole-level or full-state search exists anywhere."* We had spent
+the campaign on **8-4 and 4-2**, the two most pre-optimised levels on the route, while **1-2 (deficit 5 on
+Maru's route), 8-3 (7) and 4-1 (9) had never been searched by anyone.** That is on me; the priority came
+from decisions.md but I should have challenged it instead of grinding 8-4 room 2 all session.
+
+**So: 1-2.** `W12Warp` — the main area in one piece, control frame to the world-4 warp pipe, 1280 frames.
+`BB12W` = MrWint's `BB12` (which our dump reproduces with **0 differing cells** over the 176 columns it can
+read) plus the eight warp-zone columns he never covered. The goal carries an F40-shaped scroll condition,
+because `ScrollLockObject_Warp` arms `WarpZoneControl = 4` at ScreenLeft 2816.
+
+**The model is exact on all 1280 frames** — 6 stomps, the elevator ride, the wall clip, the pipe entry — and
+a 150-trial / 96,424-frame battery has 0 differences. Getting there needed two new classes (`CLASS_LIFTPLAT`
+for the `$26`/`$27` elevators, which are the same object as 4-2's lift; `CLASS_REDKOOPA`) and turned up **two
+real engine bugs, one of them live in 4-2 and 8-4 as well**: `CheckpointEnemyID`'s +8 px applies only to ids
+< `$15`, and **bounding boxes were never clamped at the screen edges**, so two goombas 250 px apart turned
+each other around. Every prior regression re-verified after both fixes.
+
+**Then the searching.** The `--check-path` loss map is the tool that made this tractable: it shows the WR
+losing exactly **66 frames** to the bound across the level, in four places — 11 in the entrance fall, **1**
+at step 487, **31 at the wall clip**, 23 at the turnaround — and being **x-optimal on every one of the ~1050
+frames in between**. That is a map of where frames can possibly be.
+
+- The isolated frame at step 487: **not there** (d45 dry with the bound tight — a bound artifact).
+- The intro area: **not there by construction** — GES 7 for all 335 frames with zero inputs.
+- After step 1113: **not there** (d46 and d59 dry, bound tight for the last 46).
+- **The wall clip: 77 frames against the WR's 80**, arriving in a state that DOMINATES the WR's, and
+  **core-verified 77/77 with 0 mismatches.** Three real frames, on a level that needs five.
+
+**And the scroll takes them back.** The lead survives to step 1217 — the carry is bound-tight and the whole
+137-frame segment core-verifies — and then the pipe is dry at 60, the WR's own cost. The reason is that the
+warp zone arms on **ScreenLeft**, which is a property of where Mario has *been*: three frames early at the
+same x leaves the scroll two pixels behind. The runbook §3.2 census (new `offset-census --sl`, ranking by
+absolute ScreenLeft) confirms our continuation came through the scroll-maximal parent, so it is not a
+pick artifact.
+
+**Which is why `--goal-sl` now exists** and is running: put ScreenLeft *in* the goal so the search optimises
+it instead of reporting it afterwards. Can the clip be done in 79 frames while keeping the WR's own scroll?
+
+**One correction worth keeping.** Mid-session I reported "a goal at layer 47 where the WR takes 48" as a
+frame. It was a tie — an off-by-one in the fceux-row -> model-step mapping (step k is row **2486 + k**).
+Take reference costs from the model's own `--check-path` numbering, never from a hand-mapped RAM row.
+
+**Also this session:** F139's 8-4 rungs re-verified on the bbox-fixed engine (the control reproduces its
+436,334 goal transitions to the digit); `tools/ram_slots.py` had two wrong addresses (EnemyIntervalTimer and
+Enemy_YMF_Dummy); 8-3 and 4-1 scanned — 8-3's only blocker is the RNG Hammer Bro, and the 8-4 port already
+paid part of its bill by modelling the `$0e` paratroopa; 4-1 has no blocker at all and its block map
+extracts cleanly from the **area-load** row.
+
+**Next.** Read the `--goal-sl` run. Then either bank 1-2's three frames, or take 4-1 — the last unsearched
+level with no known modelling blocker.
