@@ -134,3 +134,34 @@ afterwards without blocking it.
 - On the Mac an `rm -rf` over ssh is blocked for the agent; list the directories with sizes
   under STATUS "Loose ends" for the user.
 - `hcloud server list` every session while any cloud work is possible (P0.10 rules).
+
+## 7. Beam discipline (P2.3c-8 / H39-H41)
+
+1. **A beam is a per-layer first-arrival gate.** `--beam N` (lowest-h) and `--beam-offset` are
+   *global single-key* orders, so any maneuver that pays before it gains dies on the layers it
+   must survive. This is the same lossy operation as a segment seam, applied every frame. It cost
+   the project a wrong verdict (F122 → F127/F128). **Never run a single-key beam and report the
+   absence of something as evidence.**
+2. **Two stages, always: the beam discovers, an exact rung promotes.** A bucketed beam yields
+   candidates, never proofs — a beam that finds something proves existence; a beam that finds
+   nothing proves nothing (the no-impossibility rule). Every promoted fact of the F103/F112-F114
+   class rests on `deadline == root bound`; keep it that way.
+3. **Choosing the bucket key (H40).** Cost is the *product* of the dimensions' cardinalities.
+   - *Discovery* (mechanism unknown): generic physical axes — `off,y,spd,sub[,vf]`. This is what
+     found the mint no one believed existed.
+   - *Exploitation* (mechanism known): key on exactly the variables the downstream routine
+     branches on. Worked example F130 — the 8-4 cheep frenzy reads `Player_X_Speed` as a 3-valued
+     class and spawns *relative* to Mario, so its key is ≈ (timer phase, speed-class, slot
+     occupancy) and absolute X is not a dimension.
+   - Using a code-derived key during discovery just re-creates H39's blindness with a
+     better-chosen blind spot.
+4. **`--beam-max` bounds the product** by shrinking per-bucket width first; it prints
+   `WARNING capped — N whole buckets dropped` before it ever drops a bucket. If you see that line,
+   the run was partially greedy — say so when you report it.
+5. **Objective check before ranking (H41).** Inside a framerule-flat region a saved frame is worth
+   zero (F27/F28), so h-ordering ranks on noise. Where the slack is known, score exit-state quality
+   and make time a hard constraint. **8-4 is exempt** — it is unquantized, so time *is* the
+   objective there (H24).
+6. **Census the layer by the quantity that matters.** `tools/pick_parent.py` decodes only
+   x/y/speed/player-state; `smb-opt offset-census CASE LAYER_FILE [--top K] [--min N]` decodes the
+   scroll offset. A goal parent picked on position alone has been wrong repeatedly (§3.2).

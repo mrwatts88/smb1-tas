@@ -1091,3 +1091,38 @@ beam-off to byte-identical, then re-ran the one verdict that rested on beams.
 **Next.** P2.3c-9 (add the F129 condition to `goal_refused`, re-run the d90 rung) — nothing else in
 the 4-2 line is trustworthy until the engine stops reporting non-warping goals. Then P2.3c-10
 (re-audit beam-derived verdicts, F123 first) and P2.2a′ (multi-apex seam).
+
+### 2026-08-24 — session 16 addendum: review notes folded in, threads enumerated
+
+A second agent's review of the bucketing work was handed over. Verified it against the
+disassembly rather than accepting it, and it holds up with one correction and one scope limit.
+
+- **F130 (new, verified).** The 8-4 cheep frenzy's coupling to the player is far weaker than F126
+  assumed. `InitFlyingCheepCheep` reads `Player_X_Speed` only as a **3-valued class** (zero /
+  1..$18 / ≥$19 unsigned) for the speed-table row, and again as a **2-valued** gate on the
+  direction flip. **Correction to the note:** `Player_X_Position`/`Player_PageLoc` are *not* key
+  dimensions — the spawn is placed *relative* to Mario (`Enemy_X_Position = Player_X_Position ±
+  FlyCCXPositionData[y]`), so the geometry is translation-invariant and absolute X never selects a
+  branch. Also `$00` is overwritten by a third LFSR nybble whenever `PseudoRandomBitReg+1 & 3 != 0`,
+  so the position index is usually pure LFSR. Net: the port is ≈3× a frame-indexed class, and
+  F126's "bigger than budgeted" is directionally right but quantitatively far too pessimistic.
+  This unblocks the 8-4 primary track (new unit P2.2a-port).
+- **H40 (bucket keys from downstream branch variables).** Right for *exploitation*, with a scope
+  limit that matters: a code-derived key presupposes knowing which routine matters. F122 is the
+  counter-case — there was no known downstream routine, and it took *generic* diversity to find a
+  mint nobody believed existed. Recorded as complementary, not competing: generic for discovery,
+  code-derived for exploitation. Cost is a product of cardinalities, not 2^k, and `--beam-max`
+  already bounds it.
+- **H41 (framerule-flat objective).** Correct and sharp: below a rule boundary a saved frame is
+  worth zero, so an h-ordered beam ranks on noise and pays at the seam. **Scope: not 8-4** — it is
+  unquantized, so time genuinely is the objective there (H24). Applies to 4-2/1-1/1-2/8-3.
+- **Two-stage discipline** (beam discovers, exact rung promotes) and the census/objective rules are
+  now standing rules in `docs/search-runbook.md` §7 rather than living in one experiment file.
+- **P2.3c-11** — the suggested free validation (re-run 4-2's seven seams bucketed, expect 553) is
+  worth doing and cheap (the `s4*_layers` are retained), but its honest frame upside is ~1 by
+  current accounting; its real value is proving the machinery sound before 8-4 depends on it.
+
+**The number that frames everything:** 4-2 = 553 movement + key, and the 575 line allows a key of
+22. Bottom route ~31; top route 43 as found today, on a path that does not yet warp correctly and
+gets *more* expensive once F129's zero-scroll entry is enforced. Nobody has measured the cheapest
+top-route mint. That is P2.3c-9 Part B.
