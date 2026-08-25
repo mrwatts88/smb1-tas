@@ -8,6 +8,12 @@ pre-cleanup narrative version of this file is archived at
 **Updated:** 2026-08-25 (session 18 CLOSED — the finder is built; 8-4, the route topology and the 1-2->world-8 prize are closed; F224-F240; next unit is **E9a, the wall-face census**)
 
 ## Where we are
+- ## >>> NEXT UNIT: **E9a — the wall-face census, static half.** It is the first row of "Next up".
+  It needs **no new code, no emulator and no compute** — the disassembly, `tools/area_data.py`,
+  `tools/blockmap_from_dump.py` over `data/wr/fceux_wr.ram`, and a text file. It is the highest-value
+  hour on the board because it is the only remaining class that yields **distance** rather than
+  fractions of frames, and the primitive it rests on is proven to run at the full speed cap (F239).
+  Do it before starting anything else. Then read the SESSION 18 CLOSE block under "In progress".
 - **READ `docs/strategy-review.md` FIRST (2026-08-25).** It is the official way forward: the
   bottleneck is the state space not the bound, proof is no longer a deliverable, and the plan is
   Track E ("the finder") — an archive-based stochastic search on the real QuickNES core.
