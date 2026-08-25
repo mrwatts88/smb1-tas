@@ -1157,3 +1157,32 @@ so a sub-553 result would be evidence the seams have been leaking frames on ever
 including 8-4 where one frame is the record.
 
 **Next.** 8-4 primary track: P2.2a-port (unblocked by F130).
+
+### 2026-08-24 — session 16, part 4: the cross-seam test came back uninformative (as pre-registered)
+
+**Did.** Ran the whole 4-2 main area as one bucketed-beam pass from prefix 0, deadline 575, no seams
+(`--beam 50 --beam-buckets off,y,spd,sub --beam-max 300000`). Criteria were written into STATUS
+*before* the run: >=553 uninformative, ==553 machinery validated, <553 seams were leaking.
+
+**Result (F132).** No goal within 575 steps. 340.9 s, ~280k states/layer over ~12k buckets (per-bucket
+width auto-shrunk 50 -> 24). The frontier reached max x 0x53bf0 = 1339.9 at layer 570 — **8 px short of
+the pipe at 1348** — and died at 571 on the deadline. So the single-pass beam is >=22 frames worse than
+the seven-segment chained 553. By the pre-registered reading that is the **uninformative** branch, and
+it stays uninformative: a beam that finds nothing proves nothing.
+
+**What it does tell us.** The seams encode more hard-won structure than I credited — the vine bump, the
+plant timing, F115's coupled pit-arc passage — and a naive whole-level beam at 3e5/layer cannot
+rediscover it. Widening to the ~1e7/layer the segment searches used, over 575 layers, is ~165 GB of
+layer disk. So "dissolve all the seams at once" is not the cheap validation it looked like.
+
+**Corrected design (P2.3c-11a), queued.** Dissolve **one** seam at a time: root on the known chain two
+segments back, deadline = those two segments' known combined cost, wide bucketed beam over a
+tens-of-layers horizon. Short horizon means the beam can actually be well-powered, and the answer is
+informative in both directions.
+
+**Also this session:** runbook §5 Rule 0 (never commit inside the smb-opt clone — it moves HEAD off the
+pin, so the patch regenerates EMPTY, applies cleanly, and the Mac silently builds unmodified upstream)
+plus `tools/regen_patch.sh` with HEAD/pin, intent-add and shrink guards. Written after a real near-miss.
+
+**Next.** 8-4 primary track: P2.2a-port (unblocked by F130). 4-2 work is gated behind P2.3c-9 Part A,
+which is now an M-L case-level change, not the S I estimated.
