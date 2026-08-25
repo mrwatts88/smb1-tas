@@ -65,18 +65,10 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A, session 17] RUNNING — the P2.2f CROSS-SEAM shot** (detached; `pgrep -x smb-opt`).
-  The P2.3c-11a shape on the seams measured this session: root = the WR's OWN state at **step 70** (MrWint's
-  `W84Part2Speedup` boundary, x 1981), span = his middle segment + his pipe-entry segment **in one piece**,
-  their known combined cost **197**, deadline **196** ⇒ any goal is one frame off the world record.
-  `bfscx W84Room2 data/wr/wr_inputs.bin 15917 70 196 --enemies 0 --check-path 197 --beam 400
-  --beam-buckets x,y,spd,sub --beam-max 500000 --layer-dir runs/P2.2f/seam70_layers --threads 5` under
-  `systemd-run --user --scope -p MemoryMax=7G -p MemorySwapMax=0`. Log `runs/P2.2f/seam70_d196.log`.
-  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.2f/seam70_d196.log`.
-  A **goal** ⇒ census the goal-parent layer, `bfscx-path`, chain, `replay_check --enemies 0 --down`, then
-  the runbook §4 pipeline — that is the record. **No goal is EXPECTED and near-uninformative**: the same
-  beam already drops the WR's own path at layer 41 of this very run (F138), so it is a lottery ticket, not
-  a verdict. Either way delete `runs/P2.2f/seam70_layers`.
+- **[TRACK A, session 17] No Track A job running.** The P2.2f cross-seam shot **finished: no goal within
+  196 steps** (697 s, frontier extinct at layer 190) and is **uninformative by its own diagnostic** — the
+  same run reports the WR's path leaving the frontier at layer 41 (F138). Layers deleted. `pgrep -x smb-opt`
+  empty; 145G free. Log kept: `runs/P2.2f/seam70_d196.log`.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -284,7 +276,30 @@ pre-cleanup narrative version of this file is archived at
   table: **P2.3c-9 Part B** (the 4-2 top-route warp-cost ladder — "the 4-2 hope" thread says the cheapest mint
   has never been measured, and that measurement IS the decision) and **P2.2a'** (8-4 room-3 multi-apex seam).
   Track B keeps its PROCESS-mandated slot but has no live lead; revisit only if a new writer class appears.
-- **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 s16; port DONE s17).**
+- **P2.3e — THE PRIORITY REVIEW SAYS THIS IS THE UNIT (declared 2026-08-24 session 17, after the user
+  challenged the whole allocation — and was right).** Goal: a feasibility scan of **1-2, 4-1 and 8-3**,
+  then the full pipeline on the cheapest, starting with **1-2**.
+  **The argument, in numbers, from this file's own Key numbers table.** Deficits (frames needed to bank a
+  21-frame framerule): **1-2 = 5** on Maru's route (8 on the WR's), **8-3 = 7** with FPG+242 (10 without),
+  **4-1 = 9**; versus 1-1 = 1 (CLOSED, proof-grade) and 4-2 = 10-13 (CLOSED both routes). And the coverage
+  line: *"WR vs MrWint segment optima: gap 0 on all 10 solved segments (1-1 x4, **1-2 opening**, 8-4 x5)"*
+  — so **4-1, 8-3, 8-1, 8-2 and all of 1-2 past its opening have NEVER been exhaustively searched by
+  anyone**, MrWint included. Confirmed in his sources: `w12.rs` ships only `W12Speedup` (the 71-frame
+  opening), `W12Powerup` (mushroom, warpless route) and `W12Flag` (half-flagpole) — **nothing covering
+  1-2's body to the WARP ZONE, which is the warps route.**
+  **Why the prior is good, not hopeful.** The one time this pipeline was pointed at a route nobody had
+  optimized (4-2's top route) it found **35 frames** of movement (553 vs the WR's 588). That only failed
+  because 4-2's wrong warp charges a ~31-frame key tax (F123). **1-2, 4-1 and 8-3 have no such tax** — a
+  frame found is a frame banked toward the deficit.
+  **Contrast with what we were doing:** 8-4 and 4-2 are the two most pre-optimized levels on the route.
+  8-4's segments are MrWint's own solved set; F139 just re-confirmed one of his seams does not leak.
+  **Acceptance:** a scan table in a new experiment file (block map via `tools/blockmap_from_dump.py`,
+  enemies via `tools/area_data.py`, model gaps, which segments are RNG-free, warp-zone entry condition)
+  with the chosen level and why; then a case exact on the WR's frames and a first segment bound vs the WR.
+  **Order:** 1-2 first (cheapest deficit AND unsearched), then 8-3, then 4-1.
+- **P2.2f — PAUSED 2026-08-24 s17 after the priority review below. Port DONE and validated; room 2 has two
+  proof-grade verdicts; the one open question is gated behind `P2.2f-bound` (Next up). Do not resume before
+  that bound exists.** H42: dissolve MrWint's 8-4 room-2 seams (declared s16).
   Span: the room in ONE piece — control (WR dump row **15918**, fceux RAM index 15917, page 7, x 1848) →
   the clip pipe entry at **(col 152, row 4)**, x 2436. WR = **267** frames, 8-4 is unquantized (H24), so a
   goal at **≤ 266 IS THE RECORD**. Case `W84Room2` in `third_party/smb-opt/src/case/w84.rs`; full write-up
