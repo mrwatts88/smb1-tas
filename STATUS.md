@@ -64,16 +64,7 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **[TRACK B, session 17] Two P3.2 RAM-oracle band-A sweeps** (2026-08-24, `runs/P3.2/`):
-  `w84_bandA` (8-4 entry, `--at 15055`) and `w12_bandA` (1-2 entry, `--at 1942`), each sweeping
-  `$05E0-$06CF` x all 256 values = 61,440 runs. Single-threaded, `nice -n 10`,
-  `systemd-run --user --scope -p MemoryMax=2G`, ~2 of 12 cores total — deliberately throttled so
-  Track A keeps the box. Launcher `tools/ram_oracle_sweep.sh TAG AT LO HI` (`runs/` is gitignored, so the committed copy is the one in `tools/`); logs
-  `runs/P3.2/<tag>.stdout.log`; results `runs/P3.2/<tag>.csv`.
-  **Read the verdict:** `grep VICTORY runs/P3.2/<tag>.csv` (a hit = `victory_frame` below the
-  `baseline_victory` in the header comment; the stderr log's last line reports the count), then
-  `grep -v '^#\|^addr' runs/P3.2/<tag>.csv | cut -d, -f3 | sort | uniq -c | sort -rn`.
-  At ~12% both were **all CONVERGED, zero victories**. `docs/experiments/P3.2-ram-oracle.md` §5.
+- **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -118,6 +109,26 @@ pre-cleanup narrative version of this file is archived at
   **NEXT:** read the two band-A sweeps; then band B (`$0700-$07FF`) at every level entry; re-run any
   live-looking band with `--no-death-exit` (the DEAD early exit is a stated assumption, not a
   theorem — `P3.2-ram-oracle.md` §2); then the ranked cell list -> P3.3 + the $06CF question.
+  **CHECKPOINT 2 (session 17) — band A is DONE and the unit has turned over. Three results:**
+  **(1) F203 — the $06CF question is ANSWERED: the bound is tight.** Code-level proof ($07 always $05
+  because the 2-entry `BlockBufferAddr` table's nybble index is bounded to {0,1} at both call sites;
+  $06 <= $DF; y <= $F0). So `$06D6` WarpZoneControl misses the only OOB writer by **7 bytes** and
+  `$075F` WorldNumber by **144** — H7(b)/(c) closed *for this mechanism*, H7 itself still open on
+  P3.1 §4's three unaudited write classes.
+  **(2) F205 — band A is negative but sharply localized.** 122,880 runs, **zero earlier endings**;
+  238 of the 240 addresses are completely inert (the renderer rewrites the band). **Every**
+  non-converging row in both levels is at `$06CB`/`$06CD` = `EnemyFrenzyBuffer`/`EnemyFrenzyQueue`.
+  Caveat: the sweep pokes ONE frame per level, which undersamples exactly those cells.
+  **(3) F206 / H43 — a complete cart-swap-free ACE chain, and its target is INSIDE the writable window.**
+  `CheckFrenzyBuffer` copies $06CB into `Enemy_ID` unchecked; both enemy JumpEngines (55-entry init,
+  34-entry run) accept indices far past their tables, so `jmp ($06)` takes PC from post-table bytes;
+  and $06CB is `$05D0 + col 11 + y $F0` — exactly the "odd-page column 11/12 writer above Y $20"
+  `oob-audit.md` §5 left open after H30. **This is the first H7-class target that is not out of reach.**
+  **NEXT (in priority order): (a) H43(a)** — enumerate which *metatile values* the block-buffer writers
+  can actually place into $06CB and what each is as an `Enemy_ID` (pure disassembly + `tools/area_data.py`,
+  no CPU); **(b) H43(b)** — hunt a writer reaching odd-page column 11 above Y $20 (`HandleEToBGCollision`,
+  `ErACM`, `PutMTileB`); **(c)** a **temporal** sweep of $06CB/$06CD across many frames per level, which is
+  the test band A could not perform; **(d)** band B (`$0700-$07FF`) at every level entry.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
   Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
   page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
