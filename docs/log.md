@@ -1827,3 +1827,62 @@ hypothesis.
 trusting the derivation changed the answer — the 8-2 arc estimate said "misses by 1-2 px" and the
 replay said "clears by 2", and here the code read said "+79 frames" and the poke said "−42". Derive to
 find the question; measure to answer it. `--poke` now exists precisely so the next one is cheap.
+
+## 2026-08-25 — Session 20 (Mac): E10, the ROM read end to end
+**Did.** The user asked for a full attack on the disassembly — "AI is good at relationships between
+different parts of source code" — which is exactly open-threads Tier 2 #3 (E10). Read all 16,351
+lines of `smbdis.asm` with the WR dump open beside it. Started from a checkout five sessions stale,
+did the read independently, then reconciled against F203-F251 and dropped everything that merely
+re-derived an existing fact. **Three results survive, and the first one closes the board's top lead.**
+
+**1. H43(b) is refuted at code level (F252) — and F210/F216 are wrong.** Both of those facts solve
+`HeadChk`'s own guard (`cmp PlayerBGUpperExtent,x`) and stop there. But `HeadChk` is not an entry
+point: `PlayerBGCollision` has exactly one caller, and `ChkCollSize`/`HeadChk` are reachable only by
+falling through `ChkOnScr` twenty lines earlier, which requires **`Player_Y_HighPos` = 1 AND
+`Player_Y_Position` < $CF**. Every Y in F210's {$FE,$FF} and F216's $DE-$FF windows is >= $CF and
+returns before the head check exists; and "Mario above the top of the screen" is `Player_Y_HighPos`
+= 0, which fails the other guard. Over the real domain the head row is $00-$C0 for every
+size/crouch/swim combination, and the feet (`cmp #$cf`, adder $20) and both side probes (`cmp #$20`
+adders $08/$18; `BHalf`'s *lower* `cmp #$08` with adder $18, and $08+$18 = $20 exactly) close the
+same way. **No player-driven block-buffer access in the game can leave the buffer.** With F203
+(address ceiling) and F215 (value set) the block-buffer OOB mechanism is now closed on both axes.
+The one genuinely unguarded writer is the *enemy* path — `HandleEToBGCollision` at
+`Enemy_Y_Position` 6-7 does reach row $F0 with no `cpy #$d0` — but it writes only `$00`, which F215
+already showed is inert as an `Enemy_ID` (F253). Its one non-inert clear is `$06CC SecondaryHardMode`,
+which would suppress unparsed hard-mode enemies — 8-3's Hammer Bros.
+
+**2. The framerule is one enemy slot's interval timer, and a second star flag deletes it (F254,
+H50).** `RunStarFlagObj` is dispatched once per frame *per enemy slot* holding `Enemy_ID` = $31,
+but the state it drives is global — **except the one byte task 4 blocks on, which is per slot.** So
+with two star-flag objects: task 2 subtracts two timer units per frame (countdown halves), and task
+4 reads the second object's never-written `EnemyIntervalTimer` = 0 and advances to task 5 in the
+same frame, so F27's (v+1)+105 wait — which *is* the framerule — becomes 1 frame. Priced at N=2:
+**~1,319 frames, and all five flag levels become unquantized like 8-4.** Today exactly one exists
+per level because of a single `beq` in `CastleObject` (`lda CurrentPageLoc / beq ExitCastle`) —
+4-1, 8-1, 8-2 and 8-3 each carry a *second* castle object at page 0 column 0 that it suppresses.
+
+**3. H3 closed (F255).** `TimerControl` really does shift the ITC grid relative to the level (unlike
+pause, F62): non-zero skips `IntervalTimerControl` while `FrameCounter`, the LFSR and the game logic
+keep running. The arithmetic: Δ = c + ((v0 + k − c) mod 21) − v0, so a gain needs
+c + ((k−c) mod 21) < 21, and the freeze must sit between the level's load and its T_set. The only
+writer is `SetPRout` (`ldy #$ff`), and the only freeze during which Mario still moves is
+`PlayerInjuryBlink` (k = 55, c = 16) → **+13 frames at best.** Refuted for every reachable freeze.
+
+Also measured for the strategy picture (F256/F257): **the non-gameplay budget is ~4,770 frames,
+26.7 % of the movie**, against 290 frames of movement loss route-wide (F245) — 1,471 in level-load
+screens, 2,787 in the end-of-level sequence (1,497 of it the timer countdown alone), 512 in pipe
+timers. The intermission card costs exactly **127 + w** per showing, eight showings, **1,097 frames**;
+both skip flags are structurally 0 at every one of them, with `$0769` having exactly one writer in
+the whole ROM. Plus the smaller ones: the game-timer carry-over is a net zero, not a lever; every
+bound we quote needs a 24-frame tick caveat; the side-pipe `ChangeAreaTimer` is 160 vs 52 on
+`ScreenLeft_PageLoc`; a misaligned `AreaDataOffset` would be immediate ACE.
+
+**Learned.** The guard that mattered was twenty lines above the routine everyone had analysed. Two
+sessions' worth of ACE work priced a window whose writer does not exist, because the derivation was
+scoped to the routine rather than to its call path. Worth a habit: **when a fact solves a guard,
+check what guards the caller** — `grep -n '<label>' ` on the label first, then read up from the entry.
+
+**Next.** The cheapest thing on the board is now H50's poke test: `build/harness --poke` already
+exists (F251), so `Enemy_ID+k = $31` / `Enemy_Flag+k = 1` before 1-1's grab and read the next
+area-load frame settles a ~1,300-frame claim in about twenty minutes. Then E10's second pass — the
+`VRAM_Buffer` overflow class is now the only thing H43 still rests on.

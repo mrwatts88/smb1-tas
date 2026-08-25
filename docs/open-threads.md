@@ -47,7 +47,34 @@ is fighting over, and more than a third of it is at one place in 8-2.
    highest-leverage missing primitive in the project. F250 showed `$06CB` is **inside** F203's
    proven `$06CF` OOB ceiling, and `$06CB` feeds `Enemy_ID` unchecked — so this one bump unlocks
    `WarpZoneObject`, arbitrary enemy IDs, and the whole H7/H8/H43 chain. It is a geometry question,
-   which is what the search engine is for.
+   which is what the search engine is for. **REFUTED 2026-08-25 by E10 (F252): there is no such Y.**
+   `PlayerBGCollision` is entered only past `ChkOnScr` (11919-11926), which requires
+   `Player_Y_HighPos` = 1 **and** `Player_Y_Position` < $CF — and every Y window F210/F216 derived
+   is >= $CF. The reachable head row is $00-$C0 for every size/crouch/swim combination, and the
+   feet and both side probes close the same way, so **no player-driven block-buffer access can
+   leave the buffer.** With F203 (address ceiling) and F215 (values) the block-buffer mechanism is
+   closed on both axes; F210 and F216 are corrected. What is left of H43 is #4' below.
+4'. **E10 continued — the write classes nobody has read.** E10's first pass (2026-08-25,
+   `docs/experiments/E10-rom-read.md`) covered the NMI/timer core, all four mode trees,
+   `ScreenRoutines`, the area parser, player physics and **all** of `PlayerBGCollision`, the block
+   and enemy dispatch paths, `RunStarFlagObj`, `RunGameTimer`, and every `sta ($06),y` site with
+   its guards — producing F252-F257. Still unread and now load-bearing for #8: the **`VRAM_Buffer`
+   overflow class** (writes indexed by `VRAM_Buffer1_Offset`, advanced +7/+10/+3 by
+   `ColorRotation`, `GetPlayerColors`, `WriteBlockMetatile` and `OutputNumbers` — only
+   `ColorRotation` bounds itself), the sprite/OAM paths, the sound engine's RAM footprint, the
+   two-player/demo paths, and the `JumpEngine` sites outside the enemy and area-object tables.
+   Same shape: pure reading, no compute.
+
+4''. **H50 — a second `Enemy_ID` = $31 deletes the framerule (F254).** `RunStarFlagObj` runs once
+   per frame *per enemy slot* holding $31, and its task 4 blocks on a **per-slot**
+   `EnemyIntervalTimer` — so a second star-flag object reads its own untouched 0 and ends the area
+   in one frame instead of (v+1)+105, while task 2 divides the timer countdown. Priced at N=2:
+   **~1,319 frames, and all five flag levels become unquantized like 8-4** — which would rewrite
+   the budget table at the top of this file. Reachability is blocked with #8, **but the prize can
+   be measured today** with `build/harness --poke` (`Enemy_ID+k = $31`, `Enemy_Flag+k = 1` a few
+   frames before 1-1's grab), the same ~20-minute shape as F251's test. **Cheapest high-value
+   measurement on the board — do it before anything else in Tier 2.**
+
 5. **H25 — 8-4 room 3's approach.** One frame, in the unquantized level. Two searches already went
    dry (F133) but **both goaled on the WR's own apex**, which H39's seam corollary says deletes the
    answer by construction. The un-run version searches the 162-frame approach with generic buckets
@@ -67,7 +94,10 @@ is fighting over, and more than a third of it is at one place in 8-2.
 8. **H7 / H8 / H43 — cart-swap-free ACE.** The arbitrary jump is *confirmed firing* (F207/F208/F209):
    `$06CB` reaches `Enemy_ID`, out-of-table indices dispatch, the destination is a deterministic
    function of the byte, and it reaches area-loading code. No value found yet ends the game early.
-   Blocked on #4.
+   ~~Blocked on #4.~~ **Its writer is now gone (F252/F253): the block-buffer mechanism cannot reach
+   the window with a non-zero byte at all.** The whole ACE line therefore rests on the three write
+   classes P3.1 §4 never audited — stack over/underflow, non-indexed writes, and `VRAM_Buffer`
+   overflow. That is #4'.
 9. **H49's residual (F251).** 8-4's water-room transition is the one whose *destination* is not a
    castle, so `DisplayIntermediate` there does consult `DisableIntermediate`: `$06D6` **and** `$0769`
    non-zero during that one descent is ~96 frames. Both bytes are above the proven ceiling → E10.

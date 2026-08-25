@@ -67,3 +67,36 @@ with columns 1/3/5 → the wrapped vine writes land at $06B1/$06C1, $06B3/$06C3,
 even pages → inside Block_Buffer_2. So no vine reaches `EnemyFrenzyBuffer` ($06CB) or `SecondaryHardMode`
 ($06CC): H30's vine variant is refuted by the level data. The mechanism remains the only OOB write in the
 game; a different writer above Y $20 at an odd-page column 11/12 would be needed.
+
+## 7. E10 corrections (2026-08-25) — the block-buffer mechanism is closed on both axes
+
+Full argument: `docs/experiments/E10-rom-read.md` §1. Three changes to §2/§3/§4 above.
+
+1. **No player-driven block-buffer access can leave the buffer (F252).** §2 lists the wrapped
+   `y = $E0/$F0` case as live for the player's head/foot/side probes; it is not.
+   `PlayerBGCollision` has exactly one caller (5610) and `ChkCollSize`/`HeadChk` are reachable
+   only past `ChkOnScr` (11919-11926), which requires **`Player_Y_HighPos` = 1 and
+   `Player_Y_Position` < $CF**. Over that domain the head row is $00-$B0 (big, adder $04/$02)
+   or $00-$C0 (small / big-crouching, adder $12); the feet (adder $20, Y <= $CE so no carry) and
+   both side probes (`cmp #$20` with adders $08/$18; `BHalf` 12050 `cmp #$08` with adder $18, and
+   $08+$18 = $20 exactly) are all $00-$C0. This **refutes H43(b)** and corrects **F210** and
+   **F216**, which solved `HeadChk`'s local guard and missed the entry guards twenty lines above.
+   `PlayerHeadCollision` latches `$02`/`$06` from that same call, so the deferred
+   `BlockObjMT_Updater` write (F207) has no out-of-bounds target either.
+2. **The one unguarded writer is the enemy path, and it writes only $00 (F253).**
+   `HandleEToBGCollision` (12443) stores with no `cpy #$d0` guard, and its geometry is reachable:
+   `SubtEnemyYPos` admits `Enemy_Y_Position` >= 6, `ChkUnderEnemy`'s `ldy #$15` gives adder $18,
+   so **Y in {6,7}** produces row $F0 -> $06C0 + column on an odd page. Value always `$00`, which
+   F215 shows is inert as an `Enemy_ID`; the only non-inert clear is **`$06CC SecondaryHardMode`**
+   (column 12), which gates hard-mode-only enemies at parse time (7978) — clearing it mid-level
+   suppresses every hard-mode enemy not yet parsed (8-3's Hammer Bros).
+3. **Two unbounded index loops §4 does not cover** — `tools/oob_audit.py` classifies an index by
+   its last setter, and these have none, they scan: `DuplicateEnemyObj` `FSLoop` (8526) walks past
+   enemy slot 5 into the zero page and **writes** when all six slots are full (reachable only
+   where firebars or Bowser initialise — castle levels, i.e. 8-4); `InitFireworks` `StarFChk`
+   (8634) is read-only and the disassembly's own comment calls it an infinite-loop crash. Worth a
+   check in `tools/oob_audit.py`.
+
+**Net:** with F203 (address ceiling $06CF), F215 (value set {$00,$23,$c4,copy}) and now F252
+(no reachable geometry), the block-buffer write mechanism is fully closed. H43 rests only on §4's
+still-unaudited classes: stack over/underflow, non-indexed writes, and `VRAM_Buffer` overflow.

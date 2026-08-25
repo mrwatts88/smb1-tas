@@ -11,6 +11,33 @@ pre-cleanup narrative version of this file is archived at
 - ## >>> **`docs/open-threads.md` (2026-08-25) is the full enumeration of what is left** — 49
   hypotheses, 22 closed with proof, ~8 real threads, tiered by whether they are running, ready,
   blocked on a missing primitive, or structural long shots. Read it before picking anything up.
+- ## >>> **E10 DONE, first pass (Mac session 20, `docs/experiments/E10-rom-read.md`) — and it
+  CLOSES the board's top open lead.** The disassembly was read end to end. **H43(b) is refuted at
+  code level (F252): there is no such Y.** `PlayerBGCollision` has one caller and reaches
+  `HeadChk` only past `ChkOnScr` (11919-11926), which requires `Player_Y_HighPos` = 1 **and**
+  `Player_Y_Position` < $CF — every Y window F210/F216 derived is >= $CF, and "above the top of the
+  screen" is HighPos 0. Reachable head row is $00-$C0 for every size/crouch/swim case; feet and
+  both side probes close the same way. **No player-driven block-buffer access can leave the
+  buffer**, so with F203 (address ceiling) and F215 (values) that mechanism is closed on both axes
+  and **F210/F216 are corrected**. H43 now rests only on P3.1 §4's unaudited classes (stack,
+  non-indexed writes, `VRAM_Buffer` overflow) — open-threads #4'. The one unguarded writer is the
+  *enemy* path (`HandleEToBGCollision` at enemy Y 6-7, F253) and it writes only `$00`.
+- ## >>> **AND IT FOUND A BIGGER PRIZE THAN ANYTHING ON THE BOARD — H50/F254, and it is CHEAP TO
+  MEASURE.** The framerule at the end of a flag level *is* `EnemyIntervalTimer[star-flag slot] = 6`
+  (F27), and `RunStarFlagObj` is dispatched **once per frame per enemy slot** holding
+  `Enemy_ID` = $31 while the state it drives is global — **except that one per-slot byte**. A
+  second star-flag object therefore (a) makes `AwardGameTimerPoints` subtract two units per frame,
+  halving the countdown, and (b) reads its own never-written `EnemyIntervalTimer` = 0 in
+  `DelayToAreaEnd` and ends the area **in one frame instead of (v+1)+105** — the framerule
+  disappears. Priced at N=2: **~1,319 frames, and all five flag levels become unquantized like
+  8-4**, which rewrites open-threads' budget table. Only one exists today because of a single
+  `beq` in `CastleObject` (`lda CurrentPageLoc / beq ExitCastle`) that suppresses the page-0
+  castles 4-1/8-1/8-2/8-3 all carry. **NEXT UNIT AFTER E9b: poke it.** `build/harness --poke`
+  already exists (F251) — set `Enemy_ID+k = $31` and `Enemy_Flag+k = 1` for a spare slot a few
+  frames before 1-1's grab and read the next area-load frame. ~20 minutes to settle a 1,300-frame
+  claim. Also from E10: **H3 closed** (F255 — `TimerControl` does shift the ITC grid, but every
+  reachable freeze loses; injury is +13 at best), and the **non-gameplay budget is 4,770 frames,
+  26.7 % of the movie** against 290 frames of movement loss (F256/F257).
 - ## >>> NEXT UNIT: **finish E9b-1 — the 8-2 flag-glitch window (H48/F247).** Two archives are
   **RUNNING ON THE MAC** (`ssh mac`, `~/code/smb/runs/E9b/{arc16,arc32}.log`, 6 h each, both
   reproduce the control `GOAL frame=12953`). The question is now exact and small: **the fast line
@@ -766,6 +793,20 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s20 (Mac) — **E10 first pass: the ROM read end to end** (`docs/experiments/E10-rom-read.md`).
+  **H43(b) REFUTED at code level (F252)** — `PlayerBGCollision`'s entry guards (`Player_Y_HighPos` = 1,
+  `Player_Y_Position` < $CF, lines 11919-11926) make every Y window in F210/F216 unreachable; the head row
+  is $00-$C0 for every configuration and the feet/side probes close the same way, so no player-driven
+  block-buffer access can leave the buffer. **F210 and F216 corrected**; with F203 + F215 the block-buffer
+  OOB mechanism is closed on both axes and open-threads #4 comes off Tier 2. **F253**: the one unguarded
+  writer is `HandleEToBGCollision` (enemy Y 6-7, row $F0) and it writes only `$00`; plus two unbounded
+  index loops (`DuplicateEnemyObj` `FSLoop`, `InitFireworks` `StarFChk`) the static audit cannot classify.
+  **F254 / H50 — new, and the biggest prize on the board:** a second `Enemy_ID` = $31 halves the timer
+  countdown and collapses `DelayToAreaEnd` to 1 frame, i.e. **deletes the framerule**; ~1,319 frames, and
+  it can be *measured* today with `--poke`. **F255 — H3 closed:** `TimerControl` does shift the ITC grid
+  but every reachable freeze loses (injury +13 at best). **F256/F257:** the non-gameplay budget is 4,770
+  frames (26.7 %); the intermission card is exactly 127 + w x 8 loads = 1,097 frames with both skip flags
+  structurally 0; the game-timer carry-over is a net zero; every bound needs a 24-frame tick caveat.
 - 2026-08-25 s19 — **H49 raised and refuted in one sitting (F249/F250/F251) — the transition-screen thread.**
   Measured: 8-4 spends **384 frames** in `PlayerEntrance` mode 2 (4 x 96, rising 1 px/frame out of a pipe),
   and the branch deciding it is `VerticalPipeEntry`'s two tests on `WarpZoneControl` and `AreaType`.
