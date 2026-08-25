@@ -80,6 +80,37 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
+  Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
+  page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
+  is the record (8-4 is unquantized, H24). Derivations done from the dump + disassembly:
+  • **Start state = MrWint's own `W84Part2Speedup` start** (`x_pos 0x73800`, page 7 X 0x38, standing, SL 0) —
+    identical in form to `W84Room3`'s verified `0xc3800`, so it is the room-2 control frame.
+  • **Pipe = (col 152, row 4)** from MrWint's `EnterVerticalPipe<U152, U4>`. Small-Mario entry window by the
+    same foot-adder rule the project validated for room 3: **x ∈ [0x98400, 0x98d00)**. (MrWint's `>= 0x985c0`
+    is a *Big*-Mario threshold — his route, not the WR's.)
+  • **No scroll condition needed.** Room 2's area-change command sits at page 9 col 15 = x 2544, so it parses
+    at SL ≥ 2544 − 303 = **2241** (F40 law); the WR is at SL **2316** at the clip — 75 px of margin, and
+    entering before it parses would need offset > 195, which is impossible. So unlike room 3 there is no
+    threshold to satisfy: `NoScrollPos`, smaller state.
+  • **Small Mario + `WithRunningTimer`** (MrWint's room-2 cases are `Big`/`NoRunningTimer` — his own route).
+  • **The span is NOT enemy-free** — two Buzzy Beetles at x 2048/2080 and two id-$0e at x 2224/2256 sit inside
+    it (that is exactly H42's point). Search enemy-free, then let the core adjudicate each candidate.
+  Acceptance: WR line exact (`--check-path 267` → GOAL at step 267, 0 bound violations), then a random battery,
+  then the d266 search. Any goal → core replay → runbook §4 pipeline.
+  **CHECKPOINT (session 16): the case is BUILT and is exact on the WR for 89 steps — then the WR stomps a
+  Buzzy Beetle (F134).** Divergence at step 90 (dump row 16007), YSPD model +4 vs core −4, with the beetle at
+  x 2021 flipping `Enemy_State` 0 → 4 on that frame. So **room 2 cannot be searched enemy-free** — the WR's own
+  route needs the stomp, and the 143 bound violations after step 90 are a consequence of that, not an unsound
+  bound. Two derivation traps burned here, both worth remembering: the x subpixel is **$0400** (`$0705` is the
+  *speed* fraction), and the model's `y_pos` low byte is **not** the core's `$0433` — compare via
+  `model_difftest`'s field set (XP/XSUB/XSPD/XFRAC/YP/YSPD/YFRAC), never by hand-assembling a 24.8 word.
+  Also: `v_force` is an encoded enum (`options.rs:362`), so the core's raw `$0709` = 0 is not a legal value —
+  `V_FORCE_AREA_INIT` is correct for a control frame (`W84Room3` shows the identical pattern).
+  **NEXT: the room-2 enemy port — and it is the CHEAP one.** Live objects are two Buzzy Beetles (id $02, plain
+  walkers, same shape as the goombas already in `w11enemies`) and three piranha plants (id $0d, class already in
+  `w42enemies`). **No cheep frenzy, no LFSR** — F126/F130's expensive part is not needed here. Port → difftest to
+  0 over the WR's 267 → then the d266 search with `--beam-buckets`.
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
