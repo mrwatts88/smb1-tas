@@ -1256,3 +1256,53 @@ too, the comparison is wrong, not the new case.
 **Next.** Finish the port: (1) a jumping-paratroopa class, (2) a `w84_enemies` hook wiring `W84Room2`,
 (3) difftest the WR's 267 frames to 0 including the step-90 stomp, (4) the d266 search with
 `--beam-buckets`. Full plan in `docs/experiments/P2.2f-84-room2-seam.md`.
+
+## 2026-08-24 — session 17 (Track B, SECOND PARALLEL SESSION): P3.2 RAM oracle built and running
+
+**Context.** The user opened a second session to explore Track B while a first session continues
+Track A (P2.2f, the 8-4 room-2 enemy port) in the same working tree, and asked whether that can be
+done without interrupting the other session — specifically whether the two would have to share the
+engine.
+
+**Did.**
+- **Answered the parallelism question: no engine sharing is needed.** Track B's next unit (P3.2)
+  runs on the QuickNES fast core (`src/fastcore/`, `build/`, `third_party/QuickNES_Core`), not on
+  `third_party/smb-opt`. Different tree, different build, different control gate. PROCESS's
+  "exactly one machine edits the engine" rule binds `smb-opt` only. The real collision surface is
+  **git and the shared docs**, not code — `git add -A` (which PROCESS itself instructs) would sweep
+  the other session's in-flight edits, whole-file STATUS rewrites clobber, and both sessions would
+  mint F135 next. Protocol agreed with the user and recorded in STATUS "In progress": new files
+  only, explicit-pathspec commits, in-place doc edits, **Track A keeps F135+ / Track B reserves
+  F200+**, and Track B stays single-threaded + `nice` + `MemoryMax=2G` (the box has 12 cores,
+  ~9 GB free, swap exhausted, and Track A's next step wants all 12 threads).
+- **Built the oracle** (`src/fastcore/ram_oracle.c`, `tools/build_oracle.sh` — deliberately
+  separate from `build_core.sh` so no shared file is touched). Pass 1 records a per-frame RAM hash
+  + lives + the victory frame and serializes at `--at`; pass 2 unserializes, pokes one byte, and
+  continues on the WR's own remaining inputs until VICTORY / CONVERGED / DEAD / CAP.
+- **All four controls pass**: null poke → `CONVERGED(noop)` at frame 0; positive poke
+  (`$0770` = 2) → `VICTORY` 2,808 frames early; throughput 14,949 fps ≈ F46's 15.0k; and the core's
+  victory frame 17864 = dump 17867 − 3, independently re-deriving F45's row origin.
+- **Launched band A** (`$05E0–$06CF`, the only window a proven OOB writer reaches) at 8-4 entry and
+  1-2 entry, 61,440 runs each.
+
+**Learned.**
+- **F200** — the ending is exactly `OperMode` ($0770) = 2, first at dump frame 17867 = 17848 + 19,
+  agreeing with F16/F17 from a completely independent direction.
+- **F201** — F43(a) ("WorldNumber ≥ 7 before any castle's axe") **has no target on the warp route**:
+  the route contains exactly one castle, 8-4, where WorldNumber is already 7. Sweeping $075F over
+  all 256 values there gives 255 DEAD / 1 noop / zero victories. Making it pay needs an *earlier
+  castle*, i.e. a routing change, not a RAM write.
+- **F202** — the real prize, $06D6 WarpZoneControl in 1-2 (warps to 8-1, skipping 4-1 and 4-2),
+  sits **7 bytes above** the block-buffer OOB window's $06CF ceiling. So H7(c) is **narrowed, not
+  refuted**, to one answerable question: is P3.1's $06CF reach bound tight? (Plus P3.1 §4's own
+  uncovered paths: stack over/underflow, non-indexed writes, `VRAM_Buffer`.)
+- Preliminary, ~12 % into band A: **every row so far is CONVERGED** — perturbations to that window
+  are absorbed and the RAM re-converges to baseline. If that holds across the band it is itself a
+  result (the one proven OOB writer writes into a region the game continuously overwrites), but it
+  is far too early to claim.
+
+**Next.** Read the two band-A sweeps when they finish (`grep VICTORY runs/P3.2/*.csv`, then the
+outcome histogram); sweep band B (`$0700–$07FF`) at every level entry; re-run anything live-looking
+with `--no-death-exit` before claiming (the DEAD early-exit is a stated assumption, not a theorem);
+then the ranked cell list → P3.3 and the $06CF-tightness question.
+`docs/experiments/P3.2-ram-oracle.md`.

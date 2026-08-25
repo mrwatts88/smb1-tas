@@ -64,6 +64,16 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
+- **[TRACK B, session 17] Two P3.2 RAM-oracle band-A sweeps** (2026-08-24, `runs/P3.2/`):
+  `w84_bandA` (8-4 entry, `--at 15055`) and `w12_bandA` (1-2 entry, `--at 1942`), each sweeping
+  `$05E0-$06CF` x all 256 values = 61,440 runs. Single-threaded, `nice -n 10`,
+  `systemd-run --user --scope -p MemoryMax=2G`, ~2 of 12 cores total — deliberately throttled so
+  Track A keeps the box. Launcher `tools/ram_oracle_sweep.sh TAG AT LO HI` (`runs/` is gitignored, so the committed copy is the one in `tools/`); logs
+  `runs/P3.2/<tag>.stdout.log`; results `runs/P3.2/<tag>.csv`.
+  **Read the verdict:** `grep VICTORY runs/P3.2/<tag>.csv` (a hit = `victory_frame` below the
+  `baseline_victory` in the header comment; the stderr log's last line reports the count), then
+  `grep -v '^#\|^addr' runs/P3.2/<tag>.csv | cut -d, -f3 | sort | uniq -c | sort -rn`.
+  At ~12% both were **all CONVERGED, zero victories**. `docs/experiments/P3.2-ram-oracle.md` §5.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -80,6 +90,34 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **P3.2 — RAM oracle (Track B) — declared 2026-08-24 session 17. THIS IS A SECOND, PARALLEL SESSION.**
+  Goal: per-level single-byte perturbation sweep on the QuickNES fast core -> the "jackpot cell" map
+  (which `(address, value)` writes make the game end earlier), which turns P3.3's write-reachability
+  hunt from a fishing trip into a targeted one. Acceptance: `docs/experiments/P3.2-ram-oracle.md`
+  with the cell list; H7 status updated.
+  **PARALLEL-SESSION PROTOCOL (another session is working P2.2f in this same working tree):**
+  Track B needs **no engine sharing** — it runs on the QuickNES fast core (`src/fastcore/`,
+  `build/harness`, `third_party/QuickNES_Core`), not on `third_party/smb-opt`. It touches ONLY new
+  files: `src/fastcore/ram_oracle.c`, `tools/ram_oracle*`, `docs/experiments/P3.2-ram-oracle.md`,
+  `runs/P3.2/`. It never edits `third_party/smb-opt`, `tools/smb-opt-modes.patch`,
+  `tools/build_core.sh`, or any `w*.rs`. Both sessions must commit with **explicit pathspecs —
+  never `git add -A`** — and edit STATUS/log/facts **in place, never rewrite the file**.
+  **Fact numbers are split to avoid collisions: Track A keeps F135+, Track B reserves F200+.**
+  Resource discipline: Track B caps itself at 4 of 12 threads under `systemd-run MemoryMax` and
+  checks "Running jobs" before launching anything (the box has ~9 GB available and swap is full).
+  **CHECKPOINT (session 17): the oracle is BUILT, all four controls PASS, and band A is running.**
+  `src/fastcore/ram_oracle.c` + `tools/build_oracle.sh` -> `build/ram_oracle`. Controls: null poke
+  -> `CONVERGED(noop)` at frame 0; positive poke (`$0770` = 2) -> `VICTORY` 2,808 frames early;
+  14,949 fps (= F46's 15.0k); core victory frame 17864 = dump 17867 - 3, re-deriving F45's origin.
+  Success predicate = first `OperMode` ($0770) == 2 earlier than the baseline's core frame 17864 (**F200**).
+  **Two route-level findings already (F201, F202):** F43(a) has no target on the warp route (exactly
+  one castle, 8-4, where WorldNumber is already 7; 255/256 values there just kill the run), and the
+  real prize $06D6 (WarpZoneControl in 1-2 -> 8-1, skipping 4-1/4-2) sits **7 bytes above** the only
+  proven OOB writer's `$06CF` ceiling — so **H7(c) is narrowed, not refuted**, to "is P3.1's $06CF
+  reach bound tight?".
+  **NEXT:** read the two band-A sweeps; then band B (`$0700-$07FF`) at every level entry; re-run any
+  live-looking band with `--no-death-exit` (the DEAD early exit is a stated assumption, not a
+  theorem — `P3.2-ram-oracle.md` §2); then the ranked cell list -> P3.3 + the $06CF question.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
   Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
   page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
