@@ -424,3 +424,40 @@ That is the third time this session a proxy goal produced a fake result (F230 in
 it). The pattern is worth stating as a rule: **the goal must be the quantity the record is measured
 in.** For a flag level that is `StarFlagTaskControl == 5`; for a pipe level, the pipe entry that
 actually sets the next `WorldNumber`; for 8-4, the last input.
+
+---
+
+## E7 — what 1-2's endgame is actually worth, and the exact lever
+
+Working the algebra from F229/F236 gives the whole budget of 1-2's endgame in one place.
+
+After the clip the WR is at x 2691, `ScreenLeft` 2563, **rel 128**. The warp arms at `ScreenLeft`
+2816, so ΔSL = 253 is needed, and:
+
+- **Running right at rel ≥ 112** the screen tracks Mario exactly, so ΔSL = Δx: 253 px of travel,
+  apex **x 2944**. This is what the WR does.
+- **Dropping rel first** (moving left) does not help and the algebra says so: below 112 the screen
+  gains one *less* per frame, so at the cap each pixel of Mario's travel buys only 0.6 px of
+  `ScreenLeft` — 253 px of `ScreenLeft` would cost **422 px** of travel.
+
+So the apex is forced at `2816 + rel`, and **the only lever is the rel the clip mints.** At rel 112
+the apex would be 2928: **16 px less overshoot, ~13 frames** (out and back at the cap).
+
+**The mint exists only because Mario's speed is zero inside the wall** (F236: the screen freezes on
+`Player_X_Scroll == 0`, not on `ScrollLock`). H33/F80 describes the other way through a solid run —
+once Mario's x+2 point is inside it he *walks through*, because `DoPlayerSideCheck` quits at the
+first side point and x+13 is never tested. **A walk-through keeps his speed, so it mints nothing and
+takes fewer frames.** That is worth roughly `13 + (clip frames saved)`, against a deficit of **8**.
+
+Two smaller items in the same level, both cheap and both live:
+- **The parser stalls.** F147/F149: a busy `VRAM_Buffer1` stalls the area parser for a frame, and
+  the WR bumps two coin-topped bricks on its 1-2 route — cells (60,7) and (68,7) — each of which
+  runs `RemoveCoin_Axe` and stalls it. The stalls do not change `ScreenLeft`, so they do not move
+  the apex, but they delay the arming a frame each. **~2 frames if both are avoidable.**
+- **The isolated frame at step 487** (x 1183, mid-jump over the col-80..82 pit at x-speed 38 instead
+  of 40), named in the 1-2 loss map and never probed.
+
+`runs/E7-w12/{early,pre}.log` are rooted at core 3400 and 3540 — before the clip's approach and
+before the clip — with the promise set to `ScreenLeft` itself, so a clip that is slower but mints
+less is scored correctly rather than being thrown away for arriving late. That is the trade every
+previous search here could not see.
