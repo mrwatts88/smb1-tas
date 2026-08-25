@@ -297,6 +297,25 @@ pre-cleanup narrative version of this file is archived at
   enemies via `tools/area_data.py`, model gaps, which segments are RNG-free, warp-zone entry condition)
   with the chosen level and why; then a case exact on the WR's frames and a first segment bound vs the WR.
   **Order:** 1-2 first (cheapest deficit AND unsearched), then 8-3, then 4-1.
+  **PROGRESS s17 (F140) — `W12Warp` IS BUILT AND TRACKS THE WR FOR 919 OF 1280 FRAMES.**
+  • Span: fceux row **2486** (the GES 7 -> 8 handoff; NOT 2469 — that handoff **duplicates a frame**, rows
+    2485/2486 byte-identical) -> row **3766**, the world-4 warp pipe. **1280 frames, one piece, no room seam.**
+  • Map `BB12W` = MrWint's `BB12` (verified: the dump reproduces it with **0 differing cells over the 176
+    columns it can read**) + the dump's cols 192..199, the warp zone he never covered.
+  • Goal: `EnterVerticalPipe<U178, U8>` AND `screen_left_abs >= 2816` — the F40-shaped condition that arms
+    `WarpZoneControl = 4`; entering with the 1 the `$34` object leaves picks a different world.
+  • Difftest: 1 -> 33 -> 90 -> **919 frames exact, 5 stomps reproduced** (`--case W12Warp --first 2486 --wr
+    --enemies 0`). **Blocked on ONE object: the `$27` elevator pair at x 2236** (Mario rides it at row 3405);
+    `class_of_id` has no `$27`, so it is inert.
+  **NEXT, in order: (1) the `$27` small-platform class** (Mario stands on it — `PositionPlayerOnVPlat`), then
+  `$26` large platform, then `$03` red koopa; `$34` needs no class. **(2) difftest to 0 over all 1280 frames**
+  (TMPDIR on /home, capped — runbook §1). **(3) then the ladder**, rooting on the WR's own state and searching
+  the tail exhaustively — the F139 method, which is what produced this project's only proof-grade optima.
+  **THE NUMBER TO KEEP IN VIEW:** `build_overshoot_bound(2928, 2860)` reports **30,720 end classes, return
+  costs [39..45]**, while **the WR's own return from arming (row 3720) to entry (3766) is 46**. The floor is
+  **7 below** the WR against a deficit of **5**. Caveat: that 39 is an **x-only** cost and ignores the
+  vertical coupling that cost 14 frames of slack in 8-4 room 2 (F137) — it is an upper bound on the prize,
+  not a promise. It is what makes finishing the port worth it.
 - **P2.2f — PAUSED 2026-08-24 s17 after the priority review below. Port DONE and validated; room 2 has two
   proof-grade verdicts; the one open question is gated behind `P2.2f-bound` (Next up). Do not resume before
   that bound exists.** H42: dissolve MrWint's 8-4 room-2 seams (declared s16).

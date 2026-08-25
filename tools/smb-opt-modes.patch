@@ -1,3 +1,31 @@
+diff --git a/src/blockbuffer/world1.rs b/src/blockbuffer/world1.rs
+index 4612768..1037b92 100644
+--- a/src/blockbuffer/world1.rs
++++ b/src/blockbuffer/world1.rs
+@@ -68,3 +68,23 @@ blockbuf!(BB14, 10*16, [[0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,
+                         [0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62],
+                         [0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62]]);
+ 
++/// P2.3e: 1-2's main area **including the warp zone** — 200 columns, reconstructed from the WR dump
++/// (`tools/blockmap_from_dump.py data/wr/fceux_wr.ram 2469 3766 --rust`). `BB12` above is MrWint's and stops
++/// at 192, which is 8 columns short of the warp pipes at cols 178/179, 182/183 and 186/187 (tops on row 8).
++/// Verified: `--compare … world1.rs BB12` reports **0 differing cells over the 176 read columns 16..191**, so
++/// this is BB12 plus the warp-zone columns, not a re-derivation of it.
++blockbuf!(BB12W, 200, [
++[0x52,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x5e,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x14,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0x52,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0x52,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0,0x52,0x52,0x52,0x52,0,0x5c,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0x52,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x5d,0,0,0,0,0,0,0,0,0,0x52,0xc2,0x52,0,0,0x52,0xc2,0x52,0,0,0,0,0,0x52,0x52,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0x52,0x52,0,0,0,0x52,0xc2,0x5a,0,0,0x52,0x5d,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x5a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x1c,0x1d,0x1e,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0xc1,0xc0,0xc0,0xc0,0xc0,0,0,0,0,0,0,0,0,0x61,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0,0,0x52,0x52,0x52,0,0,0,0,0,0x52,0x52,0x52,0x52,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0x52,0x52,0x52,0,0,0x52,0x52,0,0,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x12,0x13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x1f,0x20,0x21,0x15,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0x61,0,0x61,0,0x61,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x10,0x11,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0x10,0x11,0,0,0x10,0x11,0,0,0x10,0x11,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0x61,0,0x61,0,0x61,0,0x61,0,0,0,0x61,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0,0x12,0x13,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0x14,0x15,0,0,0x14,0x15,0,0,0x14,0x15,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x52,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0x61,0,0x61,0,0x61,0,0x61,0,0x61,0,0,0,0x61,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0,0x14,0x15,0,0,0,0,0,0x52,0x52,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0,0x14,0x15,0,0,0x14,0x15,0,0,0x14,0x15,0,0,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52,0x52],
++[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
++[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
++]);
 diff --git a/src/blockbuffer/world4.rs b/src/blockbuffer/world4.rs
 index ac14ddd..ba5a544 100644
 --- a/src/blockbuffer/world4.rs
@@ -233,7 +261,7 @@ index e0e1804..b2b3437 100644
 +  }
 +}
 diff --git a/src/case/w12.rs b/src/case/w12.rs
-index 32f4877..1d5947e 100644
+index 32f4877..4e31be3 100644
 --- a/src/case/w12.rs
 +++ b/src/case/w12.rs
 @@ -29,6 +29,7 @@ fn w12_start<O: Options>() -> State {
@@ -260,6 +288,148 @@ index 32f4877..1d5947e 100644
      };
      let s = Self::Emu::run_steps_nr(s, &[L|R, A|R]);
      let s = Self::Emu::run_steps_nr(s, &[R; 19]);
+@@ -228,3 +231,141 @@ impl SearchGoal for W12Flag {
+     } else { false }
+   }
+ }
++
++/// P2.3e — **1-2's main area in one span, control frame to the WORLD-4 WARP PIPE.** This is the level nobody
++/// has ever searched: F52 records that MrWint's tool only ever did hand-picked *segments*, and of 1-2 he
++/// solved just the 71-frame opening (`W12Speedup` above); F66's "gap 0 on all 10 solved segments" covers
++/// that opening and nothing else. Meanwhile 1-2 sits **8 frames** from the next framerule on the WR's route
++/// and **5** on Maru370's 2024 route — which is already **3 frames faster than the WR's** (H22/F52), i.e.
++/// the 2011 WR is demonstrably not optimal here.
++///
++/// Span: the **GES 7 -> 8 handoff frame** (fceux RAM row **2486**) to the warp-pipe entry (row **3766**:
++/// x 2860, Y 128, GES 3 -> World 3 = 4-1). **1280 frames.** The warp zone is part of the same area (AreaNum
++/// stays 2 throughout), so there is no forced room seam anywhere.
++/// The start is row 2486 and not the GES 7 control frame at 2469 because **the handoff duplicates a frame**:
++/// rows 2485 and 2486 are byte-identical (the game re-runs the same state on the GES 7 -> 8 boundary), so a
++/// case rooted at 2469 runs one frame ahead of the core from there on. Mario is already mid-fall out of the
++/// entry pipe at 2486 — that is why this start carries a y speed and a y subpixel, unlike a standing control
++/// frame.
++///
++/// **Goal geometry.** The three warp pipes are at cols 178/179, 182/183, 186/187, tops on row **8** (map:
++/// `BB12W`). `WarpZoneControl & 3` picks the table row and `Player_X_Position`'s LOW BYTE picks the pipe
++/// (`< $60` left, `< $a0` middle, else right — smbdis.asm:12288). The WR takes the **leftmost** pipe with
++/// WZC 4 and x low byte $2C, and 1-2's table is `{4, 3, 2}` (P0.6), so leftmost = **world 4**. Entry needs
++/// the left foot on `cv $10` in col 178 and the right foot on `cv $11` in col 179, which with the small-Mario
++/// adders $03/$0c is x in **[2852, 2861)**.
++///
++/// **The scroll condition (the F40-shaped one).** `ScrollLockObject_Warp` (smbdis.asm:3566) *stores* 4 into
++/// `WarpZoneControl` and locks the scroll; in the WR that happens on the exact frame the scroll reaches its
++/// locked maximum **2816** (row 3720, x 2944). Entering the pipe with WZC still 1 — the value the enemy
++/// `$34` `WarpZoneObject` leaves at row 3545 — selects a *different* table row (`1 & 3 = 1`), i.e. a
++/// different world. So `screen_left_abs >= 2816` is a **necessary** condition on the goal, exactly as
++/// `W84Room3` needs SL >= 3345. Sufficiency is adjudicated downstream on the core (runbook 4.3), per F129.
++///
++/// **Bound: the F89 overshoot machinery**, because the route is a turnaround — the scroll only reaches 2816
++/// if Mario pushes to `2816 + 112 = 2928` (rel <= 112 while scrolling), and then he must come back **left**
++/// to the pipe window. The WR overshoots to x 2944 and returns 84 px.
++///
++/// **Model gap to remember:** the model has no `ScrollLock`, and 1-2 has two ScrollLock objects (rows 3544
++/// and 3720). Their only effect is on `left_screen_edge_pos`, never on Mario, and the model's SL is always
++/// **>=** the core's afterwards — so the `SL >= 2816` goal test stays permissive (the safe direction) and the
++/// player trajectory replays exactly.
++#[allow(dead_code)]
++pub struct W12Warp {
++  h: XPosHeuristic,
++}
++pub const W12W_OVERSHOOT_X: i32 = 0xb7000;            // 2928 px: min max-x for SL >= 2816
++pub const W12W_PIPE_XMAX: i32 = (0xb2c << 8) | 0xff;  // 2860 px: the entry window's right edge (the WR enters at 2860)
++pub const W12W_PIPE_XMIN: i32 = 0xb2400;              // 2852 px: its left edge
++pub const W12W_SL_MIN: i32 = 2816;                    // the locked scroll maximum that arms WarpZoneControl = 4
++/// P2.3e: 1-2's block states. The map has **496 plain bricks** ($52, which only bounce) and exactly **11**
++/// cells whose metatile changes permanently — the five question blocks of the opening row at (10..14, 7) and
++/// six item bricks. That fits the 16-bit `used` mask with room to spare. Phases read from the WR dump at the
++/// case's own start record (fceux RAM row 2486): FrameCounter 41, IntervalTimerControl 4, GameTimerCtrlTimer
++/// 24, AreaParserTaskNum 0 with CurrentPageLoc 1 / CurrentColumnPos 8 -> absolute column 24, VRAM_Buffer1
++/// non-empty (offset 6) with VRAM_Buffer_AddrCtrl 0.
++#[allow(dead_code)]
++pub enum W12WarpBlocks {}
++impl BlockStates for W12WarpBlocks {
++  const ON: bool = true;
++  const BITS: usize = 56;
++  const CELLS: &'static [(usize, usize, bool)] = &[(10, 7, false), (11, 7, false), (12, 7, false), (13, 7, false), (14, 7, false),
++    (29, 6, true), (46, 5, false), (69, 6, false), (73, 6, true), (89, 0, false), (150, 6, false)];
++  const PARSER_COL0: u8 = 24;
++  const IP0: u8 = 4; const FC0: u8 = 41; const GT0: u8 = 24;
++}
++impl Options for W12Warp {
++  type CoinHandler = IgnoreCoins;
++  type Platform = NTSC;
++  type PlayerSize = Small;
++  type Swim = NotSwimming;
++  type PowerupHandler = NoPowerups;
++  type RunningTimer = WithRunningTimer;
++  type ScrollPos = WithScrollPos;
++  type Parity = NoParity;
++  type VerticalPipeHandler = EnterVerticalPipe<::typenum::U178, ::typenum::U8>;
++  type YPosFractionalBehavior = KeepYPosFractionals;
++  type BlockBounce = WithBlockBounceTimer;
++  type BlockStates = W12WarpBlocks;
++}
++impl super::SmbSearchCase for W12Warp {
++  type SearchGoal = Self;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 20]>, Dist>;
++
++  type BlockBuffer = BB12W;
++
++  fn start_states() -> Vec<State> {
++    // fceux row 2486 verbatim, not `iterate_entrance` — 1-2's entrance animation is not 4-2's, and iterating
++    // it lands 5 frames into the fall (model Y 50 vs the core's 32). Explicit form, as `W84Room3` uses.
++    vec![State {
++      x_pos: 0x2800,                 // page 0, X 40, subpixel 0
++      y_pos: 0x13068,                // high 1, Y 48, subpixel $68 — mid-fall out of the entry pipe
++      x_spd: 0x0,
++      v_force: <Self as Options>::Platform::V_FORCE_AREA_INIT,
++      y_spd: 0x258,                  // 2 px/frame, fraction $58
++      v_force_down: <Self as Options>::Platform::V_FORCE_AREA_INIT,
++      facing_dir: Dir::RIGHT,
++      moving_dir: Dir::empty(),
++      player_state: PlayerState::FALLING,
++      x_spd_abs: 0,
++      running_speed: false,
++      collision_bits: Dir::LR,
++      side_collision_timer: 0,
++      left_screen_edge_pos: 0x0,
++      jump_swim_timer: 0,
++      running_timer : 0,
++      is_crouching: false,
++      collected_coins: 0,
++      powerup_block_hit: false,
++      powerup_collected: false,
++      parity: 0,
++      a_held: false, block_bounce_timer: 0,
++      blocks: ::state::BlockStateData { parser_col: <Self as Options>::BlockStates::PARSER_COL0, vbuf1: true, ..Default::default() },
++    }]
++  }
++  const SEARCH_SPACE_SIZE_HINT: usize = 1000000;
++}
++impl SearchGoal for W12Warp {
++  fn new() -> Self {
++    let mut h = XPosHeuristic::new::<Self>(&<Self as super::SmbSearchCase>::start_states());
++    h.build_overshoot_bound(W12W_OVERSHOOT_X, W12W_PIPE_XMAX, 200);
++    Self { h }
++  }
++  /// Two-phase, exactly as `W84Room3`: before the scroll arms the warp zone, the coupled overshoot bound to
++  /// x >= 2928 plus the return; after, the leftward table back into the pipe window.
++  fn distance_to_goal_heuristic(&self, s: &mut State, _: Dist) -> Option<Dist> {
++    if ::emu::screen_left_abs(s.x_pos >> 8, s.left_screen_edge_pos) < W12W_SL_MIN {
++      Some(self.h.get_steps_overshoot(s, W12W_OVERSHOOT_X))
++    } else if s.x_pos > W12W_PIPE_XMAX {
++      Some(self.h.get_steps_until_x_pos_at_most(s, W12W_PIPE_XMAX))
++    } else if s.x_pos < W12W_PIPE_XMIN {
++      Some(self.h.get_steps_until_x_pos_at_least(s, W12W_PIPE_XMIN))
++    } else { Some(0) }
++  }
++  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
++  fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool {
++    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
++      cx == 178 && cy == 8 && ::emu::screen_left_abs(s.x_pos >> 8, s.left_screen_edge_pos) >= W12W_SL_MIN
++    } else { false }
++  }
++}
 diff --git a/src/case/w13.rs b/src/case/w13.rs
 index 910f335..1b76d9e 100644
 --- a/src/case/w13.rs
@@ -2218,7 +2388,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..07c2569 100644
+index 350d469..683f793 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2229,7 +2399,7 @@ index 350d469..07c2569 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,356 @@ mod ida;
+@@ -20,8 +21,360 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -2252,6 +2422,7 @@ index 350d469..07c2569 100644
 +      "W42Main" => { replayce::<case::w42::W42Main>(&data, first, n, true, if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None }, w42ext0(aptn0)); }
 +      "W11Room1E" => { replayce::<case::w11::W11Room1E>(&data, first, n, true, if enemies { Some(w11_enemies as Hook) } else { None }, w42ext0(aptn0)); }
 +      "W84Room3" => { replayce::<case::w84::W84Room3>(&data, first, n, true, None, Ext::zero()); }
++      "W12Warp" => { replayce::<case::w12::W12Warp>(&data, first, n, true, if enemies { Some(w12_enemies as Hook) } else { None }, w12_warp_ext0()); }
 +      // P2.2f: room 2 starts with three plants + two beetles already live, so its ext0 is not zero.
 +      "W84Room2" => { replayce::<case::w84::W84Room2>(&data, first, n, true, if enemies { Some(w84_enemies as Hook) } else { None }, w84_room2_ext0()); }
 +      "W42Warp" => { replayc::<case::w42::W42Warp>(&data, first, n, true); }
@@ -2335,6 +2506,7 @@ index 350d469..07c2569 100644
 +      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
 +      "W11Room1E" => bfscx_run::<case::w11::W11Room1E, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w11_enemies as Hook) } else { None }, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
 +      "W84Room2" => bfscx_run::<case::w84::W84Room2, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w84_enemies as Hook) } else { None }, w84_room2_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
++      "W12Warp" => bfscx_run::<case::w12::W12Warp, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w12_enemies as Hook) } else { None }, w12_warp_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
 +      "W84Room3" => bfscx_run::<case::w84::W84Room3, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
 +      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
 +      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
@@ -2360,6 +2532,7 @@ index 350d469..07c2569 100644
 +      "W42Main" => offset_census::<case::w42::W42Main, [u8; 20]>(&path, top, minoff),
 +      "W84Room3" => offset_census::<case::w84::W84Room3, [u8; 12]>(&path, top, minoff),
 +      "W84Room2" => offset_census::<case::w84::W84Room2, [u8; 20]>(&path, top, minoff),
++      "W12Warp" => offset_census::<case::w12::W12Warp, [u8; 20]>(&path, top, minoff),
 +      other => panic!("offset-census: unsupported case {}", other),
 +    }
 +    return;
@@ -2389,6 +2562,7 @@ index 350d469..07c2569 100644
 +      "W42Main" => bfscx_path::<case::w42::W42Main, [u8; 20]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
 +      "W11Room1E" => bfscx_path::<case::w11::W11Room1E, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w11_enemies as Hook) } else { None }, threads, out, stride),
 +      "W84Room3" => bfscx_path::<case::w84::W84Room3, [u8; 12]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
++      "W12Warp" => bfscx_path::<case::w12::W12Warp, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w12_enemies as Hook) } else { None }, threads, out, stride),
 +      "W84Room2" => bfscx_path::<case::w84::W84Room2, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w84_enemies as Hook) } else { None }, threads, out, stride),
 +      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
 +      "W11VertPipeEntry" => bfscx_path::<case::w11::W11VertPipeEntry, [u8; 10]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
@@ -2586,7 +2760,7 @@ index 350d469..07c2569 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +395,1517 @@ fn calc_prng() {
+@@ -46,4 +399,1561 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -3000,6 +3174,49 @@ index 350d469..07c2569 100644
 +  slots.pack(&mut ext.0);
 +  match ev { EnemyEvent::Death => LiftEvent::Death, EnemyEvent::Stomp => LiftEvent::Stomp, EnemyEvent::Kick => LiftEvent::Kick, EnemyEvent::Nothing => LiftEvent::Nothing }
 +}
++/// P2.3e: 1-2's enemy hook. Same engine, 1-2's area data and `BB12W` terrain, no lift/vine/item machinery.
++/// NOTE (scan, not yet ported): `E_UndergroundArea1` also contains a **red koopa `$03`** (page 10, x 2336),
++/// two **large platforms `$26`** (page 10) and two **lifts `$27`** (page 9), none of which has a class yet —
++/// they currently fall through `class_of_id` to the inert `CLASS_ITEM`, which is right for slot occupancy and
++/// wrong for their motion. The `$34` `WarpZoneObject` is likewise inert here; its effect is modelled as the
++/// case's `screen_left_abs >= 2816` goal condition instead. So this hook is exact only up to the first of
++/// those objects — the difftest says where.
++fn w12_enemies(pre: &State, s: &mut State, ext: &mut Ext) -> LiftEvent {
++  use options::BlockStates;
++  use w42enemies::{Frame, Slots, EnemyEvent};
++  let mut slots = Slots::unpack(&ext.0);
++  let frame = s.blocks.frame;
++  let aptn_pre = pre.blocks.aptn;
++  let f = Frame { edata: &w42enemies::W12_ENEMY_DATA[..], pipes: &w42enemies::W12_PIPES[..],
++    sl16: screen_left16(s),
++    fc_odd: ((<case::w12::W12WarpBlocks as BlockStates>::FC0 as u16 + frame as u16) & 1) != 0,
++    fc_b1: ((<case::w12::W12WarpBlocks as BlockStates>::FC0 as u16 + frame as u16) & 2) != 0,
++    itc_tick: ((<case::w12::W12WarpBlocks as BlockStates>::IP0 as i32 - frame as i32 + 1) % 21 + 21) % 21 == 0,
++    aptn_pre,
++    px: s.x_pos >> 8, py: (s.y_pos >> 8) & 0xff, pys_pos: (s.y_spd >> 8) > 0,
++    bx: emu::pre_bg_pos().0 >> 8, by: (emu::pre_bg_pos().1 >> 8) & 0xff,
++    bounce_cell: s.blocks.bounce_cell,
++  };
++  let plant_col = if s.blocks.aptn != aptn_pre && (s.blocks.aptn == 7 || s.blocks.aptn == 3) { Some(s.blocks.parser_col) } else { None };
++  let mut lift_live = false;
++  let ev = if (s.y_pos >> 16) == 1 { slots.step::<::blockbuffer::world1::BB12W>(&f, s, &mut lift_live, plant_col) } else { EnemyEvent::Nothing };
++  slots.pack(&mut ext.0);
++  match ev { EnemyEvent::Death => LiftEvent::Death, EnemyEvent::Stomp => LiftEvent::Stomp, EnemyEvent::Kick => LiftEvent::Kick, EnemyEvent::Nothing => LiftEvent::Nothing }
++}
++/// 1-2's enemy slots at the case's own start record (fceux RAM row 2486): two goombas already walking in from
++/// page 1, three empty slots carrying stale x 464, and the loader at EnemyDataOffset 4 / page 1.
++fn w12_warp_ext0() -> Ext {
++  use w42enemies::{Slot, Slots, CLASS_GOOMBA, CLASS_EMPTY};
++  let goomba = |x: u16, y: u8| Slot { class: CLASS_GOOMBA, state: 0, x, y, spd: 0xf8, force: 0x80, dir: 2,
++    itimer: 0, ftimer: 0, masked: false, cbits: 0, yspd: 0, yforce: 0, up: 0, dn: 0, yhi: 1 };
++  let mut sl = Slots { eoff: 4, epage: 1, epsel: false, vineflag: 0, s: [Slot::default(); 6] };
++  sl.s[0] = goomba(247, 184);
++  sl.s[1] = goomba(263, 168);
++  for i in 2..5 { sl.s[i] = Slot { class: CLASS_EMPTY, x: 464, y: 0, dir: 2, yhi: 1, ..Default::default() }; }
++  let mut e = Ext::zero();
++  sl.pack(&mut e.0);
++  e
++}
 +/// The enemy slots 8-4 room 2 starts with — read from the WR dump at the case's own start record (fceux RAM
 +/// index 15917): three piranha plants already spawned by the parser at the pipes (115,9) / (122,8) / (132,9),
 +/// two Buzzy Beetles that have walked in from page 8 cols 0 and 2, an empty slot 5 carrying stale x 2128, and
@@ -3170,6 +3387,7 @@ index 350d469..07c2569 100644
 +      if hook.map_or(false, |h| h as usize == w42_enemies as usize) { println!("slots: {}", w42enemies::Slots::unpack(&ext.0).describe()); }
 +      if hook.map_or(false, |h| h as usize == w11_enemies as usize) { println!("slots: {}", w11enemies::Slots::unpack(&ext.0).describe()); }
 +      if hook.map_or(false, |h| h as usize == w84_enemies as usize) { println!("slots: {}", w42enemies::Slots::unpack(&ext.0).describe()); }
++      if hook.map_or(false, |h| h as usize == w12_enemies as usize) { println!("slots: {}", w42enemies::Slots::unpack(&ext.0).describe()); }
 +    }
 +    s = ns;
 +    if res != EmuResult::Success { if trace { println!("stopped: {:?}", res); } return (s, ext, false); }
@@ -4721,10 +4939,10 @@ index 0000000..d8adad9
 +}
 diff --git a/src/w42enemies.rs b/src/w42enemies.rs
 new file mode 100644
-index 0000000..6590663
+index 0000000..9e413b4
 --- /dev/null
 +++ b/src/w42enemies.rs
-@@ -0,0 +1,533 @@
+@@ -0,0 +1,547 @@
 +//! P2.5c-2 — the 4-2 main-area enemies as a per-step object hook for `W42Main` (`--enemies`): the enemy-data loader
 +//! (`ProcessEnemyData`), the `$3A` goomba group, the green koopa, the buzzy beetles, the piranha plants the area
 +//! parser inserts into the pipes, and the lift's slot occupancy, with the per-slot RAM packed into the record's ext
@@ -4768,6 +4986,20 @@ index 0000000..6590663
 +/// (228, 6) that BB84 has no pipe at — re-derive before wiring room 3's enemies (it is unused today).
 +#[allow(dead_code)]
 +pub const W84_ROOM3_PIPES: [(u8, u8); 3] = [(195, 9), (204, 6), (212, 5)];
++/// P2.3e: **1-2's** enemy-object bytes (`E_UndergroundArea1`, `data/disasm/smbdis.asm:4726`, 45 bytes).
++pub const W12_ENEMY_DATA: [u8; 45] = [
++  0x0b, 0x86, 0x1a, 0x06, 0xdb, 0x06, 0xde, 0xc2, 0x02, 0xf0, 0x3b,
++  0xbb, 0x80, 0xeb, 0x06, 0x0b, 0x86, 0x93, 0x06, 0xf0, 0x39,
++  0x0f, 0x06, 0x60, 0xb8, 0x1b, 0x86, 0xa0, 0xb9, 0xb7, 0x27,
++  0xbd, 0x27, 0x2b, 0x83, 0xa1, 0x26, 0xa9, 0x26, 0xee, 0x25, 0x0b,
++  0x27, 0xb4,
++  0xff];
++/// 1-2's vertical pipes (left column, top row), enumerated from `BB12W`'s left-column pipe tops per F136 —
++/// every vertical pipe outside 1-1 attempts a piranha plant. Cols 178/182/186 are the three WARP pipes;
++/// `ScrollLockObject_Warp` runs `KillEnemies` on piranha plants when it arms the zone, so any plant there is
++/// short-lived, but the spawn attempt still consumes a slot and must be modelled.
++pub const W12_PIPES: [(u8, u8); 6] = [(103, 8), (109, 7), (115, 9), (178, 8), (182, 8), (186, 8)];
++
 +pub const CLASS_EMPTY: u8 = 0; pub const CLASS_GOOMBA: u8 = 1; pub const CLASS_KOOPA: u8 = 2; pub const CLASS_BEETLE: u8 = 3;
 +pub const CLASS_PLANT: u8 = 4; pub const CLASS_LIFT: u8 = 5; pub const CLASS_ITEM: u8 = 6;
 +/// H34: the vine. The (64,3) bump runs `Setup_Vine` with X=5 (the special slot: x 1024, y 80, growing); the enemy
