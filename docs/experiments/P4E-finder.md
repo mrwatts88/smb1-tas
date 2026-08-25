@@ -213,3 +213,67 @@ choice but **the only enterable pipe before the `$42` command**.
 (`AreaPointer $2f` **and** `AltEntranceControl 1`), `--require-ram 0x750=0x2f` so any state whose
 destination has already flipped is never archived, promise aimed at x 1348. Baseline: the WR
 commits at core frame **7218**; a framerule needs **≤ 7205**.
+
+---
+
+## E-W84 — 8-4, and the scroll law that governs both levels
+
+### F229 — the scroll law, and what it says about both attacks
+From `ScrollHandler` (F227) plus the fact that the screen never scrolls left, one line follows:
+
+> **`ScreenLeft` can never exceed `(the largest x Mario has ever reached) − 112`.**
+
+Because at rel ≥ 112 the screen tracks Mario exactly (so rel stays 112), in [80,112) it gains one
+less per frame (so rel climbs *toward* 112), below 80 it does not move at all, and leftward motion
+never scrolls. rel = x − ScreenLeft, so ScreenLeft is pinned to `max_x − 112` and only a freeze
+can push rel above 112 (which makes ScreenLeft *smaller*, never larger).
+
+That single law governs the two live attacks, in opposite directions:
+
+- **4-2's wrong warp needs `ScreenLeft` HELD BACK** (≤ 1216 at x 1348 ⇒ rel ≥ 132), which requires a
+  freeze, which requires `ImpedePlayerMove`, which zeroes the speed. F227.
+- **8-4's room exits need `ScreenLeft` PUSHED FORWARD** past an area-change command before the pipe
+  will open on the right room — so Mario must physically reach `required_SL + 112` and then come
+  back. **The overshoot distance is therefore already minimal**; only the return leg is searchable.
+
+### F230 — 8-4 is a maze made of area-change commands, and "entered a pipe" is not a goal
+`tools/area_data.py E_CastleArea6` — every area-change command in 8-4's main area, all gated on
+`WorldNumber == 7`:
+
+| at | sets AreaPointer / entrance page | meaning |
+|---|---|---|
+| page 3 col 8 | `$65` / 1 | **loop back to the start** |
+| page 5 col 3 | `$65` / 7 | room 1 → room 2 |
+| page 8 col 5 | `$65` / 1 | **loop back** |
+| page 9 col 15 | `$65` / 12 | room 2 → room 3 |
+| page 13 col 4 | `$65` / 1 | **loop back** |
+| page 14 col 4 | `$02` / 0 | room 3 → the water room |
+| page 17 col 15 | `$65` / 1 | **loop back** |
+
+So a pipe's destination is whichever command the parser read last, and most of the time that is
+"back to page 1". **The first version of these searches used `GES == 3` (a pipe was entered) as the
+goal and immediately reported −54 frames in room 3 and −102 in room 2. Both were wrong-pipe
+entries.** This is the F129/F131 defect in a new place, and it is the reason the runbook's rule
+exists: a goal must be the thing you want, not a proxy that is cheaper to satisfy.
+
+**The fixed goal is the destination**: `GES == 7` **and** `AltEntranceControl == 2` **and**
+`Player_PageLoc == <next room's page>` **and** `Player_X_Position == 56` — i.e. Mario rising out of
+the correct pipe in the correct room. Signatures and baselines, measured from the WR's dump:
+
+| segment | root (core) | dest page | baseline (core) | WR frames |
+|---|---|---|---|---|
+| room 1 | 15220 | 7 | 15818 | 598 |
+| room 2 | 15914 | 12 | 16255 | 341 |
+| room 3 | 16351 | 0 | 16620 | 269 |
+| water | 16716 | 16 | 17490 | 774 |
+
+**All four controls pass** (each seeded WR line reproduces its own baseline). `runs/E3-w84/launch.sh`.
+
+### Why these four
+`tools/cap_survey.py` says 8-4 spends 1,051 control frames at the running cap and 694 at the
+swimming cap; its 223 off-cap frames are **all** either the forced acceleration out of a pipe rise
+or the deceleration/turnaround into the next pipe. Since F229 fixes the overshoot, the searchable
+content of 8-4 is the return legs and the pipe approaches — and 8-4 is unquantized, so **one frame
+is the record**. The water room is additionally the one 8-4 segment nobody has ever searched (696
+frames, swimming, cheep-cheeps), and running on the real emulator makes the model's unvalidated
+swimming irrelevant.
