@@ -5,7 +5,11 @@
  *
  * Method: run the movie to FRAME once, serialize.  For every (address, value) pair: unserialize,
  * poke ram[address] = value, then continue with the movie's own remaining inputs until one of
- *   VICTORY   OperMode ($0770) reaches 2   -> compare its frame against the baseline's
+ *   VICTORY   OperMode ($0770) reaches 2 AND WorldNumber ($075F) >= 7 -> a real ending; compare
+ *             its frame against the baseline's.  OperMode 2 alone is NOT an ending: VictoryMode is
+ *             entered at every castle axe, and PlayerEndWorld only terminates when WorldNumber >= 7
+ *             (otherwise it increments the world and returns to game mode).  An axe reached below
+ *             world 8 is recorded in axe_frame and the run continues.
  *   CONVERGED the perturbed RAM hash equals the baseline hash for the same frame (absorbed;
  *             identical RAM => identical future under the same inputs, so it can never win early)
  *   DEAD      lives ($075A) dropped below baseline, or OperMode reached 3 (game over)
@@ -183,7 +187,7 @@ int main(int argc, char **argv) {
     if (!out) { perror(outpath); return 1; }
     fprintf(out, "# ram_oracle at=%ld baseline_victory=%ld budget=%ld death_exit=%d\n",
             at, base_victory, budget, death_exit);
-    fprintf(out, "addr,value,outcome,frames_run,victory_frame,max_opermode,max_world,new_areas\n");
+    fprintf(out, "addr,value,outcome,frames_run,victory_frame,axe_frame,max_opermode,max_world,new_areas\n");
 
     double t0 = now(); long total_frames = 0, nrun = 0, njack = 0;
     for (long addr = addr_lo; addr <= addr_hi; addr++) {
@@ -195,7 +199,7 @@ int main(int argc, char **argv) {
             int noop = (orig == vals[vi]);
             uint8_t max_om = 0, max_w = 0;
             uint8_t seen_area[256]; memset(seen_area, 0, sizeof seen_area);
-            const char *outcome = "CAP"; long vf = -1, j = 0;
+            const char *outcome = "CAP"; long vf = -1, axef = -1, j = 0;
             for (j = 0; j < budget; j++) {
                 long fi = at + 1 + j;
                 if (fi + input_skip >= nin) { outcome = "EOF"; break; }
@@ -205,19 +209,26 @@ int main(int argc, char **argv) {
                 if (om > max_om) max_om = om;
                 if (ram[WORLDNUM] > max_w) max_w = ram[WORLDNUM];
                 seen_area[ram[AREAPTR]] = 1;
-                if (om == 2) { outcome = "VICTORY"; vf = fi; break; }
+                /* OperMode 2 = VictoryMode, entered at EVERY castle axe (VictoryModeSubroutines:
+                 * BridgeCollapse -> ... -> PlayerEndWorld).  Only PlayerEndWorld's `cpy #World8 /
+                 * bcs` actually ends the game; below world 8 it increments WorldNumber and returns
+                 * to game mode.  So a real ending needs WorldNumber >= 7 as well. */
+                if (om == 2) {
+                    if (ram[WORLDNUM] >= 7) { outcome = "VICTORY"; vf = fi; break; }
+                    if (axef < 0) axef = fi;   /* an axe off-route: very interesting, keep running */
+                }
                 if (death_exit && (om == 3 || ram[LIVES] < blives[fi])) { outcome = "DEAD"; break; }
                 if (fnv(ram, 0x800) == bhash[fi]) { outcome = "CONVERGED"; break; }
             }
             total_frames += j; nrun++;
-            int interesting = strcmp(outcome, "CONVERGED") != 0 || max_om > 1 || j > 1;
+            int interesting = strcmp(outcome, "CONVERGED") != 0 || max_om > 1 || axef >= 0 || j > 1;
             if (!strcmp(outcome, "VICTORY") && vf >= 0 && vf < base_victory) njack++;
             if (all_rows || interesting || noop) {
                 char areas[512]; int p = 0; areas[0] = 0;
                 for (int a = 0; a < 256 && p < 500; a++)
                     if (seen_area[a]) p += snprintf(areas + p, sizeof areas - p, "%s%02x", p ? " " : "", a);
-                fprintf(out, "0x%03lx,%u,%s%s,%ld,%ld,%u,%u,%s\n", addr, vals[vi], outcome,
-                        noop ? "(noop)" : "", j, vf, max_om, max_w, areas);
+                fprintf(out, "0x%03lx,%u,%s%s,%ld,%ld,%ld,%u,%u,%s\n", addr, vals[vi], outcome,
+                        noop ? "(noop)" : "", j, vf, axef, max_om, max_w, areas);
             }
         }
         if ((addr - addr_lo) % 16 == 15) fflush(out);
