@@ -34,3 +34,5 @@ go() { # go TAG ROOT SEED RELCELL
 }
 go pre  3540 401 4      # before the clip: the clip itself and its mint are free to change
 go mid  3600 402 2      # after the clip, rel already 128: only the turnaround is free
+go early 3400 403 4     # 140 frames before the clip: the APPROACH to the clip is free too
+                        # (launched with --horizon 440 --cells 150000 --xcell 6 --ycell 12)
