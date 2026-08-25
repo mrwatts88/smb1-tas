@@ -184,6 +184,34 @@ pre-cleanup narrative version of this file is archived at
   sweep on **$06CD** `EnemyFrenzyQueue`, never yet swept alone; **(3)** hand the F210 predicate to the Track A engine
   as a search goal (small Mario, Y in {$FE,$FF}, y-speed < 0, odd page col 11) — **this is the Track A/Track B merge
   point** and 4-2's top route already puts Mario at the screen top; **(4)** band B (`$0700-$07FF`).
+  **CHECKPOINT 6 (session 17) — PRIORITIES RESET BY THE USER: characterise the primitive first
+  (when can it fire / where does it go / is it real), NOT score it against the record. Two big answers.**
+  **(A) F211 — the trigger is ALREADY on the WR route, twice.** Dump scan for F210's conditions: Mario hits
+  `Y in {$FE,$FF}` while **rising** on an **odd page** as **small Mario** at **frame 5369 (4-1, column 8)** and
+  **frame 10291 (8-1, column 0)**. Required column is **11**. So the open question is not reachability — it is
+  shifting x by a few columns at a moment the route already visits. That is a Track A search problem.
+  **(B) F212 — the destination map is computed.** Tables located: `InitEnemyRoutines` at CPU **`$c282`** (55
+  entries), `RunEnemyObjectsCore` at **`$c892`** (34). `JumpEngine`'s `asl` drops the carry so offset =
+  `(2*index) mod 256` and **index aliases with index+128** — confirmed from black-box data, since every
+  behaviour pair in F209 differs by exactly 128 (20/148, 46/174, 116/244). **63 out-of-table destinations,
+  three classes:** unmapped/open-bus (**these are the resets** — `$c4`->`$60cf`), real PRG ROM (id 93->`$a9c3`,
+  id 116->`$a960` — diverge without dying), and **zero-page RAM: ids 83/96/211/224 -> `$00a9`**. The RAM target
+  is only weakly controllable (`$a9`-`$b3` are sprite high-position bytes, ~5 distinct values, mostly `$00`=BRK
+  and `$02`=JAM as opcodes).
+  **REVISED NEXT, in the user's order — characterise, don't score:**
+  **(1)** Probe ids **83 and 96** specifically (the RAM jump) and trace what executing `$00a9` actually does.
+  **(2)** Enumerate what can WRITE `$a9`-`$b3` — if a payload can be staged there, class (c) is real ACE;
+  if those bytes are structurally limited to {0,1,2,254,255}, say so and pivot to class (b).
+  **(3)** For class (b), work out which PRG entry points do something useful (the 63-target list is small
+  enough to read by hand against the disassembly).
+  **(4)** Prove it END TO END through a real head bump rather than a poke — the F210 predicate handed to the
+  Track A engine as a search goal from the F211 states (4-1 frame 5369 / 8-1 frame 10291).
+  **(5)** Only then go back to timing sweeps and record-scoring.
+  **Predicate fixes shipped this session** (`ram_oracle`): route-progress vs the WR itinerary, an OperMode==1
+  gate (the raw version produced a FALSE POSITIVE — $06CB=116 in 1-2 read as "334 frames ahead" but the probe
+  shows it was a transient `AreaPointer` during the reset), route-agnostic `world_ahead`, and **`novel_world`**
+  for worlds the WR never visits at all (H44 — `world_ahead` scored those ZERO by construction, since there is
+  no baseline frame to beat; a world the WR never enters may still lead somewhere better via an unknown warp).
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
   Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
   page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
