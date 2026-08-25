@@ -207,6 +207,19 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 - 2026-08-21 s4 — **P3.1**: `tools/oob_audit.py` + `docs/oob-audit.md` — the H7 cells are unreachable by indexed/pointer stores; the block-buffer wrap write → H30. **P0.7**: `docs/input-semantics.md` (F62). **P2.1b-m2 part 1 / P2.1b-m / P1.2-lite**: MrWint's model built, fixed, extended with goombas, exact on ~190k frames (F53/F56–F60); H27 refuted from the stairs-top state (F57). `P1.2-lite-smb-opt.md`, `P2.1b-pole-search.md`.
 - 2026-08-21 — **P0.8** `docs/prior-tools.md` (F52); **P2.1a** `src/search/bfs.c` (F47–F49); **P1.1** QuickNES harness, RAM identical to FCEUX on every WR row (F45/F46); **P0.6** `docs/warp-model.md` (F38–F44; H5/H6/H13 refuted at table level); **P0.2** WR movie + ROM verified (F1, F15–F17); **P0.9** `docs/community-claims.md` (F35–F37); **P0.5** `docs/timing-model.md` (F31–F34); **P0.4** slack table (F27–F30, `tools/slack_table.py`); **P0.3** WR syncs in FCEUX + BizHawk (F23–F26); **P0.1** tooling (F18–F22); plan/process/status scaffolding, git init.
 
+## Needs user input
+
+- **Does 4-2 reclaim priority from 8-4?** `docs/decisions.md` (session 14 evening) made the 8-4
+  campaign the primary track *because 1-1 and 4-2 were closed*. Session 16 reopened 4-2: F122 is
+  refuted, the top route provably reaches the warp's offset and enters the pipe (core-verified), and
+  F123's bottom-route closure is caveated because it too came from a single-key beam. Per PROCESS
+  ("don't re-litigate decisions.md; if new evidence argues for changing a decision, record it here
+  and continue"), this is recorded, not acted on. Note the honest counterweight: the current top-route
+  warp costs **596** frames vs the WR's 588 and the 575 one-framerule line — a 21-frame gap, and it
+  does not yet warp to the right place (F129). 8-4 remains unquantized (1 frame = the record).
+  Default if no answer: continue the 4-2 line only as far as P2.3c-9 (the F129 goal fix, which the
+  engine needs regardless), then return to the 8-4 queue.
+
 ## Loose ends (small, unassigned)
 - **The Mac's engine is STALE (session 16 changed `tools/smb-opt-modes.patch`).** Per PROCESS/runbook §5,
   run `tools/mac_sync_engine.sh` **on the Mac** before trusting any Mac number, then the control gate
