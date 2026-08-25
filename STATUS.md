@@ -80,6 +80,20 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **P2.2a′ — 8-4 room 3, the multi-apex seam (declared 2026-08-24 session 16; the 8-4 primary track resumes).**
+  Running: `runs/P2.2a-prime/approach_launch.sh` — the room from its root (record 16354) with the case's own
+  pipe goal, deadline **194** (one better than the WR's 195), a **diversity beam**
+  (`--beam 200 --beam-buckets off,y,spd,sub --beam-max 1000000`), **stopping at step 162** (the WR's apex step)
+  with the layer kept. It deliberately does NOT goal on the WR's apex — F125 proved that apex dead (h = 33 = WR,
+  the 32-rung dry at layer 1), so goaling on it can only rediscover the dead end (H39's seam corollary). The
+  bound still prunes anything that cannot finish by 194, so layer 162 = "reached the apex region AND could still
+  beat the WR". Enemy-free by design (F126 cheapest-order — the core adjudicates plants/cheeps per candidate).
+  **Next steps after it finishes:** `smb-opt offset-census W84Room3 runs/P2.2a-prime/approach_layers/layer_162.bin
+  --top K` → per candidate `bfscx-path` → `tools/chain_inputs.py` → a **32-frame return rung**
+  (`bfscx W84Room3 <chain> 16354 162 32`). **A return in ≤ 32 from ANY candidate is the H25 frame** → runbook §4
+  record pipeline. A dry across the whole candidate set is the refutation, and only then does the cheep port
+  (P2.2a-port) become worth paying for. Baseline re-verified this session: the F125 control still gives
+  `at root: Some(33)`, WR GOAL at step 33, 0 bound violations.
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
@@ -215,6 +229,19 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 - 2026-08-22 s5 — **P1.3**: x-bound audited vs the core in 1-1 room 3 (1.9M checks, 0 violations, F68). **P2.5 scan**: WR = MrWint's enemy-free optimum on every solved segment (F66/F67) → only 4-1/4-2/8-1/8-2/8-3 have unexplored room. **P2.5a**: room-1 enemy rules validated by `tools/room1_enemy_sim.py` (F64/F65; port pending, see P2.5a/b). `P1.3-heuristic-audit.md`, `P2.5-segment-scan.md`, `P2.5a-room1-enemies.md`.
 - 2026-08-21 s4 — **P3.1**: `tools/oob_audit.py` + `docs/oob-audit.md` — the H7 cells are unreachable by indexed/pointer stores; the block-buffer wrap write → H30. **P0.7**: `docs/input-semantics.md` (F62). **P2.1b-m2 part 1 / P2.1b-m / P1.2-lite**: MrWint's model built, fixed, extended with goombas, exact on ~190k frames (F53/F56–F60); H27 refuted from the stairs-top state (F57). `P1.2-lite-smb-opt.md`, `P2.1b-pole-search.md`.
 - 2026-08-21 — **P0.8** `docs/prior-tools.md` (F52); **P2.1a** `src/search/bfs.c` (F47–F49); **P1.1** QuickNES harness, RAM identical to FCEUX on every WR row (F45/F46); **P0.6** `docs/warp-model.md` (F38–F44; H5/H6/H13 refuted at table level); **P0.2** WR movie + ROM verified (F1, F15–F17); **P0.9** `docs/community-claims.md` (F35–F37); **P0.5** `docs/timing-model.md` (F31–F34); **P0.4** slack table (F27–F30, `tools/slack_table.py`); **P0.3** WR syncs in FCEUX + BizHawk (F23–F26); **P0.1** tooling (F18–F22); plan/process/status scaffolding, git init.
+
+## The 4-2 hope (standing thread — do not let this quietly die)
+
+**The open question, stated once:** *nobody has ever measured the cheapest possible way to build the
+4-2 scroll offset.* Every number we have is an upper bound from a search that wasn't trying to be cheap:
+the bottom route's ~31 came from a single-key beam (the exact defect F128 documents), and the top
+route's 43 was the first thing a beam found at a generous deadline (F127). The budget is 22.
+The structural argument against (F123: every known mint mechanism costs Mario the speed he needs to
+reach the pipe) is real and is why the prior is maybe 1-in-4 — but that same class of argument was
+wrong once already today (F122 → F127). **It is a measurement, not a belief, and it has not been taken.**
+Owner: P2.3c-9 Part B (roots 415/449/484/509, descending ladder, step the root back when it plateaus).
+Blocked only on Part A (the entry-frame goal). Deprioritised behind 8-4 by the user 2026-08-24 s16,
+explicitly *without* conceding the question.
 
 ## Needs user input
 

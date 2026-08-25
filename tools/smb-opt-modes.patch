@@ -2064,7 +2064,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..b789421 100644
+index 350d469..f9d2fb6 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2075,7 +2075,7 @@ index 350d469..b789421 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,349 @@ mod ida;
+@@ -20,8 +21,350 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -2200,6 +2200,7 @@ index 350d469..b789421 100644
 +    }
 +    match args[2].as_str() {
 +      "W42Main" => offset_census::<case::w42::W42Main, [u8; 20]>(&path, top, minoff),
++      "W84Room3" => offset_census::<case::w84::W84Room3, [u8; 12]>(&path, top, minoff),
 +      other => panic!("offset-census: unsupported case {}", other),
 +    }
 +    return;
@@ -2425,7 +2426,7 @@ index 350d469..b789421 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +388,1444 @@ fn calc_prng() {
+@@ -46,4 +389,1444 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
