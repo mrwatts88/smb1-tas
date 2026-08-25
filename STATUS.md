@@ -317,6 +317,17 @@ pre-cleanup narrative version of this file is archived at
     **The WR's last 60 frames of 1-2 cannot be improved by one frame.** The wall is *terrain*: at 1220 Mario
     is in the narrow warp-zone corridor and the frontier suffocates; at 1210/1200 he is in open ground and
     it explodes (8.9M by layer 14; 101M by layer 25 / 28 GB).
+  • **F143 — where 1-2's slack actually is, and a near-miss worth remembering.** The slack profile is flat
+    at 54-55 from step 40 to ~1080 (Mario is at the **x-speed cap for essentially the whole level**), then
+    collapses **54 -> 23 between steps 1080 and 1120**: the **wall clip**, where the WR spends 40 frames and
+    the bound expects 9. A position-goal probe there (`--goal-x 2700 --goal-y 64` from step 1080) reached
+    the gate in **33** against the WR's **42** and **core-verified 33/33, 0 mismatches** — and it is worth
+    **nothing**: the arrival is `x speed ~0, JUMPING, moving LEFT, sct 15` vs the WR's `speed 21, STANDING`,
+    and its continuation is **pruned at layer 1** (>= 47, exactly the WR's cost). **F115/H39 at the finest
+    granularity — a first-arrival gate on a scalar is not a seam.** It did prove something: from the WR's
+    step-1113 state the next milestone is **dry at d46** and reached at 47, and the WR pays 47, so **the WR
+    is optimal on that stretch too**. Method note now in the experiment file: model step k = fceux row
+    **2486 + k**; a hand-mapped RAM row briefly turned that tie into a phantom frame.
   **NEXT: `P2.2f-bound` — and it is now a TWO-level unlock.** 1-2 loses ~22 frames of bound slack over its
   open region and 8-4 room 2 loses 14, for the same reason: **an x-only bound cannot price a turnaround's
   vertical half.** Build the coupled end-game term and both ladders go deeper. After that: re-run 1-2's
