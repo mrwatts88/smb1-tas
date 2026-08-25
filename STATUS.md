@@ -817,16 +817,32 @@ A level only pays out when its end crosses a 21-frame boundary, so a 3-frame gai
 next find has a smaller gap to close. Record every verified sub-threshold gain here and subtract it,
 rather than discarding it because it did not cross the cliff.
 
-| level | deficit (F29) | banked so far | remaining | note |
+**What counts as banked (user, 2026-08-25).** A verified path that reaches **the level's actual
+endpoint** — the same area transition, to the same destination — earlier than the WR. Reaching an
+*intermediate* point early is not banked: the 4-2 top route reaches the warp pipe 35 frames early and
+then warps to the wrong place, which is sprint-then-stall, not a saving. Call that a **conditional
+asset**, not a bank.
+
+| level | deficit (F29) | banked | remaining | note |
 |---|---|---|---|---|
-| 1-1 | 1 | — | 1 | closed proof-grade (F116/F124); the one frame does not exist |
-| **1-2** | **8** | 0 | **8** | 1 frame is known-available at step 487 (x 1183, mid-jump at x-speed 38 not 40) and has never been probed. The coin/parser-stall idea is **dead** (F240). |
-| 4-1 | 9 | — | 9 | no movement frames exist (F225: 97% at cap) |
-| 4-2 | 10-13 | **35 of movement** (F118: top route 553 vs WR 588) | key costs ~60 vs a 22 budget (measured) | the movement is banked and real; the warp key eats it |
-| 8-1 | 18 | — | 18 | no movement frames exist (F225) |
+| 1-1 | 1 | 0 | 1 | closed proof-grade (F116/F124) — the frame does not exist |
+| **1-2** | **8** | 0 | **8** | 1 frame is known-available and unprobed at step 487 (x 1183, mid-jump at x-speed 38 not 40). The coin/parser-stall idea is **dead** (F240). E7 running. |
+| 4-1 | 9 | 0 | 9 | no movement frames exist (F225: 97% at cap) |
+| 4-2 | 10-13 | **0** | 10-13 | **conditional asset, not banked:** the top route is 35 frames faster to the pipe (F118) but does not warp correctly, and the key to fix it measures ~60 against a 22 budget. Worth 35 frames *only if* a cheap key appears. |
+| 8-1 | 18 | 0 | 18 | no movement frames exist (F225) |
 | 8-2 | 19 | 0 | 19 | the shaft climb is unexplored (E8 running) |
-| 8-3 | 10 (7 with FPG) | — | 7 | no movement frames exist (F225) |
-| 8-4 | unquantized | — | 1 frame = the record | closed on movement, route and structure (F231/F232) |
+| 8-3 | 10 (7 with FPG) | 0 | 7 | no movement frames exist (F225) |
+| 8-4 | unquantized | 0 | 1 frame = the record | closed on movement, route and structure (F231/F232) |
+
+**Banked total across the whole route: zero.** Stated plainly because it is the honest position after
+session 18: a great deal is now *closed*, and nothing is yet *earned*.
+
+**Goal soundness — check this before trusting any search (F237).** A search's goal must be monotone
+with the record. 1-2's is: the pipe entry sets `WorldNumber`, then a fixed 48-frame `ChangeAreaTimer`,
+then the 4-1 load, then the intermission card, whose wait grows one frame for each frame the load moves
+earlier — dead even until it wraps at 8 and pays the whole 21 (F28). And nothing carries across the
+boundary but the frame itself (F224). 8-2's original goal was **not** monotone and produced a fake
+51-frame result (F237); it is now the area change itself.
 
 Track E's searches already report sub-threshold gains (the `best=` field is the earliest goal frame
 ever reached, not just threshold crossings) and dump the path for each improvement — so any partial
