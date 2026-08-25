@@ -33,7 +33,19 @@ Left=$02 Right=$01 (our NES-order input files use the reversed layout, see `tool
 - Climbing (`ClimbingSub` 5966): L/R (masked by the collision bits) jumps off the vine/pole sideways once
   per `ClimbSideTimer` ($18 frames): X += `ClimbAdderLow/High` (±$0E/$04 with page carry) and **facing :=
   inverted L/R bits** (L+R → facing 0).
+- **Facing 3 and facing 0 are out-of-range indices, and `PutPlayerOnVine` indexes two 2-byte tables with
+  them (F268/F269/F270, `docs/experiments/H12-input-semantics.md`).** `SetVXPl` (12219) does
+  `ldy PlayerFacingDir / adc ClimbXPosAdder-1,y` and, when the grabbed cell is buffer-1 column 0
+  (`$06 == 0`), `adc ClimbPLocAdder-1,y` onto `ScreenRight_PageLoc`. ROM $DE25 `f9 07` / $DE27 `ff 00` /
+  $DE29 `18 22 50 68 90`, so facing 3 reads **$ff** and **$18** (+24 pages, measured: x 3063 → 9471) and
+  facing 0 reads **$8a** and **$07** (measured in-page: x 583 → 714). The flagpole path forces facing = 1
+  first; the vine path does not.
 - Side scroll: `Player_X_Scroll` = horizontal movement; `ScrollHandler` only scrolls right (F48 model).
+- **The screen clamps the player every frame (`ChkPOffscr`/`KeepOnscr` 5428, F269/F270).** If
+  `GetXOffscreenBits` reports d7 the player is snapped to `ScreenLeft`, if d5 to `ScreenRight − 16`; a
+  page-scale teleport always reports d7 and so is undone. The furthest right the game allows is
+  `ScreenRight_X_Pos − 16`, and **the WR runs a median 127 px behind it in every level** — about 50 frames
+  of headroom, which is the ceiling for any displacement mechanism (H47).
 
 ## 3. Up / Down
 - Down on the ground with L or R held (5576–5586): **nullifies L/R and U/D for this frame** — for small
@@ -57,7 +69,10 @@ Left=$02 Right=$01 (our NES-order input files use the reversed layout, see `tool
   (full gravity). Release A early → shorter jump.
 - B: run (`X_Physics`: with L/R == moving dir; sets `RunningTimer` = 10 so the run cap persists 10 frames
   after release, F56); fireballs for Fire Mario (edge-triggered via `PreviousA_B_Buttons`, 6286).
-- Swimming: A = stroke (`JumpSwimTimer`), not covered further here (no water on the WR route).
+- Swimming: A = stroke (`JumpSwimTimer`). **NOT covered here, and the stated reason was wrong: the route
+  DOES swim.** 8-4's water room is 696 route frames, 667 of them at the swim cap (F265 sub-area `r4`,
+  P2.5 §"8-4 speed profile"). The input semantics of the one place the route swims are unread — open in
+  H12 (`docs/experiments/H12-input-semantics.md` §6).
 
 ## 5. Start / Select / pause (NMI 780–800, `PauseRoutine` 851–882)
 - Start (fresh press, game mode, task 3): toggles `GamePauseStatus` d0 and sets `GamePauseTimer` = $2B;

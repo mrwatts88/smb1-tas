@@ -55,16 +55,29 @@ work on its own; each is a lens to apply while doing something else.
   A collision-push chain, platform carry, enemy interaction or coordinate wrap that beats it would
   invalidate F124, F225, F122/F123, F232 and F152 **simultaneously**. Prior low (F227, F120, F231
   each looked and found nothing), but state the premise so that if a mechanism ever turns up it is
-  immediately obvious what it invalidates.
+  immediately obvious what it invalidates. **PRICED 2026-08-25 (F270): the class is worth up to
+  127 px ≈ 50 frames.** The furthest right the game permits is `ScreenRight_X_Pos − 16`, and the WR
+  runs a median 127 px behind it in every level measured. **And one such mechanism now exists**
+  (F268) — it is just clamped away (F269) or needs a vine (F270). The prior is no longer "nothing
+  has ever turned up".
 - **H31** — a crack in an unmodeled mechanic rather than in player movement (platform/lift carry,
   enemy interactions, scroll coupling). Every solved segment has the WR on the *player-only* bound.
 - **H32** — the 4-2 lift as a launch pad (jump from the descending lift at Y 132, not the floor at 176).
-- **H12** — L+R / U+D semantics beyond the known 1-frame reversal.
+- **H12** — L+R / U+D semantics beyond the known 1-frame reversal. **PARTLY ANSWERED 2026-08-25
+  (F268/F269/F270, `docs/experiments/H12-input-semantics.md`): an effect exists.** `PlayerFacingDir`
+  = 3 (L+R) and = 0 (L+R on a vine) are out-of-range indices into `PutPlayerOnVine`'s two 2-byte
+  adder tables; facing 3 teleports Mario **+24 pages (x 3063 → 9471, measured)** and facing 0 moves
+  him **+131 px in-page with no clamp**. It does not pay on this route — the page-scale form is
+  clamped back (F269) and the in-page form needs a vine, which 8-4 lacks. Still unread: the other
+  facing/moving-dir readers, and **swimming** (8-4's water room is 696 route frames and
+  `input-semantics.md` skipped it on a false premise).
 - **H16** — sprite-0 / PPU timing: prevent a lag frame by controlling what renders. *(Overlaps L5.)*
 - **H17** — object-slot spawn suppression: suppress Bowser in 8-4 for a faster axe. *(L7's `r5` root
   sits in that room and carries the new object-slot lens, so it is being looked at in passing.)*
 - **H20** — uninitialised-RAM reads under the emulator's defined initial RAM.
-- **H14** — vine teleport / screen-edge tricks skipping a section of 8-4 or 4-2.
+- **H14** — vine teleport **refuted** (F268/F269: real, +6,406 px, clamped back, −111 px net; and
+  8-4 has no vine). *Screen-edge* tricks are not: F270 measures **127 px of legal headroom** to the
+  right of where the WR runs.
 - **H4** — time-bonus countdown phase at the flagpole. *(F257 gives the arithmetic: a frame saved in
   a flag level is worth 1 except when it crosses a 24-frame tick, where it is worth 0.)*
 - **H1** — ending-input coast: a final jump from farther away that makes the *last input* earlier

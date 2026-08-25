@@ -2112,3 +2112,68 @@ GB, and L7's queued `r1`-`r4` are 1.2 GB each when they fire. The L7 waiter was 
 **Next.** When E7 exits: `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh` (both roots at full
 size). Then read out L7's five sweeps. The board's remaining un-run item after that is **L3**
 (8-4 room 3's approach, 38 frames), which is an engine/`bfscx` unit, not a Track E one.
+
+## 2026-08-25 — Session 21 (Linux, cont.): H12 — the first over-cap displacement, and the wall it hits
+
+**Context.** The user asked, mid-session, whether ROM reading was a dead end given that session 20
+read the ROM end to end. It is not the same ground: **E10 asked what can *write* where** (arming ACE,
+corrupting state) and closed that. H12 asks what the *inputs mean*, and it is on the board as a
+structural long shot. `docs/input-semantics.md` (P0.7) had catalogued the ordinary paths and stopped
+at "L+R sets facing = 3, which doubles the friction adder" — it never asked what else reads
+`PlayerFacingDir`, and **3 is a value no single button can produce**.
+
+**Did — the find.** `PutPlayerOnVine`'s `SetVXPl` (smbdis 12219) positions the player on any grabbed
+climbable metatile with `ldy PlayerFacingDir / adc ClimbXPosAdder-1,y`, and — when the cell is
+buffer-1 column 0 — `adc ClimbPLocAdder-1,y` onto `ScreenRight_PageLoc`. **Both tables are 2 bytes.**
+Confirmed in the ROM image, not just the listing: `f9 07 ff 00 18 22 50 68 90` occurs exactly once, at
+CPU $DE25. So facing 3 reads **$ff** for X and **$18** for the page: `+24 pages = +6,144 px`. The
+flagpole path stores facing = 1 first; **the vine path does not**.
+
+**Measured on the core, with controls** (`tools/climb_facing_probe.py`, one command). WR + L+R forced
+from 1-1 frame 1226, a `$26` metatile poked into the block-buffer row the side probe reads, grab at
+frame 1251 where the probe lands in buffer-1 column 0:
+
+| facing | page | X | x | |
+|---|---|---|---|---|
+| 1 (control) | 11 | 249 | 3065 | = `$f9`/`$ff`, in-table |
+| 2 (control) | 12 | 7 | 3079 | = `$07`/`$00`, in-table |
+| **3 (L+R)** | **36** | **255** | **9471** | out of table — **+6,406 px in one frame** |
+
+That is the first over-cap forward displacement this project has produced. H47's premise — "every x
+bound prices progress at the running cap" — has a counterexample.
+
+**And the wall.** Frame 1252 puts him at x 2954, *behind* where he started. `ChkPOffscr`/`KeepOnscr`
+(5428) runs every frame: `GetXOffscreenBits` for the player, then snap to `ScreenLeft` if d7 or
+`ScreenRight − 16` if d5. A page-scale jump always reports d7, so it always snaps left — **−111 px net,
+about 44 frames lost.** The general form is the useful part: *any* horizontal teleport large enough to
+set an offscreen bit is undone in the direction the bits report, so a displacement can only pay if it
+lands **inside the current screen**. F269.
+
+**The number that makes this session worth it.** If the clamp bounds displacement to the screen, how
+much screen is there? The furthest right the game permits is `ScreenRight_X_Pos − 16`. Against the
+WR's own position, over every control frame: **median 127 px in every level measured** (1-1, 1-2, 4-1,
+8-2, 8-4 rooms 1 and 5; minimum 42). HappyLee runs a constant **127 px ≈ 50 frames** behind the
+maximum legal on-screen x. That is the ceiling on the whole H47 class, it is far more generous than
+anyone assumed, and it means a mechanism does not need to be exotic — it only needs to land in the
+screen. F270.
+
+**And one such mechanism already exists.** `ClimbingSub` writes `PlayerFacingDir := L/R EOR $03`, so
+L+R **on a vine** sets facing = **0**, which indexes `ClimbXPosAdder-1` = `$8a`. With any column but
+buffer-1 column 0 the page is untouched, so no offscreen bit and no clamp: measured at 1-1 frame 427,
+**x 583 → 714, +131 px, unclamped**. It is not yet a saving — the placement is absolute
+(`column*16 + $8a`, wrapping inside the page), so the next frame's grab re-placed him, and arming
+facing 0 needs a vine, which exists in 1-2 and 4-2 but **not in 8-4, the level where one frame is the
+record**.
+
+**Learned.** The negative that had been carried forward — "no over-cap displacement mechanism has ever
+turned up" — was true only of the places anyone had looked, and nobody had looked at what the *inputs*
+index. Same shape as F266 earlier today (the sweep's blind spot) and F264 the day before (the
+misattributed lag frame): **the evidence was narrower than the sentence summarising it.**
+
+**Also corrected:** `input-semantics.md` §4 skipped swimming because "no water on the WR route". 8-4's
+water room is **696 route frames**, 667 of them at the swim cap. The one place the route swims has
+never had its input semantics read — that is now the top H12 leftover.
+
+**Next.** (i) Read the swim path. (ii) The other eight `ldy PlayerFacingDir` / `Player_MovingDir`
+readers — facing 3 and 0 are out of range at every one of them and only `SetVXPl` has been checked.
+(iii) Re-price mechanism hunts against F270's 127 px rather than against "beat the cap".

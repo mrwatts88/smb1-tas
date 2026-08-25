@@ -5,7 +5,7 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 21 — **L7 claimed and RUNNING on the Linux box**: the novelty sweep had never been run on **8-4**, the only unquantized level, and no sweep had ever carried an **object-slot lens** (F266: the nearest class fired only on `Enemy_ID > $36` over five of the six slots, so `$31` — F258's 857-frame mechanism — was invisible to it everywhere). `explore --anomaly` now has classes 17/18 and covers all six slots; 8-4's five sub-area roots are mapped (F265). `r5` (Bowser room, also a live H1 probe) is running; `r1`-`r4` are queued behind the E7 archives. Nothing else was started: the box had 2.5 GB spare.)
+**Updated:** 2026-08-25 (session 21 — three units. **L7** (8-4's never-run novelty sweep + an object-slot lens, F265/F266) and **L4** (8-4 room 2's exit pipe, control-gated at 16182, F267) are running/queued. Then, with the machines full, **H12** was read and it landed: `PutPlayerOnVine` indexes two 2-byte tables by `PlayerFacingDir`, L+R makes that **3**, and Mario teleports **+6,406 px** (F268) — the project's first over-cap displacement. It is clamped away (F269), but the reading **prices H47's entire class at 127 px ≈ 50 frames of legal headroom** (F270).)
 
 <details><summary>Previous stamp (session 19)</summary>
 
@@ -810,6 +810,15 @@ speed-killing mint is the only mechanism 4-2 has.
 count and go in the table above; and **a search goal must be the quantity the record is measured in
 and monotone with it** — three proxy goals produced three fake records this session (F230, F237).
 
+**Added session 21 (H12 leftovers — all reading, no RAM, so they fit while the box is full):**
+(i) **the route's only swim section has never had its input semantics read** — 8-4's water room, 696
+frames, 667 at the swim cap (F265 `r4`); `input-semantics.md` §4 skipped swimming on the explicitly false
+premise "no water on the WR route". (ii) The remaining `PlayerFacingDir` / `Player_MovingDir` readers
+(smbdis 5989, 6152, 6184, 6208, 6346, 6396, 9479, 12079, 14612) — facing 3 and 0 are out-of-range at
+every `ldy PlayerFacingDir` site, and only `SetVXPl` has been checked. (iii) **F270 reframes the target
+for any mechanism hunt:** there are 127 px ≈ 50 frames of legal headroom to the right of where the WR
+runs, so a displacement only has to land inside the screen to pay.
+
 **Added session 21 (L4 follow-up, the first thing to do when RAM frees):** relaunch
 `runs/L4-w84r2/launch.sh` at `CELLS=150000 MEMMAX=2500M` (both roots) — the 40,000-cell job now running
 evicts hard on a deliberately fine key, and the second root (`w`, the whole room) has never run at all.
@@ -872,6 +881,17 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s21 (Linux) — **H12 partly answered, and it produced the project's first over-cap forward
+  displacement** (F268/F269/F270, `docs/experiments/H12-input-semantics.md`, repro
+  `tools/climb_facing_probe.py`). `PutPlayerOnVine`'s `SetVXPl` indexes two 2-byte adder tables by
+  `PlayerFacingDir`, and L+R makes it **3** — one past the end. Measured on the core: **x 3063 → 9471
+  (+6,406 px) in one frame**; the in-table controls at facing 1 and 2 land exactly on the table bytes.
+  It does not pay: `KeepOnscr` clamps any page-scale teleport to a screen edge the next frame (**−111 px
+  net**, F269). But the same reading **prices H47's whole class: the game allows the player 127 px
+  further right than the WR ever is (median, every level measured) ≈ 50 frames** (F270), and the facing-0
+  variant (L+R on a vine → `X := column*16 + $8a`) moves **+131 px in-page with no clamp** — real, but it
+  needs a vine and 8-4 has none. `input-semantics.md` corrected: it had skipped swimming on the false
+  premise that the route has no water (8-4's water room is 696 route frames).
 - 2026-08-25 s21 (Linux) — **L4 claimed and launched: 8-4 room 2's exit pipe, control-gated** (F267,
   `docs/experiments/L4-w84r2-pipe.md`). The 15 priced frames are an approach *arc* onto the pipe mouth
   (cols 150-151, speed 38→23 against blocks at c152/c153), and MrWint's 40-frame segment optimum does not
