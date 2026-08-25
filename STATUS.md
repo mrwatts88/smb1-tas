@@ -222,6 +222,31 @@ pre-cleanup narrative version of this file is archived at
   shows it was a transient `AreaPointer` during the reset), route-agnostic `world_ahead`, and **`novel_world`**
   for worlds the WR never visits at all (H44 — `world_ahead` scored those ZERO by construction, since there is
   no baseline frame to beat; a world the WR never enters may still lead somewhere better via an unknown warp).
+  **CHECKPOINT 7 (session 17) — THE LINE IS BLOCKED, AND WE KNOW EXACTLY WHERE (F215). Unit conclusion.**
+  Chased the one question that decided it: **can a real head bump plant a useful byte?** No.
+  `BlockBumpedChk` does not modify A, so for **small Mario with no table match the deferred write is a COPY of
+  the byte already there**; a match writes **`$c4`**; big Mario writes **`$00`**; the immediate write is always
+  **`$23`**; every other OOB-capable writer writes `$00`; and the vine is explicitly guarded out of OOB entirely.
+  So the complete mintable set is **{`$00`, `$23`, `$c4`, copy}**. As `Enemy_ID`s: `$00` inert, **`$23` is
+  IN-TABLE for both dispatches** (jumps nowhere), and **`$c4` is the only OOB value — its init dispatch goes to
+  `$60cf`, unmapped, which is precisely the reset F208 observed.** The five RAM-executing IDs (59/132/133/140/187)
+  are **not mintable by any known writer**, so the self-hosting `$06B5` idea is dead as designed. `$c4` at `$06CB`
+  is doubly blocked: minting it needs that cell to already hold a brick metatile, and `EnemyFrenzyBuffer` only
+  ever receives small enemy IDs.
+  **What this does NOT close:** P3.1 §4's three unaudited writer classes — stack overflow/underflow, non-indexed
+  writes, `VRAM_Buffer` writes indexed by `VRAM_Buffer1_Offset`. That is now H43's *only* opening, and it is a
+  bounded reading job, not an open-ended hunt.
+  **What SURVIVES as durable value from this unit** (all V-grade, all committed):
+  F200 ending predicate; F201/F202 H7 targets narrowed; **F203 the $06CF reach bound is tight**; F205 band A
+  inert except the frenzy pair; F206-F208 the JumpEngine OOB is real and observed firing, destination is
+  value-determined; F209 the steering map; **F210/F211/F214 the trigger geometry is fully specified and the WR
+  route already enters it 8 times across 4 levels**; F212/F213 the destination map (two tables, 128 aliased
+  indices, 3 destination classes, 5 RAM-executing IDs); F215 the value-minting block.
+  Tooling: `build/ram_oracle` with `--probe`, route-progress, OperMode gate, `world_ahead`, `novel_world`.
+  **NEXT UNIT (Track B): P3.3 — audit the three remaining writer classes.** If any can write an arbitrary byte
+  into `$05E0-$06CF`, every other piece of this chain is already built and mapped, and H43 reopens immediately.
+  If none can, H43 is refutable with a proof artifact for the first time. Either way it is a bounded disassembly
+  job with a clear verdict, and it needs no CPU.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 s16; port DONE s17).**
   Span: the room in ONE piece — control (WR dump row **15918**, fceux RAM index 15917, page 7, x 1848) →
   the clip pipe entry at **(col 152, row 4)**, x 2436. WR = **267** frames, 8-4 is unquantized (H24), so a
