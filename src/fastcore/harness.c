@@ -101,9 +101,12 @@ typedef size_t (*retro_get_memory_size_t)(unsigned);
 static double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec * 1e-9; }
 
 int main(int argc, char **argv) {
-    if (argc < 3) { fprintf(stderr, "usage: %s CORE.so ROM.nes [INPUTS.bin] [--frames N] [--ram OUT] [--reset0] [--state-every K]\n", argv[0]); return 2; }
+    if (argc < 3) { fprintf(stderr, "usage: %s CORE.so ROM.nes [INPUTS.bin] [--frames N] [--ram OUT] [--reset0] [--state-every K] [--poke ADDR=VAL@FRAME]\n", argv[0]); return 2; }
     const char *core = argv[1], *rom = argv[2], *inputs = NULL, *ramout = NULL;
     long max_frames = -1, state_every = 0, input_skip = 0; int reset0 = 0, quiet = 0;
+    /* --poke ADDR=VAL@FRAME : write one RAM byte after the given frame's retro_run().  Used to
+       test "what if this flag were set here" questions (H49: WarpZoneControl mid pipe-descent). */
+    long poke_addr[8], poke_val[8], poke_frame[8]; int npoke = 0;
     for (int i = 3; i < argc; i++) {
         if (!strcmp(argv[i], "--frames")) max_frames = atol(argv[++i]);
         else if (!strcmp(argv[i], "--ram")) ramout = argv[++i];
@@ -111,6 +114,12 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--quiet")) quiet = 1;
         else if (!strcmp(argv[i], "--state-every")) state_every = atol(argv[++i]);
         else if (!strcmp(argv[i], "--input-skip")) input_skip = atol(argv[++i]);
+        else if (!strcmp(argv[i], "--poke")) {
+            if (npoke >= 8) { fprintf(stderr, "too many --poke\n"); return 2; }
+            if (sscanf(argv[++i], "%li=%li@%li", &poke_addr[npoke], &poke_val[npoke], &poke_frame[npoke]) != 3) {
+                fprintf(stderr, "bad --poke, want ADDR=VAL@FRAME\n"); return 2; }
+            npoke++;
+        }
         else if (argv[i][0] != '-') inputs = argv[i];
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 2; }
     }
@@ -154,6 +163,8 @@ int main(int argc, char **argv) {
     for (long i = 0; i < frames; i++) {
         cur_pad = (in && i + input_skip < nin) ? in[i + input_skip] : 0;
         retro_run();
+        for (int k = 0; k < npoke; k++)
+            if (i == poke_frame[k]) ram[poke_addr[k] & 0x7ff] = (uint8_t)poke_val[k];
         if (out) fwrite(ram, 1, 0x800, out);
         if (state_every && (i + 1) % state_every == 0) {
             double a = now();
