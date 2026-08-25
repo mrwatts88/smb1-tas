@@ -80,6 +80,17 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **P2.3c-11 — THE CROSS-SEAM TEST (declared 2026-08-24 session 16).** Running:
+  `runs/P2.3c-11/wholelevel_launch.sh` — the whole 4-2 main area as **one** bucketed-beam search
+  from prefix 0, deadline 575, no seams at all (`--beam 50 --beam-buckets off,y,spd,sub
+  --beam-max 300000`). The 553 (F118) was built as **seven chained segments**, each at its own
+  movement bound, with a single-scalar first-arrival gate at every seam. Read the verdict as:
+  **≥ 553 = uninformative** (a beam that finds nothing or worse proves nothing, runbook §7.2);
+  **= 553** = machinery sound, seams were not leaking; **< 553** = the seven seams WERE costing
+  frames on a level certified "every segment at its bound", which reframes every closed level —
+  and 8-4 is where one frame IS the record (H24). Check with
+  `grep -c "goals [1-9]" runs/P2.3c-11/wholelevel.log` and the `earliest goal` line at the end.
+  ~1.3 s/layer, 300k states/layer capped, ≈12 min, layer dir on NVMe.
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin

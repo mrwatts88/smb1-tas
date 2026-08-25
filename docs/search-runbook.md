@@ -112,6 +112,28 @@ afterwards without blocking it.
 
 ## 5. Engine patch discipline
 
+**Rule 0 — NEVER commit inside `third_party/smb-opt`.** The clone must sit **at the pin
+`daa4428`** with every one of our modifications as an *uncommitted working-tree change*. That is
+not a stylistic preference: the patch is `git diff` **against the pin**, so a commit in the clone
+moves HEAD and makes `git diff` return **empty**. The next regeneration then writes an empty (or
+truncated) patch, `git apply` succeeds, the Mac rebuilds from *unmodified upstream*, and every
+number it produces is wrong — with no error raised anywhere in the chain. This is the most
+dangerous silent failure in the project, because the engine is the instrument every fact is
+measured with.
+
+- **Regenerate only via `tools/regen_patch.sh`.** It refuses unless HEAD == the pin, re-intent-adds
+  every untracked source file (P0.11 §7 #13), and refuses a patch that is tiny or that shrinks by
+  more than 10% (`--force` to override deliberately).
+- **How it happens:** a compound Bash call that does `cd third_party/smb-opt && … && git add -A &&
+  git commit`. The `cd` persists for the rest of the command, so the commit lands in the clone.
+  Happened 2026-08-24 (session 16). Use absolute paths, and never chain a `cd` into the clone with
+  a commit.
+- **Recovery if it does happen:** `git -C third_party/smb-opt reset --mixed daa4428`, then re-run
+  `tools/regen_patch.sh` (it re-intent-adds the sources), then **diff the regenerated patch against
+  the committed one and confirm they are identical** before trusting anything.
+- **Check before you trust a patch:** `git -C third_party/smb-opt rev-parse --short HEAD` must print
+  `daa4428`.
+
 - One machine edits the engine (the primary box). The patch is `git diff` of the untracked
   clone against pin `daa4428`; regenerate it at commit time and **intent-add every untracked
   source file first** (`git add -N src/case/w42.rs src/heuristics/ygate.rs src/w42enemies.rs
