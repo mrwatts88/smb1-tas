@@ -200,7 +200,14 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- (none — E10 passes 1-3 all complete, see Done)
+- **L5 / H2 — the lag-frame read** (Mac, session 20). *Claimed here to avoid duplicating the Linux box.*
+  **Goal:** determine at code level what makes the one lag frame per area load, and whether anything about
+  it is under our control. **Why it is worth a unit:** 16 on the route, and **five are inside 8-4**, where
+  nothing re-absorbs a frame and one frame is the record. Never attacked; the standing prior ("the lag *is*
+  the load, so probably irreducible") is an assumption nobody has checked. **Acceptance:** the lag frame
+  identified per load with the routine running on it, a cycle account for why the NMI overruns, and a
+  verdict on whether any input-, state- or route-dependent quantity moves it. **Artifact:**
+  `docs/experiments/H2-lag-frames.md`. Board: `docs/open-threads.md` L5.
 
 ## Superseded in-progress note
 - **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started

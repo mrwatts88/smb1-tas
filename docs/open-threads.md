@@ -1,180 +1,119 @@
 # Open threads — everything left, and what "give up" would mean
 
-**Written 2026-08-25 (session 19).** Regenerate the hypothesis half with:
-`grep '^| H' docs/hypotheses.md`. Ledger state: **49 hypotheses, 22 closed with a proof artifact,
-27 nominally open — of which about eight are real work and the rest are bookkeeping.**
+**Rewritten 2026-08-25 (session 20, after E10 closed the state surface).** Regenerate the
+hypothesis half with `grep '^| H' docs/hypotheses.md`. The previous version tiered 21 items by
+"running / ready / blocked / long shot"; that shape stopped fitting once a whole tier closed in a
+day, so this version leads with **the live board** and files everything closed at the bottom with
+its date and fact number.
 
-## The frame budget, so every item below can be priced
+---
 
-A level only pays if it saves its **whole** framerule deficit — except 8-4, which is unquantized and
-pays per frame. From `tools/slack_table.py`:
+## THE LIVE BOARD — six items, and that is all of it
 
-> **Caveat added 2026-08-25 (F258/F259):** this table holds only while the end-of-level wait does. H50,
-> measured on the core, removes it — a second star-flag object makes every flag level unquantized
-> like 8-4, so the "must save" column collapses to 1 and every banked sub-threshold frame revives.
-> It needs a write we do not have (F259), but price movement work against **both** columns.
+| # | thread | needs | has | state |
+|---|---|---|---|---|
+| **L1** | **8-2's flag-glitch window** (H48/F247) — the jump over the col-206/207 wall reaches the pole 112 frames early but takes a normal slide instead of HappyLee's glitch. A ~4 px band in `Player_Y_Position` (161 reached, 165–166 needed) at the frame `x+13` crosses into column 216. | 19 | 112 | **RUNNING**, Mac ×2 (`runs/E9b/arc{16,32}.log`, 6 h). At the control (`best=12953` vs baseline 12952), no banked frames yet |
+| **L2** | **1-2's eight frames** (H22 / H46-dynamic) — the clip's *entry* costs the speed (F246); the traversal is free. A sink entry that keeps the speed (F244) is priced at ~13 frames of overshoot against a deficit of 8. | 8 | 60 | **RUNNING**, Linux ×3 (`runs/E7-w12/{body,sub16,sub32}.log`). At the control (`best=3764` vs baseline 3763), no banked frames yet |
+| **L3** | **8-4 room 3's approach** (H25) — one frame, in the only unquantized level. Two searches went dry but **both goaled on the WR's own apex**, which H39's seam corollary says deletes the answer by construction. The corrected version searches the 162-frame approach with generic buckets and emits a *set* of apex states. | 1 | 38 | **un-run** |
+| **L4** | **8-4 room 2's exit pipe** — 15 frames of measured geometric loss at cols 150–152 (F245). An arc problem, never searched with a subpixel cell key. (Its sibling, 4-2's warp-zone drop, is 30 frames but 4-2 needs 13 and is measured closed on both routes.) | 1 | 15 | **un-run** |
+| **L5** | **H2 — lag frames.** 16 on the route, exactly one per area load (F224). **Five of them are inside 8-4**, where a frame is a frame and nothing re-absorbs it. Never attacked, never read at code level. Honest prior: the lag *is* the load, so probably irreducible — but that is an assumption nobody has checked, and checking it is a read, not a search. | 1 | ≤5 | **un-run, cheapest thing on the board** |
+| **L6** | **Big Mario, route-wide** (H18/F238) — his left probe covers two rows, so he free-passes a face more easily, but he is strictly fatter and the static census says he adds nothing (F243). | — | — | fold into L2; **not its own campaign** |
 
-| level | must save | movement loss available (F245) | note |
+**Where the frames can actually come from.** A level only pays if it saves its **whole** framerule
+deficit — except 8-4, which is unquantized and pays per frame. From `tools/slack_table.py` and the
+loss map (F245):
+
+| level | must save | movement loss available | note |
 |---|---|---|---|
-| **8-4** | **any 1 frame** | 38 (room 3) + 15 (room 2 pipe) | the only 1:1 level |
-| 1-2 | 8 | 33 (the clip) + 27 (the turnaround) | 3 searches running |
-| 4-1 | 9 | **0** | geometry cannot pay here |
-| 8-3 | 10 | **0** | geometry cannot pay here |
-| 4-2 | 13 | 33 (bought — it mints the warp key) + 30 (warp zone) | both routes measured closed |
-| 8-1 | 18 | **0** | geometry cannot pay here |
-| 8-2 | 19 | **114** | 2 searches running |
+| **8-4** | **any 1 frame** | 38 (room 3) + 15 (room 2 pipe) + ≤5 (lag) | **the only 1:1 level — L3, L4 and L5 all live here** |
+| 8-2 | 19 | **114** | L1 running |
+| 1-2 | 8 | 60 | L2 running |
+| 4-2 | 13 | 33 + 30 | measured closed on both routes (F122/F123) |
+| 4-1 / 8-1 / 8-3 | 9 / 18 / 10 | **0** | geometry cannot pay here |
 | 1-1 | 1 | 0 | proven closed end to end (F124) |
 
-**The whole route loses 290 frames to geometry (F245).** That is the entire budget the movement side
-is fighting over, and more than a third of it is at one place in 8-2.
+**The whole route loses 290 frames to geometry (F245)** — that is the entire budget the movement
+side is fighting over. **8-4 is the thread**: it is the only level where one frame *is* the record,
+and three of the four un-run items sit in it.
+
+> **Caveat that would rewrite this table (F258/F259):** H50 — a second star-flag object — removes
+> the end-of-level wait and makes every flag level unquantized like 8-4, collapsing the "must save"
+> column to 1 and reviving every banked sub-threshold frame. It is **measured at 857 frames**
+> (1,329 with the win music dropped) and **unreachable** (F262). Price movement work against the
+> "must save" column as it stands, but know the other column exists.
 
 ---
 
-## Tier 1 — running right now
+## Structural long shots — low prior each; any one reopens everything
 
-| # | thread | worth | state |
-|---|---|---|---|
-| 1 | **H48 — 8-2's flag-glitch window.** The jump over the col-206/207 wall is confirmed on the core (F247): clears at speed 40, reaches the pole **112 frames early**. It ends the level *later* because it takes a normal slide instead of HappyLee's glitch. The whole thing is a **~4 px band in `Player_Y_Position`** (161 reached, 165-166 needed) at the frame `x+13` crosses into column 216. | 19 needed, 112 in hand | 2 archives on the Mac (`runs/E9b/launch_mac.sh`), 21k fps, both at the control |
-| 2 | **H22 / H46-dynamic — 1-2's eight frames.** The clip's *entry* costs the speed (F246: 40 → 0 → re-accelerate over 14 frames of +1 px drift); the *traversal* is free at full speed. If a sink entry exists that keeps the speed (F244), F239 prices it at ~13 frames of overshoot against a deficit of 8. | 8 needed | 3 archives here (`runs/E7-w12/`), all at the control |
+Kept because you cannot prove a negative about mechanisms nobody has enumerated. None is a session's
+work on its own; each is a lens to apply while doing something else.
 
----
-
-## Tier 2 — concrete, ready to start, no missing primitive
-
-3. **E10 — the unaudited half of the ROM.** Pure reading, no compute. Never done: every `JumpEngine`
-   call site's index provenance beyond the enemy tables (18 sites listed, only the enemy ones
-   chased), every writer of the `$0780-$07A3` timers, the sprite/OAM paths, the sound engine's RAM
-   footprint, and the two-player / demo / attract-mode paths. **Today gave it three named targets
-   instead of a fishing licence:** `$0769` (`DisableIntermediate` — worth ~96 frames at 8-4's
-   water-room transition, F251), `$074e` (`AreaType` — worth ~96 × 3 if writable before a pipe
-   commit), `$06D6` (`WarpZoneControl`). *Best expected value per hour on the board.*
-4. **H43(b) — a head bump at `Y + adder < $20` on an odd-page column 11.** This is the single
-   highest-leverage missing primitive in the project. F250 showed `$06CB` is **inside** F203's
-   proven `$06CF` OOB ceiling, and `$06CB` feeds `Enemy_ID` unchecked — so this one bump unlocks
-   `WarpZoneObject`, arbitrary enemy IDs, and the whole H7/H8/H43 chain. It is a geometry question,
-   which is what the search engine is for. **REFUTED 2026-08-25 by E10 (F252): there is no such Y.**
-   `PlayerBGCollision` is entered only past `ChkOnScr` (11919-11926), which requires
-   `Player_Y_HighPos` = 1 **and** `Player_Y_Position` < $CF — and every Y window F210/F216 derived
-   is >= $CF. The reachable head row is $00-$C0 for every size/crouch/swim combination, and the
-   feet and both side probes close the same way, so **no player-driven block-buffer access can
-   leave the buffer.** With F203 (address ceiling) and F215 (values) the block-buffer mechanism is
-   closed on both axes; F210 and F216 are corrected. What is left of H43 is #4' below.
-4'. **DONE 2026-08-25 (F262) — all three classes read, all three closed.** `VRAM_Buffer` overflow
-   tops out at $0444 (largest displacement in the ROM is +27, 8-bit index) and the stack at $01FF;
-   neither can reach page 6. The non-indexed writes to the frenzy cells are all constants. See #8.
-   Original text: **E10 continued — the write classes nobody has read.** E10's first pass (2026-08-25,
-   `docs/experiments/E10-rom-read.md`) covered the NMI/timer core, all four mode trees,
-   `ScreenRoutines`, the area parser, player physics and **all** of `PlayerBGCollision`, the block
-   and enemy dispatch paths, `RunStarFlagObj`, `RunGameTimer`, and every `sta ($06),y` site with
-   its guards — producing F252-F257. Still unread and now load-bearing for #8: the **`VRAM_Buffer`
-   overflow class** (writes indexed by `VRAM_Buffer1_Offset`, advanced +7/+10/+3 by
-   `ColorRotation`, `GetPlayerColors`, `WriteBlockMetatile` and `OutputNumbers` — only
-   `ColorRotation` bounds itself), the sprite/OAM paths, the sound engine's RAM footprint, the
-   two-player/demo paths, and the `JumpEngine` sites outside the enemy and area-object tables.
-   Same shape: pure reading, no compute.
-
-4''. **H50 — MEASURED: 857 frames at N=2 (F258), 1,329 with the win music dropped (F259/F260,
-   `H50-star-flag.md`); the framerule is gone in every level where it fires.**
-   Done the same day it was raised. `tools/starflag_poke.py --n 2 --no-music`, each level against
-   its own WR control: next-area-load moves 1941→1629, 6039→5750, 10810→10600, 12953→12675,
-   15054→14814 = **312+289+210+278+240 = 1,329 frames**; at N=2 without touching the music it is
-   **857**, and N>2 buys nothing because the win music becomes the floor. The bypass is observed
-   directly (1-1: `DelayToAreaEnd` advances with `EnemyIntervalTimer[0]` still reading 4), and with
-   `ScrollLock` cleared so the music never queues, `StarFlagTaskControl` goes **3 → 5 in one
-   frame**. The run stays healthy past the exit. **Reachability is now the only question (F259):**
-   both halves need a non-zero write ($31 into a spare `Enemy_ID`+`Enemy_Flag`, and `$0723` = 0),
-   the frenzy cells that would do the first are unreachable after F252, and no flag level contains
-   a `ScrollLockObject`. **So H50 is the payoff attached to #8's missing primitive, not a separate
-   lead — and it changes #8 from "a jump with no known payoff" to "one byte, 1,329 frames".**
-   Original text: **a second `Enemy_ID` = $31 deletes the framerule (F254).** `RunStarFlagObj` runs once
-   per frame *per enemy slot* holding $31, and its task 4 blocks on a **per-slot**
-   `EnemyIntervalTimer` — so a second star-flag object reads its own untouched 0 and ends the area
-   in one frame instead of (v+1)+105, while task 2 divides the timer countdown. Priced at N=2:
-   **~1,319 frames, and all five flag levels become unquantized like 8-4** — which would rewrite
-   the budget table at the top of this file. Reachability is blocked with #8, **but the prize can
-   be measured today** with `build/harness --poke` (`Enemy_ID+k = $31`, `Enemy_Flag+k = 1` a few
-   frames before 1-1's grab), the same ~20-minute shape as F251's test. **Cheapest high-value
-   measurement on the board — do it before anything else in Tier 2.**
-
-5. **H25 — 8-4 room 3's approach.** One frame, in the unquantized level. Two searches already went
-   dry (F133) but **both goaled on the WR's own apex**, which H39's seam corollary says deletes the
-   answer by construction. The un-run version searches the 162-frame approach with generic buckets
-   and emits a *set* of apex states.
-6. **Big Mario, route-wide (H18 / F238).** He is on screen for 4 of 18,268 frames in the WR. E9a
-   showed his left probe covers **two rows** instead of one, so he free-passes a face more easily —
-   but he is strictly fatter and the static census says he adds nothing (F243). Cheap to fold into
-   the 1-2 work; do not run as its own campaign.
-7. **The two unexplained loss sites.** 4-2's warp-zone drop (30 frames, cols 57-59) and 8-4 room 2's
-   exit pipe (15 frames, cols 150-152). Both are arc problems, neither has been searched with a
-   subpixel cell key.
+- **H47 — an over-cap forward displacement mechanism.** *This is the unstated premise behind every
+  closure on the board.* Every x bound prices per-frame progress at the running cap (40 subpixels).
+  A collision-push chain, platform carry, enemy interaction or coordinate wrap that beats it would
+  invalidate F124, F225, F122/F123, F232 and F152 **simultaneously**. Prior low (F227, F120, F231
+  each looked and found nothing), but state the premise so that if a mechanism ever turns up it is
+  immediately obvious what it invalidates.
+- **H31** — a crack in an unmodeled mechanic rather than in player movement (platform/lift carry,
+  enemy interactions, scroll coupling). Every solved segment has the WR on the *player-only* bound.
+- **H32** — the 4-2 lift as a launch pad (jump from the descending lift at Y 132, not the floor at 176).
+- **H12** — L+R / U+D semantics beyond the known 1-frame reversal.
+- **H16** — sprite-0 / PPU timing: prevent a lag frame by controlling what renders. *(Overlaps L5.)*
+- **H17** — object-slot spawn suppression: suppress Bowser in 8-4 for a faster axe.
+- **H20** — uninitialised-RAM reads under the emulator's defined initial RAM.
+- **H14** — vine teleport / screen-edge tricks skipping a section of 8-4 or 4-2.
+- **H4** — time-bonus countdown phase at the flagpole. *(F257 gives the arithmetic: a frame saved in
+  a flag level is worth 1 except when it crosses a 24-frame tick, where it is worth 0.)*
+- **H1** — ending-input coast: a final jump from farther away that makes the *last input* earlier
+  while Mario still reaches the axe. Partly closed (F223 settled the WR's own final jump).
 
 ---
 
-## Tier 3 — real, but blocked on a primitive we do not have
+## Closed — with the date and the artifact, so nobody re-opens them by accident
 
-8. **CLOSED 2026-08-25 (F262) — H7 / H8 / H43, cart-swap-free ACE.** The jump fires but cannot be
-   armed: `$06CB`'s writable value set is {$00,$12,$14,$15,$16,$17} and `$06CD`'s is
-   {$00,$14,$17,$18}, by complete enumeration of every store that can reach either cell; the two
-   classes this item was waiting on (#4') are page-bounded away from page 6 (`VRAM_Buffer` ceiling
-   $0444, stack ceiling $01FF). Residuals named in F262. Original text follows.
-   **H7 / H8 / H43 — cart-swap-free ACE.** The arbitrary jump is *confirmed firing* (F207/F208/F209):
-   `$06CB` reaches `Enemy_ID`, out-of-table indices dispatch, the destination is a deterministic
-   function of the byte, and it reaches area-loading code. No value found yet ends the game early.
-   ~~Blocked on #4.~~ **Its writer is now gone (F252/F253): the block-buffer mechanism cannot reach
-   the window with a non-zero byte at all.** The whole ACE line therefore rests on the three write
-   classes P3.1 §4 never audited — stack over/underflow, non-indexed writes, and `VRAM_Buffer`
-   overflow. That is #4'.
-9. **CLOSED 2026-08-25 (F262), same enumeration as #8.** It needed `$06D6` and `$0769` non-zero, and
-   E10 pass 3 shows the three remaining write classes are page-bounded away from both (`VRAM_Buffer`
-   ceiling $0444, stack ceiling $01FF, block-buffer ceiling $06CF) while every non-indexed write to
-   them is one of the game's own constants. Original text: **H49's residual (F251).** 8-4's water-room transition is the one whose *destination* is not a
-   castle, so `DisplayIntermediate` there does consult `DisableIntermediate`: `$06D6` **and** `$0769`
-   non-zero during that one descent is ~96 frames. Both bytes are above the proven ceiling → E10.
-10. **H2 — lag frames.** 16 on the route, exactly one per area load (F224), four of them inside 8-4
-    where a frame is a frame. Never attacked. Honest prior: the lag *is* the load, so probably
-    irreducible — but it has never been read at code level, and that is cheap.
+**2026-08-25 (session 20, E10 — the ROM read end to end, `docs/experiments/E10-rom-read.md`):**
 
----
+- **H43(b) — the head bump at `Y + adder < $20`** — *was* "the single highest-leverage missing
+  primitive in the project". **Refuted (F252):** `PlayerBGCollision` is entered only past `ChkOnScr`,
+  which requires `Player_Y_HighPos` = 1 **and** `Player_Y_Position` < $CF; every Y window F210/F216
+  derived is >= $CF. No player-driven block-buffer access can leave the buffer. **F210 and F216 are
+  corrected.**
+- **The three unaudited write classes** — zero-page (F261), `VRAM_Buffer` overflow and stack (F262).
+  `VRAM_Buffer` tops out at `$0444`, the stack at `$01FF`; neither reaches page 6.
+- **H7 / H8 / H43 — cart-swap-free ACE (F262).** The out-of-table jump *fires* (F207/F208) but
+  `$06CB` in {$00,$12,$14,$15,$16,$17} and `$06CD` in {$00,$14,$17,$18} — **it can never be armed.**
+- **H49's residual (F262)** — needed `$06D6` and `$0769`, both above every ceiling; same enumeration.
+- **H50 — the second star flag (F258/F259/F262).** Mechanism measured at **857 frames** (1,329 with
+  the music); injector does not exist and cannot be made to exist. `CastleObject` is the only `$31`
+  writer in the ROM and **no area in the game has two non-page-0 castles** (F263).
+- **H3 — framerule-phase manipulation (F255).** `TimerControl` really does shift the ITC grid, but
+  every freeze the ROM can produce loses (injury: k=55, c=16 -> +13 frames at best).
 
-## Tier 4 — structural long shots. Low prior each; any one of them reopens everything
+**Earlier:** H46's static half (F243, the wall-face census is empty at both hitboxes); H48 confirmed
+as movement and refuted as a record (F247); 1-1 (F124); 4-2 both routes (F122/F123); 4-1/8-1/8-3
+(F225).
 
-11. **H47 — an over-cap forward displacement mechanism.** *This is the unstated premise behind every
-    closure in the project.* Every bound assumes 2.5 px/frame. A collision-push chain, a platform
-    carry, an enemy interaction or a coordinate wrap that beats it would invalidate the entire
-    movement-side case for optimality. Never systematically hunted.
-12. **H31 — a crack in an unmodeled mechanic** rather than in player movement: platform/lift carry,
-    enemy interactions, scroll coupling. Every solved segment has the WR sitting on the *player-only*
-    bound, so a new frame most plausibly comes from something the model omits.
-13. **H32 — the 4-2 lift as a launch pad** (jump from the descending lift at Y 132 instead of the
-    floor at Y 176).
-14. **H12 — L+R / U+D semantics** beyond the known 1-frame reversal.
-15. **H16 — sprite-0 / PPU timing**: prevent a lag frame by controlling what renders.
-16. **H20 — uninitialized-RAM reads** under the emulator's defined initial RAM.
-17. **H17 — object-slot spawn suppression** (suppress Bowser in 8-4 for a faster axe).
-18. **H14 — vine teleport / screen-edge tricks** skipping a section of 8-4 or 4-2.
-19. **H3 — framerule-phase manipulation** (re-align a level with slack k).
-20. **H4 — time-bonus countdown phase** at the flagpole.
-21. **H1 — ending-input coast**: a final jump from farther away that makes the *last input* earlier
-    while Mario still reaches the axe. Partly closed (F223 settled the WR's final jump).
-
----
-
-## Retired in practice (open in the ledger, not worth a session)
-
-**H10 / H11 / H23** are restatements of "search harder" and are superseded by the priced loss map.
-**H41 / H42** are search-methodology hypotheses, useful only inside another unit. **H15** (soft
-reset), **H26** (8-2 Koopa FPG), **H19** (Start-press alignment, settled for this boot by F31).
+**Retired in practice** (open in the ledger, not worth a session): **H10/H11/H23** restate "search
+harder" and are superseded by the priced loss map; **H41/H42** are search-methodology, useful only
+inside another unit; **H15** (soft reset), **H26** (8-2 Koopa FPG), **H19** (Start-press alignment,
+settled for this boot by F31).
 
 ---
 
 ## What "give up" would actually mean
 
-A defensible stop is: **Tier 1 dry, Tier 2 done, and E10 clean.** That is roughly three to four more
-sessions. Tier 4 would remain open forever in principle — you cannot prove a negative about
-mechanisms nobody has enumerated — but PLAN §7 already treats "the census is empty and the audit is
-clean" as a tier-1 publishable result in its own right, not a failure.
+The old condition was *"Tier 1 dry, Tier 2 done, and E10 clean."* **E10 is now clean** and the state
+surface is closed. So the remaining condition is narrow and concrete:
 
-The honest asymmetry to hold onto: the *movement* surface is nearly licked clean and we can now put a
-number on it (290 frames, mostly measured shut). The *state* surface — write primitives, entrance
-modes, area loads, the frenzy buffer — has barely been read, and every page of it read this session
-produced something (F241-F251).
+> **L1 and L2 dry, and L3/L4/L5 run and dry.**
+
+That is one to two sessions of work, not three to four. If it lands there, PLAN §7 already treats
+"the census is empty and the audit is clean" as a tier-1 publishable result in its own right rather
+than a failure — a complete, measured account of why 17,868 is optimal on this route, plus two
+measured mechanisms nobody had documented (H50's 857 frames; the 26.7 % non-gameplay budget, F256).
+
+**The asymmetry has flipped.** The old note here said the movement surface was nearly licked clean
+while the state surface "had barely been read, and every page of it read this session produced
+something." That is no longer true: the state surface was read end to end on 2026-08-25 and is now
+the *more* closed of the two. What is left is movement, in 8-4, worth one frame.
