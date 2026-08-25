@@ -196,3 +196,39 @@ attached to it.
    until it lands. That is allowed.
 3. **Long finders run detached under a memory cap and are checked, not babysat** — unchanged from
    the runbook, but now the normal mode of work rather than the exception.
+
+---
+
+## 7. Addendum — what session 18 actually established (written at session close)
+
+The plan above survives, but the day changed two things about it and one of them is the headline.
+
+**1. The discovery engine is the disassembly, not the search.** §5's Track E was written as "build a
+finder". The finder got built and is good — it runs on the real emulator, holds "pay first, gain
+later" trades by construction, and its controls reproduce the WR everywhere. **It found nothing.**
+Every result of the session — F225 through F240 — came from reading `data/disasm/smbdis.asm` or
+censusing `data/wr/fceux_wr.ram`, usually inside ten minutes. That is not an argument against the
+finder (it is what will *verify* and *finish* a find, and it caught three fake records). It is an
+argument about where to spend the first hour of a session: **read the game.**
+
+**2. The §1 verdict has moved, and honestly.** Morning: ~3-in-4 that a sub-17,868 movie exists.
+By close, after closing 8-4 entirely, the route topology, the cap survey and the world-8 prize on the
+legitimate path, the conventional route is closed and I would defend that. What survives is narrow and
+nameable, and it is **not** "search harder":
+- **H46, the wall-face census (E9a/E9b).** The walk-through primitive is proven to work **at the full
+  speed cap** — F239 shows the WR using it for 250 px in 4-2 — and *which other faces admit it has
+  never been enumerated*. Finite, unenumerated, and the only class that yields distance.
+- **E10, the unaudited half of the ROM**, measured against a target F235 made sharp: the prize is one
+  more `inc $06D6`, not an arbitrary write.
+- **1-2's eight frames** — 0.045% of the run, with the lever identified (a speed-preserving clip).
+
+**3. The failure mode this review was written to diagnose showed up three more times, in me.**
+§2(a) said every decomposition is a first-arrival gate. The session's actual repeat offender was its
+cousin: a **goal cheaper to satisfy than the thing wanted**, which produced −54, −102 and −51 frame
+"records" that were all worse in reality (F230, F237). The rule is now in `P4E-finder.md` and in
+STATUS: the goal must be the quantity the record is measured in, and monotone with it. **Check that
+before trusting any search, including the four left running.**
+
+**4. Falsification, restated.** If E9a/E9b come back with every face refusing at both hitboxes and
+E10's audit is clean, then SMB1 any% on this route is optimal — and saying so with machine-checked
+evidence is PLAN §7's tier-1 outcome, not a failure.

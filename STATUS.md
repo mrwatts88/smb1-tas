@@ -642,15 +642,26 @@ SMB1 any% is optimal, which is itself PLAN §7's tier-1 result.
 
 ## Next up (ordered — the top unblocked item is the next unit of work)
 
-**PRIORITY REBUILT 2026-08-25 (session 18) — see `docs/strategy-review.md`, which is now the
-official way forward and supersedes the 2026-08-24 "8-4 campaign" ordering where they disagree.**
-Two things changed. **(1) User doctrine: proof and exhaustiveness are no longer deliverables — we
-want a record, full stop.** Beams, stochastic search and restarts are legitimate finders; only a
-*positive* needs verification (core replay, then two emulators). **(2) The other session settled
-that the bottleneck is the state space, not the bound** (`P2.3e-framerule-scan.md` §41: with the
-bound only 4 frames loose the frontier is 36.7M wide by layer 24) — so `P2.2f-bound` is retired as
-an unlock and the exhaustive-ladder programme with it. What is left is a search whose *shape* can
-hold a "pay first, gain later" trade, which is Track **E** below.
+**PRIORITY, END OF SESSION 18. Read `docs/strategy-review.md` first — it is the official plan — then
+the SESSION 18 CLOSE block in "In progress" above.**
+
+Order: **E9a (the wall-face census, static half) is the next unit.** It needs no new code and no
+emulator, it is the only remaining class that yields *distance* rather than fractions of frames, and
+the primitive it rests on is proven to run at the full speed cap (F239). Then **E9b** (one ~30-line
+addition to `explore`, then per-face testing at both hitboxes), then **E10** (the unaudited half of the
+ROM — pure reading), then **E11 / E7** (1-2's eight frames).
+
+**What this order replaces and why.** The 2026-08-24 "8-4 campaign" is finished: 8-4 is closed on
+movement, route and structure (F231/F232). "Search a level nobody has searched" is retired for
+4-1/8-1/8-3 (F225: 97% at the cap; their off-cap frames are the one forced acceleration after the
+level-start card). The exhaustive-ladder programme and `P2.2f-bound` stay retired (the other session's
+`P2.3e` §41 showed the bottleneck is the state space, not the bound). The 4-2 line is **measured**
+rather than believed: the warp key costs ~58-66 frames against a 22-frame budget, and F227 proves the
+speed-killing mint is the only mechanism 4-2 has.
+
+**Doctrine reminders that bind every unit below:** find, don't prove; banked sub-threshold frames
+count and go in the table above; and **a search goal must be the quantity the record is measured in
+and monotone with it** — three proxy goals produced three fake records this session (F230, F237).
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
