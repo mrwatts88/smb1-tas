@@ -245,7 +245,21 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- (none)
+- **L3 / H25 — 8-4 room 3, phase 1 RUNNING on Linux** (started 2026-08-25 s21). `runs/L3-w84r3/launch.sh`,
+  log `runs/L3-w84r3/approach.log`, layers `runs/L3-w84r3/approach_layers`, `MemoryMax=10G` + watchdog.
+  **Why it is running at all, when the board said this was already dry twice:** F272 — both negatives
+  (F133 d/e) beamed on `off,y,spd,sub,vf`, and the return cost depends on
+  `(x_spd, x_spd_abs, moving_dir, facing_dir, is_on_ground, running_speed)`; **the key had four of those
+  six missing**, and the cheapest (R=33) end classes are exactly a **landing frame** — ground, running,
+  `x_spd_abs` 0, facing LEFT, 4.8-11 px/frame — which an h-ranked beam always discards in favour of the
+  faster state in the same speed band. New `cls` bucket axis carries the missing tail. Engine control gate
+  green after the change (W42Main 6584 575 587 --check-path 12 → 6, 16, 34, 70, 134, 673, 3472, 16472,
+  69489, 257001).
+  **Phase 2 when phase 1 stops at step 162** (this is the checkpoint a fresh session resumes from):
+  `third_party/smb-opt/target/release/smb-opt bfscx W84Room3 data/wr/wr_inputs.bin 16354 0 194 --threads 8
+  --acc-mb 96 --resume 162 --layer-dir runs/L3-w84r3/approach_layers`
+  **A goal at <= 194 is H25's frame** → core replay, destination check, then FCEUX + BizHawk.
+  Dry = a negative for this candidate set only, but from a key that can represent the answer.
 
 ## Superseded in-progress note
 - **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started

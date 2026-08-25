@@ -2177,3 +2177,50 @@ never had its input semantics read — that is now the top H12 leftover.
 **Next.** (i) Read the swim path. (ii) The other eight `ldy PlayerFacingDir` / `Player_MovingDir`
 readers — facing 3 and 0 are out of range at every one of them and only `SetVXPl` has been checked.
 (iii) Re-price mechanism hunts against F270's 127 px rather than against "beat the cap".
+
+## 2026-08-25 — Session 21 (Linux, cont.): L3 reopened — the negatives were blind by construction
+
+**Did.** The board called L3 "un-run". It wasn't: F133(d)/(e) ran it twice — diversity beams that kept
+2,303 then 4,333 apex candidates, with exhaustive continuations that died at layer 188, **byte-identically**.
+I said the wrong thing to the user earlier off the stale board row; the fact underneath said otherwise.
+
+**Then the byte-identical death started to look like a symptom rather than convergence.** Two runs, one 5×
+wider than the other with an extra axis, dying at the same layer with the same max x, is not independent
+evidence — it is the same systematic omission twice.
+
+**Found it.** The room reduces to: *is a 33-cost end class reachable at step ≤ 161?* Nobody had ever asked
+what those classes **are**. Added `SMBOPT_DUMP_ENDCLASSES=1` and looked:
+
+```
+ENDCLASS R=33 n=1280  x_spd 1.00..10.98 px/frame  abs [0..0]  ground 1280 air 0  running 1280 walking 0
+```
+
+All 1,280 cheapest classes are **on the ground, running, `x_spd_abs` = 0, moving right at 4.8–11 px/frame,
+facing LEFT** — a **landing frame** (abs stale because `ImposeFriction` doesn't run airborne without L/R,
+and the collision sets `Player_State = 0` after the movement subs).
+
+**And the beam key cannot represent that.** The class is
+`(x_spd, x_spd_abs, moving_dir, facing_dir, is_on_ground, running_speed)`; the key was
+`off,y,spd,sub,vf` — **four of the six fields absent**. F133(d) had explicitly argued the beam was sound
+because "the return cost is a function of the bucketed variables". It isn't. States with the same speed
+band and y but different return costs competed for one slot, ranked by `h`, which prefers the **faster**
+state — the exact opposite of the R=33 profile. Widening 5× just made the same blind spot bigger.
+
+**F133's measurements stand. Its soundness argument does not** — and that argument was the reason the room
+was treated as closed. H25 is reopened (F272).
+
+**Fixed and running.** New `--beam-buckets` axis `cls` = `(x_spd_abs, moving_dir, facing_dir, is_on_ground,
+running_speed)`. Engine control gate byte-identical after the change. Phase 1 (approach to step 162, beam
+250, 2,180 buckets against the old key's far smaller count) is running on the now-empty Linux box; phase 2
+is the exhaustive continuation from 162 to deadline 194, and a goal there is H25's frame.
+
+**Learned — the third time today.** F266: the sweep's predicate couldn't see the class that mattered.
+F264: the lag frame was attributed to the wrong routine. Now F272: the beam key couldn't represent the
+state that carries the cheapest return. **Every one was a negative whose *scope* was narrower than the
+sentence recording it.** When a search says "dry", the question to ask is not "how wide was it" but "could
+its key have held the answer at all".
+
+**Also this session:** the swim section closed one unit short of 259 frames (F271); H12's out-of-table vine
+teleport measured and clamped (F268/F269) with H47 priced at 127 px ≈ 50 frames (F270); L7's sweeps moved
+to the Mac; and my own L7 Mac watchdog killed the two E9b archives mid-run (relaunched, incident recorded
+in STATUS — a watchdog must only kill PIDs it started).

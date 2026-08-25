@@ -1985,10 +1985,10 @@ index 39e4b06..628c0b1 100644
  
    fn track_metric(&mut self, _: &State) -> () {}
 diff --git a/src/heuristics/xpos.rs b/src/heuristics/xpos.rs
-index c9bbf89..4b83b01 100644
+index c9bbf89..b7d16ee 100644
 --- a/src/heuristics/xpos.rs
 +++ b/src/heuristics/xpos.rs
-@@ -6,22 +6,100 @@ use std::io::Write;
+@@ -6,22 +6,131 @@ use std::io::Write;
  use std::marker::PhantomData;
  
  pub struct XPosHeuristic {
@@ -2049,6 +2049,37 @@ index c9bbf89..4b83b01 100644
 +    let mut rvals: Vec<Dist> = ret.iter().filter_map(|r| *r).collect();
 +    rvals.sort(); rvals.dedup();
 +    println!("overshoot bound: threshold x {:#x}, return to x <= {:#x}; {} end classes (moving right >= 1 px/frame), {} distinct return costs {:?}", threshold_x, return_x_max, ret.iter().filter(|r| r.is_some()).count(), rvals.len(), rvals);
++    // L3 / H25 (2026-08-25): the room-3 question is "is a MINIMUM-return-cost end class reachable at
++    // step <= 161?", and nobody had ever looked at what those classes actually ARE.  With
++    // SMBOPT_DUMP_ENDCLASSES=1 this prints, per distinct return cost, the envelope of the classes that
++    // carry it -- x_spd (which contains the subpixel), abs speed, direction, ground flag, running flag --
++    // so the cheapest classes can be compared against what the approach can physically produce.
++    if ::std::env::var("SMBOPT_DUMP_ENDCLASSES").is_ok() {
++      for &r in &rvals {
++        let mut n = 0usize;
++        let (mut lo, mut hi) = (::std::i16::MAX, ::std::i16::MIN);
++        let (mut alo, mut ahi) = (::std::u8::MAX, ::std::u8::MIN);
++        let (mut g, mut air, mut run, mut norun) = (0usize, 0usize, 0usize, 0usize);
++        let mut dirs: HashSet<(Dir, Dir)> = HashSet::new();
++        for (i, c) in classes.iter().enumerate() {
++          if ret[i] != Some(r) { continue; }
++          n += 1;
++          if c.x_spd < lo { lo = c.x_spd; } if c.x_spd > hi { hi = c.x_spd; }
++          if c.x_spd_abs < alo { alo = c.x_spd_abs; } if c.x_spd_abs > ahi { ahi = c.x_spd_abs; }
++          if c.is_on_ground { g += 1; } else { air += 1; }
++          if c.running_speed { run += 1; } else { norun += 1; }
++          dirs.insert((c.moving_dir, c.facing_dir));
++        }
++        println!("ENDCLASS R={} n={} x_spd [{:#06x}..{:#06x}] (px/frame {:.2}..{:.2}) abs [{}..{}] ground {} air {} running {} walking {} dir_pairs {}",
++                 r, n, lo, hi, (lo as f64) / 256.0, (hi as f64) / 256.0, alo, ahi, g, air, run, norun, dirs.len());
++      }
++      for (i, c) in classes.iter().enumerate() {
++        if ret[i] == Some(rvals[0]) {
++          println!("ENDCLASS_MIN x_spd {:#06x} abs {} mdir {:?} fdir {:?} ground {} running {}",
++                   c.x_spd, c.x_spd_abs, c.moving_dir, c.facing_dir, c.is_on_ground, c.running_speed);
++        }
++      }
++    }
 +    self.overshoot.clear();
 +    const NEG: i32 = ::std::i32::MIN / 4;
 +    let n = classes.len();
@@ -2094,7 +2125,7 @@ index c9bbf89..4b83b01 100644
    fn build_state_map<O: Options>(initial_states: Vec<XPosState>) -> HashMap<XPosState, Vec<(XPosState, i32)>> {
      let mut state_map: HashMap<XPosState, Vec<(XPosState, i32)>> = HashMap::new();
  
-@@ -51,6 +129,13 @@ impl XPosHeuristic {
+@@ -51,6 +160,13 @@ impl XPosHeuristic {
        running_speed: s.running_speed,
      }
    }
@@ -2108,7 +2139,7 @@ index c9bbf89..4b83b01 100644
    pub fn get_steps_until_x_pos_at_least(&self, s: &State, target_x_pos: i32) -> Dist {
      if target_x_pos <= s.x_pos { return 0; }
      let distance = target_x_pos - s.x_pos;
-@@ -60,7 +145,7 @@ impl XPosHeuristic {
+@@ -60,7 +176,7 @@ impl XPosHeuristic {
        if len == 0 { ((distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if max_dists[len-1] < distance { (len as i32 + (distance - max_dists[len-1] + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else { max_dists.iter().position(|d| *d >= distance).unwrap() as Dist + 1 }
@@ -2117,7 +2148,7 @@ index c9bbf89..4b83b01 100644
    }
    pub fn get_steps_until_x_pos_at_most(&self, s: &State, target_x_pos: i32) -> Dist {
      if target_x_pos >= s.x_pos { return 0; }
-@@ -71,7 +156,7 @@ impl XPosHeuristic {
+@@ -71,7 +187,7 @@ impl XPosHeuristic {
        if len == 0 { ((-distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else if min_dists[len-1] > distance { (len as i32 + (min_dists[len-1] - distance + self.max_x_distance - 1) / self.max_x_distance) as Dist }
        else { min_dists.iter().position(|d| *d <= distance).unwrap() as Dist + 1 }
@@ -2126,7 +2157,7 @@ index c9bbf89..4b83b01 100644
    }
    pub fn get_steps_until_x_pos_between(&self, s: &State, min_x_pos: i32, max_x_pos: i32) -> Dist {
      if s.x_pos < min_x_pos { self.get_steps_until_x_pos_at_least(s, min_x_pos) }
-@@ -117,6 +202,35 @@ impl XPosHeuristic {
+@@ -117,6 +233,35 @@ impl XPosHeuristic {
    pub fn get_max_x_pos_after_steps(&self, s: &State, steps: usize) -> i32 {
      s.x_pos + self.get_max_distance(&Self::to_x_pos_state(s), steps)
    }
@@ -2627,7 +2658,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..8f9cbef 100644
+index 350d469..5d552be 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -3002,7 +3033,7 @@ index 350d469..8f9cbef 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +402,1576 @@ fn calc_prng() {
+@@ -46,4 +402,1588 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -3243,7 +3274,8 @@ index 350d469..8f9cbef 100644
 +    "vf" | "vforce" => 4u8,
 +    "x" | "xband" => 5u8,
 +    "e" | "enemy" => 6u8,
-+    other => panic!("unknown --beam-buckets dimension {} (want off,y,spd,sub,vf,x,e)", other),
++    "cls" | "xclass" => 7u8,
++    other => panic!("unknown --beam-buckets dimension {} (want off,y,spd,sub,vf,x,e,cls)", other),
 +  }).collect()
 +}
 +
@@ -3272,6 +3304,17 @@ index 350d469..8f9cbef 100644
 +                     | (((b[2] >> 4) as u64 | ((b[3] & 0x0f) as u64) << 4) << 12);
 +               h = h.wrapping_mul(1099511628211).wrapping_add(v); }
 +             h }
++      // L3 / H25 (2026-08-25): the x-position CLASS tail -- everything the overshoot bound's return cost
++      // R(a) depends on EXCEPT x_spd, which `spd`/`sub` already band.  XPosState is
++      // (x_spd, x_spd_abs, moving_dir, facing_dir, is_on_ground, running_speed); the beam key had none of
++      // the last four, so two states with the same speed band and y but different return costs competed
++      // for one slot and h -- which prefers the faster state -- kept the wrong one.  That is why F133's
++      // two negatives died byte-identically: both made the same omission.  The cheapest return class in
++      // W84Room3 (R = 33) is `ground, running, x_spd_abs = 0, facing LEFT, moving RIGHT, 4.8-11 px/frame`
++      // -- a LANDING frame -- and no run has ever kept one.
++      7 => (s.x_spd_abs as u64)
++           | ((s.moving_dir.bits() as u64) << 8) | ((s.facing_dir.bits() as u64) << 12)
++           | ((s.is_on_ground() as u64) << 16) | ((s.running_speed as u64) << 17),
 +      _ => 0,
 +    };
 +    k = k.wrapping_mul(1099511628211).wrapping_add(v.wrapping_add(0x9e3779b9));
