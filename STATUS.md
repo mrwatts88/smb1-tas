@@ -166,6 +166,24 @@ pre-cleanup narrative version of this file is archived at
   value that sets `AreaPointer`/`EntrancePage` to $65/16 (F43(b) = Bowser room from any down-pipe) or WorldNumber >= 7;
   **(3)** the temporal sweep (the +163-frame delay proves timing matters); **(4)** then the physical trigger
   (head bump above the status bar at odd-page col 11) — the Track A merge point.
+  **CHECKPOINT 5 (session 17) — STEERING MAP BUILT (F209) AND THE ENTRANCE IS FULLY SPECIFIED (F210).**
+  **Steering map** (512 runs, `$06CB` x 256 values, `--no-death-exit`, both levels): ~6 reproducible classes —
+  110 no-effect / 89 in-level divergence / **49 that load areas absent from baseline (`AreaPointer` $00/$25/$c2)** /
+  4 game-over (values 20, 84, 148, 212) / 2 victory-at-baseline-frame (46, 174). The $00/$25/$c2 class fires for the
+  **same values in both levels**, confirming F208. **ZERO earlier endings in 512 runs.** (1-2 values 21/149 showing
+  world 7 + area $65 are a FALSE LEAD — `frames_run` 15799 = they re-converged at 17742, so that is the normal route.)
+  **Entrance (F210) — it is NOT "above the status bar", it is ABOVE THE TOP OF THE SCREEN.** `HeadChk`'s guard
+  `cmp PlayerBGUpperExtent,x` with `.db $20,$10` and `ldx PlayerSize` means **small Mario** (our route) needs only
+  `Y >= $10`; the small-Mario head adder is `BlockBuffer_Y_Adder[$0e]` = **$12 = 18**; solving `((Y+18)&$F0)-$20 = $F0`
+  with the guard leaves **`Player_Y_Position` in {$FE, $FF} — a 2-pixel window**, i.e. the coordinate wrapped, Mario
+  above the screen top. Plus: **Y-speed negative** (still rising), `Y & $0F >= 4` (both values pass), **odd page,
+  column 11**, `AreaType` != water, `BlockBounceTimer` expired, and the byte already in $06CB must be **nonzero,
+  non-coin, non-solid** (the OOB read and write are the SAME cell).
+  **NEXT: (1)** temporal sweep — poke $06CB/$06CD at many frames per level, not just entry (F208's +163-frame delay
+  proves the single-instant sweep is the weak test, and F209's null is only about that instant); **(2)** the same
+  sweep on **$06CD** `EnemyFrenzyQueue`, never yet swept alone; **(3)** hand the F210 predicate to the Track A engine
+  as a search goal (small Mario, Y in {$FE,$FF}, y-speed < 0, odd page col 11) — **this is the Track A/Track B merge
+  point** and 4-2's top route already puts Mario at the screen top; **(4)** band B (`$0700-$07FF`).
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
   Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
   page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
