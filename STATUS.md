@@ -540,11 +540,8 @@ room-1 route does award (fceux f347, CoinTally 0 -> 1) comes from a **block bump
 covers — so **F124 is clear**. Worth keeping: the trap that made this hard to see is that 1-2's **150-trial
 battery passed with the bug in it** — a battery compares Mario's fields, and a mis-timed plant only reaches
 Mario in rare configurations. Only the core replay of a searched path found it.
-Other wrap-up items: **RE-RUN F139's 8-4 ROOM-2 d46 RUNG ON THE BBOX-FIXED ENGINE** — the screen-edge bounding-box clamp (F141) was missing when `prefix 240 d26` and `prefix 220 d46`
-were run, and that bug is live in 8-4 as well as 1-2, so those two dries were produced by an engine that
-could spuriously collide enemies near a screen edge. The WR-line difftest and the 401-trial battery both
-pass on the fixed engine, so the model is right *now*; what is untested is whether the two dry verdicts
-survive. Cheap: ~220 s for both.
+Other wrap-up items: **F139's 8-4 rungs are re-verified on the bbox-fixed engine — all three identical**
+(control 436,334 goals to the digit, d26 dry, d46 dry at root bound 32), so F139 stands in full.
 Other wrap-up items: audit the truncated goal-parent
 print (`main.rs:987`; the census-by-prefix workaround is in the runbook); `bfs11cr` grab
 bookkeeping is unbounded in the pole zone (4 OOMs in run 4 — count non-FPG grabs, key only
