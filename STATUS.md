@@ -268,8 +268,22 @@ pre-cleanup narrative version of this file is archived at
   `RemoveCoin_Axe` targets buffer 2. Enumerated ceiling ~40-70, **observed max 67 over 18,268 WR frames**,
   needed **227**. Narrowed to a small specific residual, **not formally refuted**.
   **NEXT (Track B):** the only remaining moves are (a) machine-check F221's per-frame sum to make the VRAM class
-  proof-grade, (b) F219's call-depth analysis, or (c) accept H43 as blocked and return the Track B slot to the
-  P3.2 follow-ups (temporal sweep, `$06CD`, band B). Recommend (c) then (a) — the payoff-weighted order.
+  **CHECKPOINT 9 (session 17) — P3.2/P3.3 CLOSED ON CAPABILITY, NOT ON PROOF (F222). Unit done.**
+  User's steer: stop chasing proof-grade closure of a dead end and test whether anything WORKS. Right call, and
+  it also killed the queued temporal sweep — sweeping `$06CB` tests a capability F215 shows we do not have.
+  **The right experiment was the inversion:** sweep only what a real head bump can actually do — values
+  **{`$00`,`$23`,`$c4`}** into the genuinely reachable cells (`$06A0`-`$06CF` odd page, `$05D0`-`$05FF` even page).
+  That is the COMPLETE action space of the only OOB write primitive in the game: **430 runs**, at 1-2 and 4-1,
+  scored on earlier-victory + OperMode-gated route-progress + `world_ahead` + `novel_world`.
+  **Result: ZERO hits on every predicate. `max_opermode` never exceeded 1 in any run.** Overwhelmingly
+  `CONVERGED` (absorbed), plus 128 `CONVERGED(noop)` null-control rows passing.
+  **So Track B's ACE/OOB line is exhausted at the capability level** — not "we didn't find a jackpot" but "the
+  primitive's whole reachable behaviour is enumerated and none of it helps". Not claimed: that SMB1 has no
+  exploit at all. Untested dimension: timing (F205's single-instant caveat).
+  **NEXT: return the effort to Track A, where frames actually come from.** Queue head per this file's Next-up
+  table: **P2.3c-9 Part B** (the 4-2 top-route warp-cost ladder — "the 4-2 hope" thread says the cheapest mint
+  has never been measured, and that measurement IS the decision) and **P2.2a'** (8-4 room-3 multi-apex seam).
+  Track B keeps its PROCESS-mandated slot but has no live lead; revisit only if a new writer class appears.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 s16; port DONE s17).**
   Span: the room in ONE piece — control (WR dump row **15918**, fceux RAM index 15917, page 7, x 1848) →
   the clip pipe entry at **(col 152, row 4)**, x 2436. WR = **267** frames, 8-4 is unquantized (H24), so a
