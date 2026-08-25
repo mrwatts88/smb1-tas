@@ -196,7 +196,13 @@ pre-cleanup narrative version of this file is archived at
   F247's ~4 px flag-glitch window on a line that already arrives 112 frames early. Launcher:
   `runs/E9b/launch_mac.sh` (committed; it also carries the build recipe and the byte-identity
   control gate).
-- **[TRACK E, session 18] FOUR `build/explore` archives running, 6 h budget each, all under
+- **[TRACK E, session 18] ALL FOUR FINISHED — L2 IS DRY (F273).** `sub16` and `sub32` ran their full
+  21,600 s and printed `done:` at **best 3764** (control) against baseline 3763; `body` was at 20,400 s /
+  best 3764 when session 21 last read it and will have exited on its own (check `tail -n 2
+  runs/E7-w12/body.log`; the verdict does not change — it needed <= 3755). Together ~**680M simulated
+  frames**, 3 roots x 2 subpixel granularities, **0 banked frames**. `e8-climb` was already retired as
+  unable to answer its own question (below). Original entry kept for the parameters:
+- **[TRACK E, session 18] FOUR `build/explore` archives, 6 h budget each, all under
   `systemd-run --user --scope -p MemoryMax=`.** Check: `tail -n 3 runs/E7-w12/*.log runs/E8-w82/*.log`.
   They may well have exited by the time you read this — the logs are the record either way, and every
   launcher is committed and re-runnable.
@@ -914,6 +920,12 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s21 — **L2 DRY** (F273). 1-2's clip-entry hunt: three independent 6 h archives
+  (`runs/E7-w12/{body,sub16,sub32}.log`), three roots, two subpixel granularities, ~680M simulated frames,
+  **every one finishing exactly at the control** (`best=3764` vs baseline 3763) with not one banked frame
+  against a deficit of 8. E11's isolated step-487 frame is covered by `body` and also came back empty.
+  Rollout-policy negative, not proof — but it is the round that was re-run *after* the subpixel key defect
+  was fixed, so it is the informative one.
 - 2026-08-25 s21 (Linux) — **The swim section is closed, one unit short of 259 frames** (F271,
   `docs/experiments/H12b-swim-cap.md`). 8-4's water room is 696 route frames at the swim cap. `X_Physics`
   runs four caps in water — 40 / 24 / 16 / 12 — and **the 40 is gated on `Player_XSpeedAbsolute >= 25`

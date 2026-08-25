@@ -2224,3 +2224,10 @@ its key have held the answer at all".
 teleport measured and clamped (F268/F269) with H47 priced at 127 px ≈ 50 frames (F270); L7's sweeps moved
 to the Mac; and my own L7 Mac watchdog killed the two E9b archives mid-run (relaunched, incident recorded
 in STATUS — a watchdog must only kill PIDs it started).
+
+**Late addendum (same session): L2 is dry.** The three 1-2 archives finished while L3 was being built —
+`sub16` 8.59M rollouts / 206M frames / 223 goals, `sub32` 10.13M / 243M / 340, `body` 8.43M / 232M / 96 —
+**all three sitting exactly at the control (`best=3764` vs baseline 3763), zero banked frames** against a
+deficit of 8, after ~680M simulated frames. That is the round run *after* the subpixel-key defect was
+fixed, so it is the informative one. F273; board row updated. The live board is now: **L1 running (Mac),
+L3 running (Linux, the reopened one), L4 stopped pending a full-size relaunch, L7 queued (Mac), L2 dry.**
