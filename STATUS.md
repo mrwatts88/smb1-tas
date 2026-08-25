@@ -150,6 +150,22 @@ pre-cleanup narrative version of this file is archived at
   bump above the status bar at odd-page column 11 (this is a geometry/physics question — exactly what the
   Track A search engine does, so it is the first place the two tracks would MERGE); **(3)** a temporal sweep
   of $06CB/$06CD across many frames; **(4)** band B.
+  **CHECKPOINT 4 (session 17) — THE JUMP IS OBSERVED, AND IT IS STEERABLE-ISH (F208).** `--probe` mode added
+  to `ram_oracle` (per-frame trace of $06CB/$06CD/`Enemy_ID`/`Enemy_Flag`). Poking `$06CB = $c4`: the value lands
+  in **enemy slot 1's `Enemy_ID` 163 frames later** (`CheckFrenzyBuffer`'s next run — which is exactly why the
+  single-frame band-A sweep undersampled this cell), and **two frames after that `OperMode` goes 1 -> 0 and
+  `WorldNumber` 7 -> 0**: the jump reaches a real reset path, not garbage. **Label correction: `DEAD` on $06CB rows
+  means "run terminated", NOT "Mario died"** — the game resets and the reinitialised lives byte trips the detector.
+  **The destination is a function of the BYTE, not the level:** all 128 of 1-2's live values are live in 8-4 too, and
+  **123/128 shared values give the same outcome class in both levels** — the signature of a fixed jump-table index.
+  **And the primitive reaches area-loading code**: different values visit `AreaPointer` values absent from baseline
+  ($00/$02/$1f/$e5 in 8-4; $00/$c0 in 1-2) — i.e. it can touch **$0750/$0751, which is F43(b)**, an H7 target
+  previously judged unreachable. No value yet produces an earlier ending or a higher `WorldNumber`.
+  **NEXT: (1)** classify all ~137 out-of-table values by what they actually DO (probe each, record OperMode/
+  WorldNumber/AreaPointer trajectory) — this is the steering map, and it is cheap; **(2)** hunt specifically for a
+  value that sets `AreaPointer`/`EntrancePage` to $65/16 (F43(b) = Bowser room from any down-pipe) or WorldNumber >= 7;
+  **(3)** the temporal sweep (the +163-frame delay proves timing matters); **(4)** then the physical trigger
+  (head bump above the status bar at odd-page col 11) — the Track A merge point.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
   Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
   page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**

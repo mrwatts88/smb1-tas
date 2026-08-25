@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     }
     const char *core = argv[1], *rom = argv[2], *inputs = argv[3], *outpath = NULL;
     long at = -1, input_skip = 0, addr_lo = 0x5e0, addr_hi = 0x6cf, cap = -1;
-    int death_exit = 1, all_rows = 0;
+    int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400;
     uint8_t vals[256]; int nvals = 0;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--at")) at = strtol(argv[++i], NULL, 0);
@@ -118,6 +118,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--cap")) cap = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--no-death-exit")) death_exit = 0;
         else if (!strcmp(argv[i], "--all-rows")) all_rows = 1;
+        else if (!strcmp(argv[i], "--probe")) probe = 1;
+        else if (!strcmp(argv[i], "--probe-frames")) probe_n = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
         else if (!strcmp(argv[i], "--values")) {
             const char *s = argv[++i];
@@ -188,6 +190,35 @@ int main(int argc, char **argv) {
     fprintf(out, "# ram_oracle at=%ld baseline_victory=%ld budget=%ld death_exit=%d\n",
             at, base_victory, budget, death_exit);
     fprintf(out, "addr,value,outcome,frames_run,victory_frame,axe_frame,max_opermode,max_world,new_areas\n");
+
+    /* ---- probe mode: one (addr,value), per-frame diagnostics ---- */
+    if (probe) {
+        if (!retro_unserialize(state, ssz)) { fprintf(stderr, "unserialize failed\n"); return 1; }
+        ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+        ram[addr_lo] = vals[0];
+        fprintf(out, "# probe addr=0x%lx value=%u at=%ld\n", addr_lo, vals[0], at);
+        fprintf(out, "frame,diverged,opermode,world,frenzy_6cb,queue_6cd,eid0,eid1,eid2,eid3,eid4,eflag0..4\n");
+        long first_eid = -1, first_div = -1;
+        for (long j = 0; j < probe_n; j++) {
+            long fi = at + 1 + j;
+            if (fi + input_skip >= nin) break;
+            cur_pad = in[fi + input_skip];
+            retro_run();
+            int div = fnv(ram, 0x800) != bhash[fi];
+            if (div && first_div < 0) first_div = fi;
+            for (int k = 0; k < 5; k++)
+                if (ram[0x16 + k] == vals[0] && first_eid < 0) first_eid = fi;
+            fprintf(out, "%ld,%d,%u,%u,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x %02x %02x %02x %02x\n",
+                    fi, div, ram[OPERMODE], ram[WORLDNUM], ram[0x6cb], ram[0x6cd],
+                    ram[0x16], ram[0x17], ram[0x18], ram[0x19], ram[0x1a],
+                    ram[0x0f], ram[0x10], ram[0x11], ram[0x12], ram[0x13]);
+        }
+        fprintf(stderr, "probe: first divergence frame %ld; first frame an Enemy_ID slot == 0x%02x: %ld\n",
+                first_div, vals[0], first_eid);
+        if (outpath) fclose(out);
+        retro_unload_game(); retro_deinit(); dlclose(h);
+        return 0;
+    }
 
     double t0 = now(); long total_frames = 0, nrun = 0, njack = 0;
     for (long addr = addr_lo; addr <= addr_hi; addr++) {
