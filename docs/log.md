@@ -1481,3 +1481,63 @@ extracts cleanly from the **area-load** row.
 
 **Next.** Read the `--goal-sl` run. Then either bank 1-2's three frames, or take 4-1 — the last unsearched
 level with no known modelling blocker.
+
+---
+
+## Session 17 (2026-08-25) — the field difftest was lying, twice, and the fix took 1-2 to 1280/1280
+
+**The unit was "fix the parser ordering". There was no ordering bug.** F148 had concluded that `run_step`
+updated the area parser too early in the frame. It does not — `player_ctrl_routine()` already runs before
+`block_states_game_engine()`, exactly as `GameEngine` does. Two real defects were hiding behind that
+diagnosis, and both were things the field difftest **cannot see**:
+
+**F149 — `CheckTopOfBlock`.** At the frame the parser first diverged, Mario head-bumps the **brick at
+(68,7)**; the `$c2` is the coin sitting **on top of it** at (68,6). `BumpBlock` and `BrickShatter` both open
+with `jsr CheckTopOfBlock`, which erases that coin, calls `RemoveCoin_Axe` (→ `VRAM_Buffer_AddrCtrl = 6` →
+the parser stalls) and `SetupJumpCoin`. The model had no such path. Two cells on 1-2's route do it: (60,7)
+and (68,7), both confirmed in the core's RAM (block object spawns, `CoinTally` 19→20 and 20→21, AddrCtrl 6).
+The other bump-awards-a-coin route, `CoinBlock`, writes **no** AddrCtrl 6 and cannot stall the parser — so
+the model is right to ignore it, and 4-2's `$c0` at column 51 costs nothing.
+
+**F150 — `ScrollLock`, which 1-2's entire warp zone runs on.** Column 178 carries a `ScrollLockObject` that
+**toggles** the flag, and `ScrollHandler`'s first test is `lda ScrollLock / bne InitScrlAmt` — a set flag
+means the screen does not scroll **at all** that frame. The `WarpZoneObject` ($34) clears it and arms
+`WarpZoneControl`, **but only on a frame where Mario's Y is even**. And column 198's
+`ScrollLockObject_Warp` sets the warp-zone number, kills every piranha plant, and then **falls straight
+through into `ScrollLockObject`** — there is no `rts` between them. Without any of this the model's
+screen-left ran **2 px ahead of the core for the last 222 frames of the level**, and the goal was
+`ScreenLeft >= 2816`: a phantom frame, sitting right where the answer is. The goal is now the exact
+`blocks.warp_armed`.
+
+**F151 — the control that should have existed from the start.** `tools/parser_check.py` compares the model
+to the core per frame on `AreaParserTaskNum`, `ScreenLeft_X_Pos`, `ScrollLock` and the coin-metatile tally.
+1-2 **1280/1280**, 4-2 **587/587**, 8-4 room 2 **267/267**, all 0 mismatches. It is now runbook §3.6: any
+case with `BlockStates` on gets it before a search is run on it. Three defects × one unit each is what not
+having it cost.
+
+**Re-run on the corrected model.** 4-2's `--lift 0` gate byte-identical. 1-2's 400-trial battery: 58,984
+frames, **0 differences**. The clip search redone: **goal at layer 77** against the WR's 80, and this time
+the path **core-verifies 77/77 with 0 mismatches**. F142's two rungs still dry at layers 4 and 14.
+
+**F152 — the scroll refund is a tax with a known incidence.** `ScrollHandler` gives the screen one pixel
+**less** than Mario moved on every frame his screen position is in [80, 112), and the full amount at 112+;
+leftward motion scrolls nothing. So the clip, which moves Mario left, drops him into the taxed band and
+charges a pixel a frame on the way out — which is exactly the 3 px that refunded the clip's 3 frames.
+
+**Then the residue, run as one piece.** §21 had named the one experiment left: a search that *optimises the
+scroll through the clip* rather than reaching a position gate and checking the scroll after. Chaining
+cannot do that, so: steps 1080 → the pipe in **one** search, deadline 199 against the WR's 200, bucketed
+beam. Two sizings were wrong first (beam 8 realised 1-2 buckets and went extinct; beam 5000 over five
+dimensions dropped the WR's own line at step 32, F138's exact failure mode) before beam **200 over seven**
+behaved — 21,743 buckets at layer 88.
+
+**And `--check-path` gave the loss map for free.** Over that segment the WR loses **54 frames against the
+bound**, in two clusters and nowhere else: **~30** at the wall clip (Mario is *inside* the wall, his speed
+reset every frame, so 11 px take 19 where the x table prices 40 px/frame — horizontal, so a `YGate` is the
+wrong tool) and **~21** at the end-game turnaround, taken airborne off a warp-pipe cap. The 88 frames of
+open running between them lose **one**. Both want the same construction as 8-4 room 2's missing term — a
+small exact table over a localised region by backward search on the real model — which makes `P2.2f-bound`
+a **three-level unlock** and the highest-value unblocked engineering item on the board.
+
+**Next.** Read the joint beam. Then `P2.2f-bound`, which is now the thing standing between 1-2 and an
+answer rather than a beam-shaped guess.

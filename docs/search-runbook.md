@@ -93,6 +93,28 @@ work loop; this file is what to do when you actually launch a search.
 6. **Probes over hand physics.** Twice a hand-derived "passes under at Y ≈ 65" / "misses the
    cap by 7 px" was wrong and a 5-second probe was right.
 
+## 3.6 Building a case with `BlockStates` on — run `tools/parser_check.py` BEFORE any search
+
+The field difftest (x, y, speeds, player state) is **blind** to the area parser, the scroll, `ScrollLock`
+and the coin tally. Three separate 1-2 defects each survived a clean 1280/1280 WR difftest and were found
+only when a searched path was core-replayed — one whole unit lost each time (F147, F149, F150).
+
+So, for every case that turns `BlockStates` on, before any search runs on it:
+
+```
+tools/parser_check.py CASE data/wr/wr_inputs.bin FIRST N --enemies [--no-coins]
+```
+
+It compares, per frame against the core's RAM dump: `AreaParserTaskNum`, `ScreenLeft_X_Pos`, `ScrollLock`
+and the coin-metatile tally. **Acceptance is 0 mismatches over the whole span.** Current status —
+`W12Warp` 1280/1280, `W42Main` 587/587 (`--no-coins`), `W84Room2` 267/267.
+
+`--no-coins` is needed only where the route bumps a block whose *contents* is a coin (`$c0`/`$5f`/`$58`/
+`$5d` → `CoinBlock` → `GiveOneCoin` with no `RemoveCoin_Axe`, so no `AddrCtrl 6` and no parser stall; the
+model deliberately does not track those). 4-2's `$c0` at column 51 is the one case so far. A `$c2` coin
+**metatile** is different — those do stall the parser, whether touched or taken off the top of a bumped
+block (`CheckTopOfBlock`, F149) — and they must all be in the case's `coin_list_handler!`.
+
 ## 4. On a GOAL that could be a record — the pipeline (bank first, sweep second)
 
 A verified route ≤ the framerule line is a record regardless of optimality: run it through
