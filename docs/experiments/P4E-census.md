@@ -354,9 +354,16 @@ condition, and the precise frame the left probe crosses. 4-2's entry has the ide
 
 **So §3's negative must be stated more precisely, and this is the corrected claim:**
 
-> **No face on the route admits a *full-speed* lateral entry.** Every clip that actually happens
-> pays 40 → 0 → re-accelerate. That is not a footnote — it is *why* 1-2's clip costs 33 frames and
-> 4-2's costs 31 in §4's table.
+> **No face on the route admits a *full-speed* lateral ENTRY — but traversal, once inside, is
+> completely free and keeps full speed.** 4-2 measured: speed **0** for rows 6786-6805 while the
+> left probe drifts across the 11 px, then from 6810 inside col 30-47 row 10 at 6/16/28/37/**40**,
+> holding **40 for ~80 embedded frames**. The 33 and 31 frames in §4's table are the price of
+> *getting in*, not of being in.
+>
+> The free pass does fire at full speed, briefly: three one-frame episodes have the left probe
+> inside a blocking cell with no impede — 1-2 row 2973 (x 1181, spd 38), 4-2 row 6994 (x 909,
+> spd 40), 8-3 row 13910 (x 1965, spd 40) — Mario brushing a block corner in flight. What the route
+> never offers is a *persistent* left-probe tile, which is what would turn a brush into an entry.
 
 ---
 
