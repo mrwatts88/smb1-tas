@@ -32,3 +32,19 @@ STATUS "Needs user input" and keep working on other units.
   Bowser/RNG. One Track B unit (P3.2 RAM oracle) interleaved every few sessions — the moonshot
   slot. 1-2/8-3 framerule levels demoted to third. Beam = the finder where a room explodes;
   proof-grade closes what it can (the 1-1/4-2 doctrine unchanged).
+- **2026-08-24 — Track B runs as a SECOND, PARALLEL SESSION in the same working tree (user
+  decision, session 17).** The user opened a second session for Track B (P3.2, the RAM oracle)
+  while the first continues Track A (P2.2f). Established: **no engine sharing is required** —
+  Track B runs on the QuickNES fast core (`src/fastcore/`, `build/`, `third_party/QuickNES_Core`),
+  Track A on `third_party/smb-opt` + `tools/smb-opt-modes.patch`; PROCESS's "exactly one machine
+  edits the engine" rule binds `smb-opt` only. The collision surface is git and the shared docs,
+  so the standing protocol is: **new files only** for Track B (`src/fastcore/ram_oracle.c`,
+  `tools/build_oracle.sh`, `tools/ram_oracle_sweep.sh`, `docs/experiments/P3.2-*`, `runs/P3.2/`);
+  a separate `tools/build_oracle.sh` so `build_core.sh` is never touched; **commit with explicit
+  pathspecs, never `git add -A`**; edit STATUS/log/facts **in place, never rewrite**; **fact
+  numbers split — Track A F135+, Track B F200+**; and the parallel session throttles itself
+  (single-threaded, `nice`, `MemoryMax=2G`, ~2 of 12 cores) so Track A keeps the box. Rejected
+  alternatives: a git worktree (`third_party/` and `build/` are gitignored so the core and harness
+  would need symlinking, and STATUS/facts would need a prose merge at the end); and going without
+  telling the other session (it cannot be made safe one-sidedly — the other session's `git add -A`
+  is what does the damage). Chosen instead: relay one line to the other session at setup.
