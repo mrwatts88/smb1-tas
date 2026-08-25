@@ -170,6 +170,28 @@ a second lock object (needs scrolling) or by the flagpole (none in these areas).
 must fire (WZC 0→1) before the text (WZC := 4/5) can run, and in $2F there is no enemy at all.
 Hence per visit the sequence is 0 → (1) → 4/5/6 and a pipe sees 0, 1, 4, 5 or 6. Values 2, 3,
 7 (and WorldNumber 255/38) are unreachable. **H5 refuted.**
+
+**Addendum (session 18, F235) — one case §5.4 did not cover, and it does not break the proof.**
+The text object's row choice is `WZC := 4 if WorldNumber == 0; else 5; else 6 if AreaType == 1`
+(smbdis 3566-3577), and §5.4 implicitly assumed `WorldNumber == 0` throughout 1-2. It need not be:
+`HandlePipeEntry` writes `WorldNumber` **at entry**, and the area does not load for another 48
+frames, so during a warp pipe's descent Mario is still in 1-2 with `WorldNumber != 0`. The Track E
+novelty sweep produced exactly this — **`WarpZoneControl` = 5 in 1-2 at core frame 3710**
+(`runs/E6-vram/anom_10_f3710.path`). It changes nothing: WZC 5 is the same row as WZC 1
+(`{36, 5, 36}`), already reachable. **The row that matters, `{8, 7, 6}`, needs `WZC & 3 == 2`,
+i.e. WZC 2 or 6.** WZC 6 needs `AreaType == 1`, and `AreaType` ($074e) is written once by
+`GetAreaType` during `InitializeArea` and does **not** follow the parser's mid-level `AreaPointer`
+rewrites (verified in the dump: 4-2 reads AreaType 2 while `AreaPointer` is `$2f`), so 1-2 and 4-2
+are permanently underground. WZC 2 needs a **second** `+1`, and the enemy erases itself. So the only
+`{8,7,6}` door in the game remains `$2F`, a ground area — which is exactly why the WR wrong-warps
+into it rather than using 4-2's own zone.
+
+**What this sharpens for H7(c).** The prize is not "write 6 to `$06D6`" — it is **one more
+`inc $06D6`**, or equivalently *running enemy routine `$34` once more while `ScrollLock != 0`*,
+anywhere in 1-2 before a warp pipe. That is a far smaller ask than an arbitrary write, and it is the
+target any future write/spawn primitive should be measured against. (`Enemy_ID` lives at
+`$0016-$001A` in zero page, out of reach of the block-buffer OOB writer, whose window is
+`$05E0-$06CF` — F203/F215.)
 ### 5.5 Destination table (`tools/warp_tables.py`)
 | WZC & 3 | X < $60 | $60 ≤ X < $A0 | X ≥ $A0 |
 |---|---|---|---|
