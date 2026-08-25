@@ -1099,14 +1099,14 @@ index 84463c9..d254e1e 100644
      // super::with_smaller_x_pos::<Self>(super::with_left_and_right_facing_dir(super::with_all_x_spd_subpixels(
      vec![s]
 diff --git a/src/case/w84.rs b/src/case/w84.rs
-index 3f1c53b..9411768 100644
+index 3f1c53b..af4b9cf 100644
 --- a/src/case/w84.rs
 +++ b/src/case/w84.rs
 @@ -3,6 +3,7 @@ use emu::EmuResult;
  #[allow(unused_imports)] use emu::inputs::*;
  use heuristics::SearchGoal;
  use heuristics::xpos::XPosHeuristic;
-+use heuristics::ygate::{surfaces_from_blocks, YGate};
++use heuristics::ygate::{surfaces_from_blocks, YGate, blockers_from_blocks};
  use options::*;
  use state::{CompressedState, Dir, Dist, PlayerState, State};
  
@@ -1278,7 +1278,7 @@ index 3f1c53b..9411768 100644
 +    // signal left to climb with (the d267 control found no goal at width 50 OR 2000). The y-coupled `ygate`
 +    // bound over the necessary condition `x >= XMIN && Y <= 64` is what makes the tail searchable (F95: it
 +    // bites within ~25 frames of the goal, which is exactly this climb).
-+    let gate = YGate::new::<NTSC>(W84R2_PIPE_Y, surfaces_from_blocks::<BB84>(304));
++    let gate = YGate::new::<NTSC>(W84R2_PIPE_Y, surfaces_from_blocks::<BB84>(304)).with_blockers(blockers_from_blocks::<BB84>(304)); // F153
 +    println!("W84Room2 climb bound x >= {} Y <= {}: {}", W84R2_PIPE_XMIN >> 8, W84R2_PIPE_Y, gate.describe());
 +    Self { h, gate, goal_gate: None }
 +  }
@@ -1295,7 +1295,7 @@ index 3f1c53b..9411768 100644
 +  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
 +  /// `--goal-x/--goal-y` override, for tools/ygate_audit.py (the same shape as W42Main's).
 +  fn set_position_goal(&mut self, gx: i32, gy: i32) -> () {
-+    let gate = YGate::new::<NTSC>((gy >> 8) - 0x100, surfaces_from_blocks::<BB84>(304));
++    let gate = YGate::new::<NTSC>((gy >> 8) - 0x100, surfaces_from_blocks::<BB84>(304)).with_blockers(blockers_from_blocks::<BB84>(304)); // F153
 +    println!("W84Room2 position goal x >= {} Y <= {}: {}", gx >> 8, (gy >> 8) - 0x100, gate.describe());
 +    self.goal_gate = Some((gy, gate));
 +  }
@@ -2164,10 +2164,10 @@ index c9bbf89..4b83b01 100644
      let len = max_dists.len();
 diff --git a/src/heuristics/ygate.rs b/src/heuristics/ygate.rs
 new file mode 100644
-index 0000000..122596d
+index 0000000..3c9e132
 --- /dev/null
 +++ b/src/heuristics/ygate.rs
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,416 @@
 +//! P2.3c-2c — a sound y-coupled lower bound ("y gate") for position goals `x_pos >= gx && Player_Y <= gy`.
 +//!
 +//! Relaxation (a superset of the model's vertical behaviour, x handled only through MrWint's x table):
@@ -2225,6 +2225,33 @@ index 0000000..122596d
 +#[derive(Clone, Copy, Debug)]
 +struct Air { y: i32, v: i16, g: u8, gd: u8 }
 +
++/// F153: a maximal vertical run of solid cells in one column — something Mario has to get **around**, not
++/// through. `x_lo` is the x_pos at which his leading foot point first enters the column, so he cannot hold
++/// `x_pos > x_lo` unless his Y is at or above `y_above` (over the run) or at or below `y_below` (under it).
++/// Nothing here asserts a route is impossible: the bound takes the **min over both**, which is what keeps it
++/// admissible. The naive "he cannot get past while low" version is FALSE — 8-4 room 2's pipe has an open
++/// floor underneath it (experiment §38) — and asserting it would silently prune real routes.
++#[derive(Clone, Copy, Debug)]
++pub struct Blocker { pub x_lo: i32, pub y_above: i32, pub y_below: i32 }
++
++/// Every maximal solid run of every column, as a `Blocker`.
++pub fn blockers_from_blocks<B: BlockBuffer>(width: usize) -> Vec<Blocker> {
++  let solid = |c: usize, r: usize| -> bool { let v = B::get_block_at(c, r); v != 0 && !is_coin(v) && !is_climb(v) };
++  let mut out = Vec::new();
++  for c in 0..width {
++    let mut r = 0;
++    while r < 13 {
++      if !solid(c, r) { r += 1; continue; }
++      let ra = r;
++      while r < 13 && solid(c, r) { r += 1; }
++      let rb = r - 1; // the run is rows ra..=rb
++      let lo = ((16 * c as i32) - 12) << 8;
++      out.push(Blocker { x_lo: if lo < 0 { 0 } else { lo }, y_above: 16 * ra as i32, y_below: 16 * (rb as i32 + 1) });
++    }
++  }
++  out
++}
++
 +pub struct YGate {
 +  y_max: i32,                 // pixel Y
 +  surf: Vec<Surface>,         // ascending y (highest first)
@@ -2238,6 +2265,9 @@ index 0000000..122596d
 +  /// per-frame acceleration in the model is `FRICTION_RUN`, so `ceil(cutoff * 256 / FRICTION_RUN)` is a sound
 +  /// lower bound on the frames to reach that class. Indexed like `jumps`: [running, walking, standing].
 +  accel_cost: [Dist; 3],
++  /// F153: solid runs to get around. Empty unless the case calls `with_blockers`, so every existing gate is
++  /// bit-for-bit unchanged.
++  blockers: Vec<Blocker>,
 +}
 +
 +#[inline] fn px(y_pos: i32) -> i32 { (y_pos >> 8) - 0x100 }
@@ -2292,10 +2322,19 @@ index 0000000..122596d
 +                (-0x400, P::V_FORCE_FALL_WALKING, P::V_FORCE_FALL_WALKING),
 +                (-0x400, P::V_FORCE_FALL_STANDING, P::V_FORCE_FALL_STANDING)],
 +      fall_g: P::V_FORCE_FALL_RUNNING,
-+      accel_cost: [accel_frames::<P>(3), accel_frames::<P>(2), 0] };
++      accel_cost: [accel_frames::<P>(3), accel_frames::<P>(2), 0], blockers: Vec::new() };
 +    g.surf.sort_by_key(|sf| sf.y);
 +    for i in 0..g.surf.len() { let t = g.t_ground_yonly(g.surf[i].y, i, g.surf[i].embedded); g.t_surf.push(t); }
 +    g
++  }
++  /// F153: opt in to the blocker term. Only runs whose top is exactly the gate's own `y_max` are kept — for
++  /// any other run "pass over it" is a different height than the goal's and the term below would not apply.
++  pub fn with_blockers(mut self, bs: Vec<Blocker>) -> YGate {
++    let ym = self.y_max;
++    self.blockers = bs.into_iter().filter(|b| b.y_above == ym).collect();
++    self.blockers.sort_by_key(|b| (b.x_lo, b.y_below));
++    self.blockers.dedup_by_key(|b| (b.x_lo, b.y_below));
++    self
 +  }
 +  pub fn describe(&self) -> String {
 +    let mut s = format!("y gate: Y <= {}; {} surface rows:", self.y_max, self.surf.len());
@@ -2484,6 +2523,42 @@ index 0000000..122596d
 +               if jx == Y_NEVER { Y_NEVER } else { dmax(jy, jx) + t });
 +    }
 +  }
++  #[inline] fn dadd(a: Dist, b: Dist) -> Dist { if a >= Y_NEVER || b >= Y_NEVER { Y_NEVER } else { a + b } }
++  /// F153: a sound lower bound on "get to `Y >= y_below`, then back to `Y <= y_max`" — the *under* route past
++  /// a solid run. The descent is the fastest one the model allows (A released, largest fall gravity, from the
++  /// state's own y speed); the climb back is the cheapest `t_surf` of any surface at or below `y_below`. Both
++  /// halves ignore all x cost, which only makes the result smaller.
++  fn t_under(&self, s: &State, y_below: i32) -> Dist {
++    let mut a = Air { y: s.y_pos, v: if s.player_state == PlayerState::STANDING { 0 } else { s.y_spd },
++                      g: self.fall_g, gd: self.fall_g };
++    let mut kdown = Y_NEVER;
++    for k in 1..=HORIZON { self.mv(&mut a, false); if px(a.y) >= y_below { kdown = k as Dist; break; } }
++    if kdown == Y_NEVER { return Y_NEVER; }
++    let mut climb = Y_NEVER;
++    for i in 0..self.surf.len() { if self.surf[i].y >= y_below { climb = dmin(climb, self.t_surf[i]); } }
++    Self::dadd(kdown, climb)
++  }
++  /// F153: the blocker term. Mario cannot hold `x_pos > b.x_lo` unless his Y is at or above `b.y_above` (over
++  /// the run) or at or below `b.y_below` (under it) — so for a goal at `gx > b.x_lo` the cost is at least the
++  /// **min over the two routes**, and each route is **serial**: reach the passing height first, and only then
++  /// can x move past `x_lo`, at best at the speed cap. This is the term the gate was missing: at 8-4 room 2's
++  /// step 245 it was charging `max(climb, walk)` for something that is `climb + walk` (experiment §38).
++  fn blocker_term(&self, s: &State, gx: i32, t_above: Dist, cap: i32) -> Dist {
++    if self.blockers.is_empty() || cap <= 0 { return 0; }
++    let y = px(s.y_pos);
++    let mut best: Dist = 0;
++    for b in self.blockers.iter() {
++      if b.x_lo >= gx || b.x_lo <= s.x_pos { continue; }   // not between him and the goal
++      if y <= b.y_above || y >= b.y_below { continue; }    // already clear of this run
++      let rest = gx - b.x_lo;
++      let x_after = (((rest + cap - 1) / cap) as Dist).min(Y_NEVER);
++      let over = Self::dadd(t_above, x_after);
++      let under = Self::dadd(self.t_under(s, b.y_below), x_after);
++      let term = dmin(over, under);
++      if term < Y_NEVER && term > best { best = term; }
++    }
++    best
++  }
 +  /// The joint bound: first k >= 1 with x-feasible(k) (x table) and y-feasible(k); Y_NEVER if none.
 +  pub fn steps_xy(&self, s: &State, h: &XPosHeuristic, gx: i32) -> Dist {
 +    let dx = gx - s.x_pos;
@@ -2491,6 +2566,7 @@ index 0000000..122596d
 +    let (maxd, mxd) = tables;
 +    let gain = |k: usize| -> i32 { let len = maxd.len(); if k == 0 { 0 } else if len == 0 { mxd * k as i32 } else if len >= k { maxd[k - 1] } else { maxd[len - 1] + mxd * (k - len) as i32 } };
 +    let (kd, kde, tr) = self.terms(s, h);
++    let bt = self.blocker_term(s, gx, dmin(kd, tr), mxd); // F153
 +    // F153 debug: SMBOPT_YGATE_EXPLAIN=<x_pos px> prints the full per-surface breakdown for matching states.
 +    if let Ok(v) = ::std::env::var("SMBOPT_YGATE_EXPLAIN") {
 +      if v.parse::<i32>().map(|xp| (s.x_pos >> 8) == xp).unwrap_or(false) { self.explain(s, h, gx, kd, kde, tr, dx, &gain); }
@@ -2501,7 +2577,7 @@ index 0000000..122596d
 +    while k < SCAN_MAX {
 +      let kk = k as Dist;
 +      let yok = (kk >= kd && kk <= kde) || kk >= tr;
-+      if yok && (dx <= 0 || gain(k) >= dx) { return kk; }
++      if yok && (dx <= 0 || gain(k) >= dx) { return dmax(kk, bt); }
 +      if !yok && kk > kde && kk < tr { k = tr as usize; continue; }
 +      k += 1;
 +    }
