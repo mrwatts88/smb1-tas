@@ -371,3 +371,28 @@ zeroes the speed); `Player_X_Scroll + Platform_X_Scroll == 0`.
 Mario runs at the cap, because `max_x` is forced. A level that wants it *held back* needs a freeze,
 and the only freeze a player can create costs all of his speed. That is why 4-2 is the only
 framerule level with a live question, and why the question is a price rather than a possibility.
+
+---
+
+## If a search reports a candidate — the verification recipe
+
+Validated end-to-end this session on the WR's own seeded goal, so it is known to work.
+
+1. **Read the path header.** Every dump starts with a text line naming `root`, `len`, and the mode's
+   numbers (`goal_frame` / `last_input` / `rel` / `value`). The body is raw NES-order input bytes to
+   feed from core frame `root` onward.
+2. **Replay it on the core and look at the state:**
+   `tools/e3_replay.py runs/<dir>/<file>.path --around <goal frame> --span 8`
+   It rebuilds `movie inputs up to root + the path`, runs `build/harness`, and prints x / y / speed /
+   `GES` / `AreaPointer` / entrance page / `AltEntranceControl` / `WorldNumber` / `PlayerSize` /
+   `$0300` / `VRAM_Buffer_AddrCtrl` / enemies per frame. **Check the destination, not just the
+   goal flag** — F230 is what happens when you don't: a pipe entry that looks 102 frames early but
+   opens the wrong door.
+   Reference for 1-2's warp: at core 3763 the WR shows `GES 3`, `AreaPointer $22` (4-1's area),
+   `WorldNumber 3`. Anything claiming to beat it must show the same three.
+3. **Then price it.** A per-level gain only counts if it crosses that level's framerule boundary
+   (F27–F29). 1-2 needs 8 frames on the WR's route, 4-2 needs 10–13, and 8-4 is unquantized so any
+   frame counts. `tools/slack_table.py` recomputes the table from a dump.
+4. **Then splice and re-verify in two emulators** — `tools/splice_fm2.py`, `tools/fm2_to_bk2.py`,
+   `tools/fceux_run.sh`, `tools/bizhawk_run.sh`. PROCESS: nothing is a result until it syncs in
+   both.
