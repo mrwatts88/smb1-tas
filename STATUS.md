@@ -367,18 +367,30 @@ pre-cleanup narrative version of this file is archived at
     1 px. The pipe-(103,8) plant now spawns f3059 in both, but the **warp-zone pipe-(182,8) plant spawns
     f3566 in the model vs the core's f3567 — on the WR's own path**. Walking `AreaParserTaskNum` against the
     core frame by frame, the first divergence is **step 446 / f2930**, the exact frame `CoinTally` goes
-    20 -> 21 (Mario head-bumps the coin at cell (68,6), which IS in the handler). **The defect is ORDERING:**
-    `run_step` runs `block_states_game_engine()` near the top of the frame, the award happens later in
-    `player_bg_collision`, but the game's `AreaParserTaskHandler` runs at the **end** of `GameEngine` — so a
-    same-frame award stalls the same frame's parser in the core and only the next frame's in the model.
-    **So: the 2-frame candidate is NOT verified, and F142/F143's rungs carried this gap in both runs.**
-    Unaffected: the WR difftest, the bound/loss map, 4-2, 8-4, and the structural facts of F144/F145.
-  **NEXT UNIT — fix the parser ordering (prerequisite for ALL 1-2 work).** Move the block-state/parser update
-  to the end of the frame so a same-frame VRAM_Buffer1 write stalls the same frame's parser. **Acceptance
-  test: frame-by-frame `AreaParserTaskNum` equality with the core over the WR's 1280 frames** — a far
-  stronger control than the field difftest, and the one that should have been run when the case was built.
-  Then re-run: WR difftest, the battery, F142/F143's rungs, and the clip + carry + final pipeline
-  (`runs/P2.3e/{clip78b.bin,carry3_60.bin,seg138b.bin}` are the current, UNVERIFIED templates).
+    20 -> 21 (Mario head-bumps the coin at cell (68,6), which IS in the handler).
+  **s17: DIAGNOSED AND FIXED — and the ordering hypothesis above was WRONG.** `run_step` already runs the
+  player before the parser, exactly as `GameEngine` does. Two real defects, both now fixed and documented in
+  `docs/experiments/P2.3e-framerule-scan.md` Part 7:
+    - **F149 — `CheckTopOfBlock`.** Mario head-bumps the **brick at (68,7)**; the `$c2` is the coin sitting
+      **above** it at (68,6), which `BumpBlock`/`BrickShatter` take via `CheckTopOfBlock` -> `RemoveCoin_Axe`
+      (AddrCtrl 6 -> parser stall) -> `SetupJumpCoin`. The model had no such path. Two cells on 1-2's route:
+      (60,7) and (68,7). `CoinBlock` (a `$c0` whose *contents* is a coin) writes no AddrCtrl 6 and is
+      correctly ignored — that is 4-2's one missing coin, and it costs nothing.
+    - **F150 — `ScrollLock`, which 1-2's whole warp zone runs on.** `ScrollLockObject` at **column 178**
+      toggles it (a set flag = **no scroll at all** that frame); `WarpZoneObject` ($34) clears it and arms
+      `WarpZoneControl`, **but only on a frame where Mario's Y is even**; `ScrollLockObject_Warp` at
+      **column 198** arms the warp zone, kills every plant, and **falls through into `ScrollLockObject`**.
+      Without it the model's screen-left ran **2 px ahead** for the last 222 frames — up to a phantom frame
+      at a goal that was `ScreenLeft >= 2816`. The goal is now the exact `blocks.warp_armed`.
+  **Controls, all green (F151, `tools/parser_check.py` — the new per-frame control on `AreaParserTaskNum`,
+  `ScreenLeft_X_Pos`, `ScrollLock`, coin metatiles):** 1-2 **1280/1280**, 4-2 **587/587**, 8-4 room 2
+  **267/267**; 4-2's `--lift 0` gate byte-identical; 1-2's 400-trial battery **58,984 frames, 0 diffs**.
+  **NEXT UNIT — re-run 1-2's pipeline on the corrected model and CORE-VERIFY it.** The clip search
+  (`bfscx W12Warp … 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64`, log `runs/P2.3e/sl_d79_f150.log`)
+  is running. Then the carry from its arrival, then the final segment, then `replay_check` — which is what
+  rejected the last two attempts and is the only thing that makes a candidate real.
+  `runs/P2.3e/{clip78b.bin,carry3_60.bin,seg138b.bin}` are the OLD, INVALID templates (built on the
+  pre-F149/F150 model); keep them only as shapes. F142/F143's rungs must be re-run too.
   **AFTER that: `P2.2f-bound` — a TWO-level unlock.** 1-2 loses ~22 frames of bound slack over its
   open region and 8-4 room 2 loses 14, for the same reason: **an x-only bound cannot price a turnaround's
   vertical half.** Build the coupled end-game term and both ladders go deeper. After that: re-run 1-2's

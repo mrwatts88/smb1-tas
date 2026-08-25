@@ -318,7 +318,7 @@ index e0e1804..b2b3437 100644
 +  }
 +}
 diff --git a/src/case/w12.rs b/src/case/w12.rs
-index 32f4877..a9ffbea 100644
+index 32f4877..7ac2810 100644
 --- a/src/case/w12.rs
 +++ b/src/case/w12.rs
 @@ -29,6 +29,7 @@ fn w12_start<O: Options>() -> State {
@@ -345,7 +345,7 @@ index 32f4877..a9ffbea 100644
      };
      let s = Self::Emu::run_steps_nr(s, &[L|R, A|R]);
      let s = Self::Emu::run_steps_nr(s, &[R; 19]);
-@@ -228,3 +231,149 @@ impl SearchGoal for W12Flag {
+@@ -228,3 +231,160 @@ impl SearchGoal for W12Flag {
      } else { false }
    }
  }
@@ -419,6 +419,13 @@ index 32f4877..a9ffbea 100644
 +    (29, 6, true), (46, 5, false), (69, 6, false), (73, 6, true), (89, 0, false), (150, 6, false)];
 +  const PARSER_COL0: u8 = 24;
 +  const IP0: u8 = 4; const FC0: u8 = 41; const GT0: u8 = 24;
++  // F150: 1-2's warp-zone entrance. `L_UndergroundArea1` +148 puts a row-13 `ScrollLockObject` on page 11
++  // col 2 = column 178 (the same column as the first warp pipe) and +160 puts `ScrollLockObject_Warp` on
++  // page 12 col 6 = column 198; `E_UndergroundArea1` +42 puts the `WarpZoneObject` ($34) on page 11 col 2.
++  const SCROLL_LOCK: bool = true;
++  const SCROLL_LOCK_COLS: &'static [u8] = &[178];
++  const WARP_LOCK_COL: Option<u8> = Some(198);
++  const WARP_ZONE_OBJ: bool = true;
 +}
 +impl Options for W12Warp {
 +  type CoinHandler = W12WarpCoins;
@@ -489,9 +496,13 @@ index 32f4877..a9ffbea 100644
 +    } else { Some(0) }
 +  }
 +  fn steps_until_x_at_least(&self, s: &mut State, x: i32) -> Option<Dist> { Some(self.h.get_steps_until_x_pos_at_least(s, x)) }
++  /// F150: the exact game condition, not the `SL >= 2816` proxy. The warp zone is armed when the area
++  /// parser's `AreaParserCore` runs on column 198 (`ScrollLockObject_Warp`), which needs the last 32-px
++  /// burst, which needs `ScreenLeft >= 2816`; but the burst can also be held a frame by a busy VRAM buffer
++  /// or an unfinished burst, so `SL >= 2816` is optimistic by up to a few frames and `warp_armed` is not.
 +  fn is_goal_state(&self, s: &State, emu_result: &EmuResult) -> bool {
 +    if let &EmuResult::StateChangeVerticalPipe(cx, cy) = emu_result {
-+      cx == 178 && cy == 8 && ::emu::screen_left_abs(s.x_pos >> 8, s.left_screen_edge_pos) >= W12W_SL_MIN
++      cx == 178 && cy == 8 && s.blocks.warp_armed
 +    } else { false }
 +  }
 +}
@@ -1394,7 +1405,7 @@ index 3f1c53b..9411768 100644
 +  }
 +}
 diff --git a/src/emu.rs b/src/emu.rs
-index 947eef3..fc94a87 100644
+index 947eef3..b9f62cb 100644
 --- a/src/emu.rs
 +++ b/src/emu.rs
 @@ -3,6 +3,11 @@ use blockbuffer::util::*;
@@ -1424,7 +1435,7 @@ index 947eef3..fc94a87 100644
  pub trait Emu {
    fn run_step(State, Input) -> (State, EmuResult);
    fn run_step_nr(s: State, input: Input) -> State {
-@@ -96,11 +109,90 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
+@@ -96,11 +109,123 @@ pub struct SmbEmu<O: Options, B: BlockBuffer> {
    started_jump: bool,
    started_on_ground: bool,
    x_scroll: i8, // only for scroll
@@ -1465,6 +1476,16 @@ index 947eef3..fc94a87 100644
 +  fn note_coin_award(&mut self) -> () {
 +    if O::BlockStates::ON { self.vbuf1_busy = true; self.addrctrl6_now = true; }
 +  }
++  /// CheckTopOfBlock (called first by both `BumpBlock` and `BrickShatter`): a `$c2` coin in the same column
++  /// one row **above** a bumped block is erased from the block buffer and awarded via `RemoveCoin_Axe` +
++  /// `SetupJumpCoin`. That fills VRAM_Buffer1 and sets VRAM_Buffer_AddrCtrl = 6, so it stalls the area parser
++  /// for the frame exactly like a touched coin (F149). Row 0 has nothing above it (`ldy $02 / beq TopEx`).
++  fn check_top_of_block(&mut self, cx: usize, cy: usize) -> () {
++    if cy == 0 || B::get_block_at(cx, cy - 1) != 0xc2 { return; }
++    if O::CoinHandler::is_coin_collected(&self.s, cx, cy - 1) { return; }
++    O::CoinHandler::collect_coin(&mut self.s, cx, cy - 1);
++    self.note_coin_award();
++  }
 +  /// PlayerHeadCollision for a fresh bump (BlockBounceTimer was 0, small Mario): writes $23 into the block buffer,
 +  /// DestroyBlockMetatile into VRAM_Buffer1, and decides Block_Metatile for the restore: $c4 for question/hidden/
 +  /// item bricks; coin bricks $58/$5d stay coin bricks while BrickCoinTimer runs (first bump: flag set, timer 11)
@@ -1481,6 +1502,28 @@ index 947eef3..fc94a87 100644
 +      } else { self.s.blocks.used |= 1u16 << i; }
 +    }
 +  }
++  /// WarpZoneObject ($34, an enemy object in the area's enemy data): it sits idle until `ScrollLock` is set,
++  /// then clears the lock, increments `WarpZoneControl` and erases itself — but only on a frame where
++  /// `Player_Y_Position & Player_Y_HighPos` is zero. Underground `Player_Y_HighPos` is 1, so the lock is held
++  /// for as long as Mario's Y stays **odd**, and every held frame is a frame the screen does not scroll (F150).
++  fn warp_zone_object(&mut self) -> () {
++    if !self.s.blocks.scroll_lock || self.s.blocks.warp_obj_done { return; }
++    if ((self.s.y_pos >> 8) & (self.s.y_pos >> 16)) & 1 != 0 { return; } // Player_Y_Position AND Player_Y_HighPos
++    self.s.blocks.scroll_lock = false;
++    self.s.blocks.warp_obj_done = true;
++  }
++  /// AreaParserCore (parser tasks 7 and 3) on `col`: a row-13 `ScrollLockObject` there toggles `ScrollLock`,
++  /// and `ScrollLockObject_Warp` sets `WarpZoneControl` and falls through into the same toggle (F150).
++  fn area_parser_core(&mut self, col: u8) -> () {
++    if O::BlockStates::CELLS.iter().any(|c| c.2 && c.0 == col as usize) { self.s.blocks.coin_brick_flag = false; }
++    if !O::BlockStates::SCROLL_LOCK { return; }
++    if O::BlockStates::WARP_LOCK_COL == Some(col) {
++      self.s.blocks.warp_armed = true;
++      self.s.blocks.scroll_lock = !self.s.blocks.scroll_lock;
++    } else if O::BlockStates::SCROLL_LOCK_COLS.contains(&col) {
++      self.s.blocks.scroll_lock = !self.s.blocks.scroll_lock;
++    }
++  }
 +  /// GameEngine after the player: BlockObjMT_Updater (restores the bumped cell once the block object has returned,
 +  /// 13 frames after the bump, i.e. from the frame on which BlockBounceTimer reads 2 — if VRAM_Buffer1 is free),
 +  /// ColorRotation (palette write every 8th frame), then UpdScrollVar / the area parser (F78: a burst of 8 tasks per
@@ -1494,19 +1537,20 @@ index 947eef3..fc94a87 100644
 +    if ((f - O::BlockStates::GT0 as i32) % 24 + 24) % 24 == 0 { busy = true; } // RunGameTimer: the timer digits every 24 frames
 +    if O::ScrollPos::TRACK_SCROLL_POS && (self.sl_abs >> 5) != (self.sl_prev_abs >> 5) { self.s.blocks.burst_pending = true; }
 +    if !self.addrctrl6_now {
-+      let b = &mut self.s.blocks;
-+      if b.aptn > 0 {
-+        let task = b.aptn - 1; // AreaParserTasks index: 7/3 AreaParserCore, 6/5/2/1 RenderAreaGraphics, 4/0 IncrementColumnPos
-+        b.aptn -= 1;
-+        match task {
-+          3 => { if O::BlockStates::CELLS.iter().any(|c| c.2 && c.0 == b.parser_col as usize) { b.coin_brick_flag = false; } }
-+          6 | 5 | 2 | 1 => { self.addrctrl6_now = true; }
-+          _ => { b.parser_col = b.parser_col.wrapping_add(1); }
-+        }
-+        if b.aptn == 0 { self.addrctrl6_now = true; } // RenderAttributeTables after the last task
-+      } else if b.burst_pending {
-+        b.burst_pending = false; b.aptn = 7; // task 7: AreaParserCore on parser_col (no VRAM write)
-+        if O::BlockStates::CELLS.iter().any(|c| c.2 && c.0 == b.parser_col as usize) { b.coin_brick_flag = false; }
++      if self.s.blocks.aptn > 0 {
++        let task = self.s.blocks.aptn - 1; // AreaParserTasks index: 7/3 AreaParserCore, 6/5/2/1 RenderAreaGraphics, 4/0 IncrementColumnPos
++        self.s.blocks.aptn -= 1;
++        let core_col = match task {
++          3 => Some(self.s.blocks.parser_col),
++          6 | 5 | 2 | 1 => { self.addrctrl6_now = true; None }
++          _ => { self.s.blocks.parser_col = self.s.blocks.parser_col.wrapping_add(1); None }
++        };
++        if let Some(c) = core_col { self.area_parser_core(c); }
++        if self.s.blocks.aptn == 0 { self.addrctrl6_now = true; } // RenderAttributeTables after the last task
++      } else if self.s.blocks.burst_pending {
++        self.s.blocks.burst_pending = false; self.s.blocks.aptn = 7; // task 7: AreaParserCore on parser_col (no VRAM write)
++        let c = self.s.blocks.parser_col;
++        self.area_parser_core(c);
 +      }
 +    }
 +    self.s.blocks.vbuf1 = busy;
@@ -1515,7 +1559,7 @@ index 947eef3..fc94a87 100644
    fn new(s: State, joypad: Input) -> Self {
      SmbEmu {
        s,
-@@ -113,16 +205,22 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -113,16 +238,23 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        started_jump: false,
        started_on_ground: false,
        x_scroll: 0,
@@ -1534,11 +1578,12 @@ index 947eef3..fc94a87 100644
 +    if O::BlockStates::ON { self.block_states_nmi(); }
  
      let result = self.player_ctrl_routine();
++    if O::BlockStates::WARP_ZONE_OBJ { self.warp_zone_object(); } // enemies run between the player and the parser
 +    if O::BlockStates::ON { self.block_states_game_engine(); }
  
      if O::ScrollPos::TRACK_SCROLL_POS && self.side_collision { self.s.side_collision_timer = 0xf; }
      else if O::ScrollPos::TRACK_SCROLL_POS && self.s.side_collision_timer > 0 { self.s.side_collision_timer -= 1; }
-@@ -136,11 +234,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -136,11 +268,12 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
        return (self.s, EmuResult::InvalidStateFallingWithClearedYposFractionals);
      }
      self.s.parity = (self.s.parity + 1) % O::Parity::PARITY;
@@ -1552,7 +1597,7 @@ index 947eef3..fc94a87 100644
      self.joypad_lr = Dir::from_bits_truncate(self.joypad.bits());
      self.joypad_ud = self.joypad & (inputs::U | inputs::D);
      if self.joypad.contains(Input::DOWN) && self.s.is_on_ground() && !self.joypad_lr.is_empty() {
-@@ -153,6 +252,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -153,6 +286,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
  
      self.scroll_handler();
  
@@ -1563,7 +1608,7 @@ index 947eef3..fc94a87 100644
      self.player_bg_collision()
    }
    fn player_movement_subs(&mut self) -> () {
-@@ -194,7 +297,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -194,7 +331,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
    }
    fn player_physics_sub(&mut self) -> () {
      // handle starting jumps
@@ -1572,7 +1617,7 @@ index 947eef3..fc94a87 100644
        self.s.y_pos &= 0xffff00; // clear fractional yPos
        self.started_jump = true;
        self.s.player_state = PlayerState::JUMPING;
-@@ -283,6 +386,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -283,6 +420,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      self.s.x_pos = self.s.x_pos + ((self.s.x_spd as i32 >> 8) << 4);
      if O::ScrollPos::TRACK_SCROLL_POS {
        self.x_scroll = ((self.s.x_pos >> 8) - (old_x_pos >> 8)) as i8;
@@ -1580,7 +1625,7 @@ index 947eef3..fc94a87 100644
      }
    }
    fn move_vertically(&mut self) -> () {
-@@ -291,8 +395,15 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -291,8 +429,17 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      if self.s.y_spd >= O::Platform::MAX_Y_SPD && (self.s.y_spd & 0xff) >= 0x80 { self.s.y_spd = O::Platform::MAX_Y_SPD; }
    }
    fn scroll_handler(&mut self) -> () {
@@ -1593,11 +1638,13 @@ index 947eef3..fc94a87 100644
 -      let rel_x_pos = ((self.s.x_pos >> 8) - self.s.left_screen_edge_pos as i32) & 0xff;
 +      // ScrollHandler tests Player_Pos_ForScroll = the relative x computed at the end of the previous frame
 +      // (x before this frame's movement, screen left before this frame's scroll), F77.
++      // ScrollHandler: `lda ScrollLock / bne InitScrlAmt` comes first — a set lock means no scroll at all (F150).
++      if O::BlockStates::SCROLL_LOCK && self.s.blocks.scroll_lock { return; }
 +      let rel_x_pos = ((self.x_before >> 8) - self.s.left_screen_edge_pos as i32) & 0xff;
        if rel_x_pos < 0x50 || self.s.side_collision_timer > 0 || self.x_scroll <= 0 { return; }
        if rel_x_pos < 0x70 && self.x_scroll >= 2 { self.x_scroll -= 1; }
        self.s.left_screen_edge_pos = self.s.left_screen_edge_pos.wrapping_add(self.x_scroll as u8);
-@@ -310,6 +421,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -310,6 +457,10 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
  
      if is_coin(cv) && O::CoinHandler::is_coin_collected(&self.s, cx, cy) { cv = 0; } // ignore collected coins
      if /* is_question_block(cv) && */ O::PowerupHandler::is_activated_powerup_block(&self.s, cx, cy) { cv = 0xc4; } // question block changed to solid block
@@ -1608,7 +1655,7 @@ index 947eef3..fc94a87 100644
      if cv == 0 { CollisionResult::NoCollision } else { CollisionResult::Collision(cv, cx, cy) }
    }
    fn player_bg_collision(&mut self) -> EmuResult {
-@@ -323,16 +438,19 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -323,16 +474,21 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
      if self.s.y_pos >= (if O::PlayerSize::is_big(&self.s) && !self.s.is_crouching { 0x12000 } else { 0x11000 }) { // HeadChk
        if let CollisionResult::Collision(cv, cx, cy) = self.block_buffer_collision(0) {
          if is_coin(cv) {
@@ -1621,9 +1668,11 @@ index 947eef3..fc94a87 100644
 +          if is_solid(cv) || O::Swim::IS_SWIMMING || (O::BlockBounce::BITS > 0 && self.s.block_bounce_timer > 0) {
 +            self.s.y_spd = 0x100 + (self.s.y_spd & 0xff); // NYSpd: solid block, water area, or BlockBounceTimer != 0 (bounce in progress)
            } else if O::PlayerSize::is_big(&self.s) && !is_question_block(cv) {
++            self.check_top_of_block(cx, cy); // BrickShatter: jsr CheckTopOfBlock
 +            if O::BlockBounce::BITS > 0 { self.s.block_bounce_timer = 16; } // PlayerHeadCollision sets BlockBounceTimer = $10
              self.s.y_spd = -0x200 + (self.s.y_spd & 0xff); // shatter brick
            } else {
++            self.check_top_of_block(cx, cy); // BumpBlock: jsr CheckTopOfBlock
 +            if O::BlockBounce::BITS > 0 { self.s.block_bounce_timer = 16; } // PlayerHeadCollision sets BlockBounceTimer = $10
              /* if is_question_block(cv) */ { O::PowerupHandler::activate_powerup_block(&mut self.s, cx, cy); }
 -            self.s.y_spd &= 0xff; // bump block
@@ -1632,7 +1681,7 @@ index 947eef3..fc94a87 100644
            }
          }
        }
-@@ -353,7 +471,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -353,7 +509,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
  
        if let CollisionResult::Collision(cv, cx, cy) = foot_collision {
          if is_coin(cv) {
@@ -1641,7 +1690,7 @@ index 947eef3..fc94a87 100644
            return EmuResult::Success; // exit (no side checks)
          } else if !is_climb(cv) && !is_hidden_block(cv) && self.s.y_spd >= 0 {
            if cv == 0xc5 { // axe hit
-@@ -406,7 +524,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
+@@ -406,7 +562,7 @@ impl<O: Options, B: BlockBuffer> SmbEmu<O, B> {
          }
        }
      } else if is_coin(cv) {
@@ -2430,7 +2479,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..ea3ec5b 100644
+index 350d469..8f9cbef 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -3428,7 +3477,7 @@ index 350d469..ea3ec5b 100644
 +    if trace {
 +      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {:?} {:?} {} {:?}{}", i, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, ns.facing_dir, ns.moving_dir, input, res, evs);
 +      if <<C as options::Options>::ScrollPos as options::ScrollPos>::TRACK_SCROLL_POS { println!("scroll: {} sct {}", ns.left_screen_edge_pos, ns.side_collision_timer); }
-+      if <<C as options::Options>::BlockStates as options::BlockStates>::ON { let b = &ns.blocks; println!("blocks: bounce {} used {:#x} cbt {}/{} f {} aptn {} bp {} col {} vb1 {} a6 {}", b.bounce_cell, b.used, b.coin_brick_flag, b.coin_brick_timer, b.frame, b.aptn, b.burst_pending, b.parser_col, b.vbuf1, b.addrctrl6); }
++      if <<C as options::Options>::BlockStates as options::BlockStates>::ON { let b = &ns.blocks; println!("blocks: bounce {} used {:#x} cbt {}/{} f {} aptn {} bp {} col {} vb1 {} a6 {}", b.bounce_cell, b.used, b.coin_brick_flag, b.coin_brick_timer, b.frame, b.aptn, b.burst_pending, b.parser_col, b.vbuf1, b.addrctrl6); println!("coins: {:#x} slock {} wdone {} warmed {}", ns.collected_coins, b.scroll_lock, b.warp_obj_done, b.warp_armed); }
 +      if hook.map_or(false, |h| h as usize == w42_enemies as usize) { println!("slots: {}", w42enemies::Slots::unpack(&ext.0).describe()); }
 +      if hook.map_or(false, |h| h as usize == w11_enemies as usize) { println!("slots: {}", w11enemies::Slots::unpack(&ext.0).describe()); }
 +      if hook.map_or(false, |h| h as usize == w84_enemies as usize) { println!("slots: {}", w42enemies::Slots::unpack(&ext.0).describe()); }
@@ -4385,10 +4434,10 @@ index 350d469..ea3ec5b 100644
 +  }
 +}
 diff --git a/src/options.rs b/src/options.rs
-index fba80ad..c267e55 100644
+index fba80ad..af712bf 100644
 --- a/src/options.rs
 +++ b/src/options.rs
-@@ -15,6 +15,64 @@ pub trait Options {
+@@ -15,6 +15,78 @@ pub trait Options {
    type Parity: Parity;
    type VerticalPipeHandler: VerticalPipeHandler;
    type YPosFractionalBehavior: YPosFractionalBehavior;
@@ -4421,6 +4470,20 @@ index fba80ad..c267e55 100644
 +  const IP0: u8;
 +  const FC0: u8;
 +  const GT0: u8;
++  /// P2.3e (F150): `ScrollLock`. `AreaParserCore` (parser tasks 7 and 3) **toggles** `ScrollLock` when it
++  /// processes a column carrying a row-13 `ScrollLockObject`, and while the flag is set the next frame's
++  /// `ScrollHandler` takes `InitScrlAmt` — the screen does not scroll at all that frame. Off by default, so
++  /// cases that never meet one (4-2, 1-1, 8-4) keep their exact key layout and BITS.
++  const SCROLL_LOCK: bool = false;
++  /// Absolute level columns carrying a plain `ScrollLockObject`.
++  const SCROLL_LOCK_COLS: &'static [u8] = &[];
++  /// The column carrying `ScrollLockObject_Warp`: it arms the warp zone (`WarpZoneControl`) and then **falls
++  /// through into `ScrollLockObject`** (there is no `rts` between them), so it toggles the lock as well.
++  const WARP_LOCK_COL: Option<u8> = None;
++  /// Whether the area's enemy data carries a `WarpZoneObject` ($34). While `ScrollLock` is set it clears the
++  /// lock and increments `WarpZoneControl`, but only on a frame where `Player_Y_Position & Player_Y_HighPos`
++  /// is zero (underground `Player_Y_HighPos` is 1, so: Mario's Y must be even), then erases itself.
++  const WARP_ZONE_OBJ: bool = false;
 +  fn index(cx: usize, cy: usize) -> Option<usize> {
 +    for (i, c) in Self::CELLS.iter().enumerate() { if c.0 == cx && c.1 == cy { return Some(i); } }
 +    None
@@ -4453,7 +4516,7 @@ index fba80ad..c267e55 100644
  }
  #[allow(dead_code)]
  pub struct SmbOptions<Size: PlayerSize, Swi: Swim, RunT: RunningTimer, YPFB: YPosFractionalBehavior, ScrP: ScrollPos, Par: Parity, Plat: Platform, CoiH: CoinHandler, PowH: PowerupHandler, VerP: VerticalPipeHandler> {
-@@ -296,6 +354,11 @@ pub trait Platform {
+@@ -296,6 +368,11 @@ pub trait Platform {
      }
      0
    }
@@ -4466,7 +4529,7 @@ index fba80ad..c267e55 100644
      if v_force == Self::V_FORCE_SWIM_TOO_HIGH { 0 }
      else if v_force == Self::V_FORCE_AREA_INIT { 1 }
 diff --git a/src/state.rs b/src/state.rs
-index e8c4d09..7a81bcb 100644
+index e8c4d09..555f027 100644
 --- a/src/state.rs
 +++ b/src/state.rs
 @@ -1,6 +1,6 @@
@@ -4477,7 +4540,7 @@ index e8c4d09..7a81bcb 100644
  use std::hash::{Hash, Hasher};
  use std::marker::PhantomData;
  
-@@ -55,6 +55,23 @@ pub struct State {
+@@ -55,6 +55,26 @@ pub struct State {
    pub powerup_block_hit: bool, // only for powerup collection
    pub powerup_collected: bool, // only for powerup collection
    pub parity: u8,
@@ -4493,6 +4556,9 @@ index e8c4d09..7a81bcb 100644
 +  pub coin_brick_flag: bool, // BrickCoinTimerFlag ($06bc)
 +  pub coin_brick_timer: u8, // BrickCoinTimer ($079d, interval timer: ticks every 21 frames)
 +  pub frame: u8,            // frames since the case start mod 168: IntervalTimerControl / FrameCounter & 7 / GameTimerCtrlTimer phases
++  pub scroll_lock: bool,    // ScrollLock ($0723), only when BlockStates::SCROLL_LOCK
++  pub warp_obj_done: bool,  // the WarpZoneObject ($34) has fired and erased itself
++  pub warp_armed: bool,     // ScrollLockObject_Warp has run: WarpZoneControl holds the area's warp-zone number
 +  pub aptn: u8,             // AreaParserTaskNum ($071f)
 +  pub burst_pending: bool,  // ScrollThirtyTwo >= 32 while a burst is still running (the next burst starts when it ends)
 +  pub parser_col: u8,       // absolute level column the next AreaParserCore task processes (packed as 8 bits)
@@ -4501,7 +4567,7 @@ index e8c4d09..7a81bcb 100644
  }
  impl State {
    pub fn is_on_ground(&self) -> bool { self.player_state == PlayerState::STANDING }
-@@ -82,10 +99,13 @@ impl ::std::fmt::Display for State {
+@@ -82,10 +102,13 @@ impl ::std::fmt::Display for State {
      writeln!(f, "  running_timer: {:?}", self.running_timer)?;
      writeln!(f, "  left_screen_edge_pos: {:#x}", self.left_screen_edge_pos)?;
      writeln!(f, "  side_collision_timer: {:?}", self.side_collision_timer)?;
@@ -4515,7 +4581,7 @@ index e8c4d09..7a81bcb 100644
      write!(f, "}}")
    }
  }
-@@ -105,6 +125,14 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
+@@ -105,6 +128,14 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
  impl StateArray for [u8; 10] { fn new() -> Self { [0; 10] } }
  impl StateArray for [u8; 11] { fn new() -> Self { [0; 11] } }
  impl StateArray for [u8; 12] { fn new() -> Self { [0; 12] } }
@@ -4530,7 +4596,7 @@ index e8c4d09..7a81bcb 100644
  pub struct CompressedState<O: Options, A: StateArray> {
    buf: A,
    _options: PhantomData<O>,
-@@ -129,6 +157,56 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
+@@ -129,6 +160,59 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
      CompressedState { buf: A::new(), _options: PhantomData }
    }
  }
@@ -4580,6 +4646,9 @@ index e8c4d09..7a81bcb 100644
 +      b.aptn = bp.read(4).unwrap() as u8; b.burst_pending = bp.read(1).unwrap() != 0; b.parser_col = bp.read(7).unwrap() as u8;
 +      b.vbuf1 = bp.read(1).unwrap() != 0; b.addrctrl6 = bp.read(1).unwrap() != 0;
 +      b.parser_col |= (bp.read(1).unwrap() as u8) << 7; bp.read(1).unwrap();   // P2.2f: parser_col bit 7, then 1 pad bit
++      if O::BlockStates::SCROLL_LOCK { // P2.3e (F150): 3 more bits, only for cases that meet a ScrollLockObject
++        b.scroll_lock = bp.read(1).unwrap() != 0; b.warp_obj_done = bp.read(1).unwrap() != 0; b.warp_armed = bp.read(1).unwrap() != 0;
++      }
 +    }
 +    s
 +  }
@@ -4587,7 +4656,7 @@ index e8c4d09..7a81bcb 100644
  impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
    fn from_state(s: &State) -> CompressedState<O, A> {
      const Y_POS_OFFSET: u32 = 0xd000;
-@@ -136,13 +214,15 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -136,13 +220,15 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
      let mut buf = A::new();
  
      let bytes_available = buf.as_slice().len();
@@ -4605,7 +4674,7 @@ index e8c4d09..7a81bcb 100644
      assert!(bytes_needed == bytes_available, "bytes_needed {} != bytes_available {}", bytes_needed, bytes_available);
  
      {
-@@ -159,6 +239,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -159,6 +245,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        bitpack.write(O::Platform::get_x_spd_abs_cutoff(s.x_spd_abs) as u32, 3).unwrap();
        bitpack.write(if s.running_speed { 1 } else { 0 }, 1).unwrap();
        bitpack.write(s.collision_bits.bits() as u32, 2).unwrap();
@@ -4613,7 +4682,7 @@ index e8c4d09..7a81bcb 100644
  
        if O::PlayerSize::CROUCH_BITS > 0 {
          bitpack.write(if s.is_crouching { 1 } else { 0 }, 1).unwrap();
-@@ -169,6 +250,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -169,6 +256,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        if O::RunningTimer::RUNNING_TIMER_BITS > 0 {
          bitpack.write(s.running_timer as u32, 4).unwrap();
        }
@@ -4623,7 +4692,7 @@ index e8c4d09..7a81bcb 100644
        if O::ScrollPos::SCROLL_POS_BITS > 0 {
          bitpack.write(s.left_screen_edge_pos as u32, 8).unwrap();
          bitpack.write(s.side_collision_timer as u32, 4).unwrap();
-@@ -183,6 +267,18 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -183,6 +273,23 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
          bitpack.write(if s.powerup_block_hit { 1 } else { 0 }, 1).unwrap();
          bitpack.write(if s.powerup_collected { 1 } else { 0 }, 1).unwrap();
        }
@@ -4638,6 +4707,11 @@ index e8c4d09..7a81bcb 100644
 +        // start column 136 to 8. Its top bit goes into one of the two spare bits at the END of the field, so
 +        // every 4-2 / 1-1 record (parser_col <= 127, spares 0) keeps its exact old bytes and BITS stays 56.
 +        bitpack.write(b.parser_col as u32 >> 7, 1).unwrap(); bitpack.write(0, 1).unwrap();
++        if O::BlockStates::SCROLL_LOCK {
++          bitpack.write(if b.scroll_lock { 1 } else { 0 }, 1).unwrap();
++          bitpack.write(if b.warp_obj_done { 1 } else { 0 }, 1).unwrap();
++          bitpack.write(if b.warp_armed { 1 } else { 0 }, 1).unwrap();
++        }
 +      }
      }
      CompressedState { buf, _options: PhantomData }
