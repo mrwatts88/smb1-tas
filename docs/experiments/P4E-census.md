@@ -323,3 +323,65 @@ sites where the priced loss is large **and** the mechanism is still open.
 * **New:** the route's total geometric loss is 290 frames and it is now localised and priced (§4).
 * **New:** 8-2's 114-frame site (§5), the largest single geometric loss on the route, previously
   unpriced and mis-targeted by the running finder.
+
+---
+
+## 8. POSITIVE CONTROL — does the classifier reproduce a clip anyone has actually done? (F246)
+
+Added after the user asked the right question: *a census that cannot reproduce known clips is
+worthless.* `tools/clip_control.py` recomputes the §1.1 probe cells for every control frame of the
+WR and flags every frame a probe is inside a blocking cell. Ground truth is HappyLee's own run,
+which contains three publicly-known clips.
+
+**272 embedded control frames in 14 episodes**, and the two long ones are exactly the known clips:
+**4-2 rows 6786-6936 (151 f, x 468-764, probe rows 8/9/10)** and **1-2 rows 3572-3665 (94 f,
+x 2676-2829, probe rows 2/3)**. The other twelve episodes are 1-5 frames and are ordinary impedes
+(standing against a flagpole base or a face), not clips.
+
+**1-2's clip, frame by frame, against the model:**
+
+| frame | x | Y | spd | MDir | what the model says |
+|---|---|---|---|---|---|
+| 3571 | 2674 | 55 | **40** | R | both probes in col 167, empty — free |
+| 3572 | 2676 | 54 | **0** | R | right probe (x+13) enters col 168 `$14` → `$00`=1 → **speed 0, 1 px push left** (§1.2) |
+| 3573-3585 | 2677→2685 | 54-62 | 0 | **L** | `Y & $0F` = 6,6,7,9,11,13 — all ≥ 5, right foot in `$14` → **§1.5's `jmp ImpedePlayerMove` with MovingDir LEFT: +1 px/frame, side check never runs** |
+| 3586 | 2686 | 62 | 0 | L | **left probe crosses into col 168** — 14 frames to cross the 11 px of §1.4 |
+| 3587+ | 2686→ | 64 | 1,3,4,5,6… | R | inside: every frame a free pass, speed re-accelerates |
+
+The model reproduces it exactly — the impede, the MovingDir flip, the +1 px drift, the nybble
+condition, and the precise frame the left probe crosses. 4-2's entry has the identical signature
+(airborne at speed 40, speed → 0 the frame the right probe touches the face; F93).
+
+**So §3's negative must be stated more precisely, and this is the corrected claim:**
+
+> **No face on the route admits a *full-speed* lateral entry.** Every clip that actually happens
+> pays 40 → 0 → re-accelerate. That is not a footnote — it is *why* 1-2's clip costs 33 frames and
+> 4-2's costs 31 in §4's table.
+
+---
+
+## 9. The 8-2 site, taken to the core — H48 confirmed as movement, refuted as a record (F247)
+
+Direct probe rather than a search (`tools/w82_jump_probe.py`). **Control: the unmodified WR inputs
+reproduce `StarFlagTaskControl == 5` at core 12952 and GES 5 at core 12472 exactly.**
+
+**The jump works.** Splicing `A` into the WR's own inputs at core **12285** — the first frame after
+the pillar landing at core 12284 — clears the wall: **x 3283 at Y 53** (needs ≤ 55), Y 40-48 across
+both columns, **`Player_X_Speed` pinned at 40 the whole way**, on the floor at col 214 by core
+**12348** against the WR's **12458**. §5.3's hand estimate that it "misses by 1-2 px" is **wrong**;
+it clears by 2. That correction is the value of doing the replay instead of trusting an arc traced
+off a different jump.
+
+**And it is still not a record, for the reason doctrine says to check.** Every variant grabs the
+flagpole with a **normal slide** (GES 4 → 5) at grab-Y 137-161, while HappyLee touches the pole at
+**x 3443, Y 165-166** and goes **GES 8 → 5 in a single frame** with `StarFlagTaskControl` jumping
+**0 → 2**, skipping task 1 entirely. Measured: best probe `$0746 == 5` at core **13015 (+63)**,
+typical **13078 (+126)** — the same +126 the E8 launcher header records from its own proxy-goal
+trap. **Reaching the pole 112 frames early and ending the level 63-126 frames late is exactly the
+F230/F237 failure mode**, and it was caught only because the goal was checked against the quantity
+the record is measured in.
+
+**What is left open, and it is a good open question.** The glitch window is a ~4 px band in
+`Player_Y_Position` (161 reached, 165-166 needed) at the frame `x+13` crosses into column 216 — on
+a line that arrives with **112 frames of slack**. That is a subpixel-and-hop-phase search, which is
+precisely what `runs/E9b/launch*.sh` is configured for (`--subcell`, rooted at 12157).

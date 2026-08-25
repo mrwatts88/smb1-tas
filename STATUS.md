@@ -5,15 +5,27 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 19 — **E9a DONE**: the wall-face census is empty at both hitboxes (F243), but the value map it needed found **8-2's 114-frame site** (F245/H48). Next unit is **E9b part 1**, and it is blocked only on memory.)
+**Updated:** 2026-08-25 (session 19 — **E9a DONE and positive-controlled** (F246): no face admits a *full-speed* lateral entry, and the classifier reproduces 1-2's known clip frame for frame. **8-2's 114-frame site is real on the core** (F247): the jump clears the wall at speed 40 and reaches the pole 112 frames early, but loses HappyLee's flag glitch and ends the level 63-126 frames LATE. **Track E now runs natively on the Mac, byte-identical and 3x faster** (F248), and E9b-1 is RUNNING there.)
 
 ## Where we are
-- ## >>> NEXT UNIT: **E9b part 1 — 8-2's columns 201-212 (H48).** The launcher is written and
-  committed: **`./runs/E9b/launch.sh`**, read `runs/E9b/README.md` first. It is **blocked only on
-  RAM** — four `build/explore` archives were running when E9a closed and the box had 1 GB available
-  of 15 GB (swap 5/7). **Wait for `pgrep -x explore` to be empty, then launch it.** While waiting,
-  the fallback probe needs no memory at all: splice a jump into the WR inputs at dump row 12289 and
-  replay on the core (`tools/e3_replay.py`) to test H48 directly.
+- ## >>> NEXT UNIT: **finish E9b-1 — the 8-2 flag-glitch window (H48/F247).** Two archives are
+  **RUNNING ON THE MAC** (`ssh mac`, `~/code/smb/runs/E9b/{arc16,arc32}.log`, 6 h each, both
+  reproduce the control `GOAL frame=12953`). The question is now exact and small: **the fast line
+  reaches the flagpole 112 frames early but must touch the pole at `Player_Y_Position` 165-166 to
+  keep the flag glitch** (it currently arrives at 137-161 and takes the slide, which costs more than
+  the 112 it saved). Check them with `ssh mac 'tail -n 3 ~/code/smb/runs/E9b/*.log'`; **a record is
+  `$0746 == 5` at core <= 12931, a banked frame is anything < 12952.** If they go dry, the direct
+  probe is `tools/w82_jump_probe.py` — extend it to sweep the hop phase and x-subpixel (Left/Right
+  taps) in the last 25 px before the pole.
+- ## >>> ALSO NEW: **the Mac is a first-class Track E machine now (F248).** `build/explore` and
+  `build/harness` are portable C over the libretro core with **no `smb-opt` patch dependency**, so
+  PROCESS's container requirement and `mac_run.sh`'s stale-engine guard **do not apply to Track E**.
+  Built with `make platform=osx` + plain `clang`, zero source changes; the 13,000-frame WR RAM trace
+  is **byte-identical** across the two machines (sha256 `53590a3c94ef...`); **20,063 fps vs 6,479
+  (3.1x)**, 12 cores, 18 GB. Two gotchas: the Mac clone cannot `git pull` over BatchMode SSH (HTTPS
+  credential helper needs the keychain) so `scp` the files; and macOS has no cgroups, so the
+  never-uncapped rule is met by `explore`'s fixed-capacity archive plus the RSS watchdog in
+  `runs/E9b/launch_mac.sh`.
 - ## >>> WHY: **E9a is done and it moved the board (`docs/experiments/P4E-census.md`).** The census
   itself is **empty** — 708 wall faces across all 14 controllable route areas, **zero admit a static
   walk-through at either hitbox** (F243); H46's static half is closed and H33 is refuted as stated
@@ -83,6 +95,13 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
+- **[E9b-1, session 19] TWO `build/explore` archives ON THE MAC** — `ssh mac`, logs
+  `~/code/smb/runs/E9b/{arc16,arc32}.log`, rooted at 12157 with `--subcell 16/32 --ysubcell 64`,
+  6 h each, RSS watchdog at 3 GB. Both reproduced the control (`GOAL frame=12953`) at startup.
+  **A record is `$0746 == 5` at core <= 12931; anything < 12952 is a banked frame.** They are hunting
+  F247's ~4 px flag-glitch window on a line that already arrives 112 frames early. Launcher:
+  `runs/E9b/launch_mac.sh` (committed; it also carries the build recipe and the byte-identity
+  control gate).
 - **[TRACK E, session 18] FOUR `build/explore` archives running, 6 h budget each, all under
   `systemd-run --user --scope -p MemoryMax=`.** Check: `tail -n 3 runs/E7-w12/*.log runs/E8-w82/*.log`.
   They may well have exited by the time you read this — the logs are the record either way, and every
@@ -744,6 +763,14 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s19 — **E9a positive control + the 8-2 probe + the Mac port (F246/F247/F248).** The
+  census classifier **reproduces 1-2's publicly-known clip frame for frame** (impede at speed 40,
+  MovingDir flip, +1 px/frame drift, left probe crossing at 3586, re-acceleration) and finds the WR
+  embedded in terrain for exactly 272 control frames, all in the known places — so F243 is restated
+  correctly: **no face admits a *full-speed* lateral entry**. 8-2's jump-over is **real on the core**
+  (clears the wall at speed 40, pole 112 frames early) but **loses the flag glitch and ends the level
+  63-126 frames late** — the F230/F237 trap, caught by the goal check. Track E ported to the Mac,
+  byte-identical, 3.1x faster. `docs/experiments/P4E-census.md` §8-§9.
 - 2026-08-25 s19 — **E9a — THE WALL-FACE CENSUS, and it is EMPTY (F241-F245).** Block maps rebuilt for
   every route area (`tools/route_blockmaps.py`; 4-2's columns 0-97 byte-identical to the committed map).
   **708 faces, 703 with an empty left neighbour, 5 coins that F242 kills, zero static walk-throughs at

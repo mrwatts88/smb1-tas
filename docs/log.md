@@ -1756,3 +1756,42 @@ that is **provably below the resolution of the question** — the same defect th
 jump, `--subcell 16/32`). It is blocked only on RAM — 1 GB available of 15 with four archives
 running — so it waits for `pgrep -x explore` to empty. The zero-memory fallback is to splice a jump
 into the WR inputs at dump row 12289 and replay on the core, which tests H48 directly.
+
+**Later the same session — the user asked the question that fixed the unit.** *"Did you successfully
+clip walls that we know the public has already clipped? If not, your strategy probably sucks."* I had
+not, and that was a real hole: a census whose classifier is never made to reproduce a clip somebody
+has demonstrably done is worth nothing. `tools/clip_control.py` now does it, using HappyLee's own run
+as the corpus. It finds him embedded in terrain for **272 control frames in 14 episodes**, the two
+long ones being exactly the known clips (4-2's 151-frame wall walk, 1-2's 94-frame clip), and it
+reproduces **1-2's entry frame for frame**: impeded at speed 40 the instant the right probe touches
+col 168, `Player_MovingDir` flipped LEFT, `Y & $0F` = 6,7,9,11,13, **+1 px per frame for 14 frames**,
+left probe crossing at 3586, then re-acceleration inside the wall. **The control passes — and it
+corrects the unit's headline.** The census's finding is not "no clips exist"; it is **"no face admits
+a *full-speed* lateral entry"**. Every clip that happens pays 40 → 0 → re-accelerate, which is
+precisely *why* 1-2's clip costs 33 frames and 4-2's costs 31. That is a better fact than the one I
+had, and I would not have had it without being asked (F246).
+
+**The 8-2 site, taken to the core.** Rather than wait for a search, I spliced a jump into the WR's
+own inputs at the pillar and replayed. **It clears the wall** — x 3283 at Y 53 against the Y ≤ 55 the
+geometry needs, speed pinned at 40 through both columns, on the floor at col 214 by core 12348 versus
+the WR's 12458, **reaching the flagpole 112 frames early**. My hand-traced arc estimate ("misses by
+1-2 px") was **wrong**; it clears by 2 px, which is the argument for replaying instead of
+transcribing. **But it is not a record**: every variant grabs the pole with a normal slide, while
+HappyLee touches it at Y 165-166 and goes GES 8 → 5 in one frame with `StarFlagTaskControl` jumping
+0 → 2 — the flag glitch. Best probe `$0746 == 5` at core 13015 (+63), typical 13078 (+126) — **the
+same +126 the E8 launcher header already records from its own proxy-goal trap.** Third time this
+project has walked into F230/F237; the goal check caught it again. What is left is genuinely
+promising and genuinely small: a **~4 px band in `Player_Y_Position`** at the frame `x+13` crosses
+into column 216, on a line carrying 112 frames of slack (F247).
+
+**And the Mac is now a Track E machine (F248).** The user pointed out the Mac is available and
+wondered whether the new fast-core tooling could move there. It can, easily: `build/explore` and
+`build/harness` are single portable C files over the libretro core with **no `smb-opt` patch
+dependency at all**, so PROCESS's container requirement and `mac_run.sh`'s stale-engine guard simply
+do not apply to Track E. `make platform=osx` for QuickNES, plain `clang` for both binaries, **zero
+source changes** — and the control is the strongest kind available: the 13,000-frame WR RAM trace is
+**byte-identical** across the two machines. It runs at **20,063 fps against this box's 6,479 (3.1x)**
+with 18 GB free. E9b-1 is running there now, which is what unblocked it — the Linux box was at 1 GB
+available with four archives going. Gotchas recorded: no `git pull` over BatchMode SSH (keychain), and
+no cgroups on macOS, so the never-uncapped rule is met by `explore`'s fixed-capacity archive plus an
+RSS watchdog.
