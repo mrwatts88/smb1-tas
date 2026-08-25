@@ -348,3 +348,26 @@ F234's ceiling on the one write primitive that could reach further.
 
 **Caveat on the logs:** the `*** WORLD 8 REACHED ***` banner fires on any `WorldNumber >= 7` and so
 also fires on **35 (the Minus World)**. Read the value, not the banner.
+
+---
+
+## The scroll law, applied to all three gated levels (F227 / F229 / F236)
+
+One page, because it now explains the endgame of three different levels and it is the reason the
+record is hard.
+
+`ScreenLeft = x − rel`, `ScreenLeft` never decreases, and the screen tracks Mario exactly once
+`rel >= 112`. Therefore **`ScreenLeft <= max_x − rel_at_that_moment`, and `rel` can only exceed
+112 through a freeze.** Freezes: `ScrollLock != 0`; `rel < 80`; `SideCollisionTimer != 0` (which
+zeroes the speed); `Player_X_Scroll + Platform_X_Scroll == 0`.
+
+| level | the gate | direction | what the WR does | verdict |
+|---|---|---|---|---|
+| **4-2** | destination flips when `ScreenLeft` hits 1217, so the pipe needs `ScreenLeft <= 1216` at x 1348 ⇒ **rel >= 132** | wants the screen **held back** | mints 20 px with a wall ejection at x 468, at the cost of all its speed and a full re-acceleration (~35 frames) | the only mint mechanism available (F227); measured key **~61 frames** against a 22-frame budget |
+| **1-2** | the warp arms when the parser reaches column 198, i.e. `ScreenLeft` 2816 | wants the screen **pushed forward** | arrives at the arming with **rel 128** (the wall clip minted 15 px for free), so the apex is 2944 rather than 2928 | the extra 16 px is unrecoverable — trading lead costs more than it saves (F236). At its bound. |
+| **8-4 room 3** | the pipe only opens on the water room once the parser has read `page 14 col 4`, i.e. `ScreenLeft` 3344 | wants the screen **pushed forward** | runs out to x 3456 = 3344 + 112 and doubles back to the pipe at 3404 | overshoot is exactly minimal; entering early and letting the descent scroll catch up is bounded by `ScreenLeft_at_load <= x_entry − 80` and falls 13 px short (F232) |
+
+**The asymmetry that matters:** a level that wants the screen *pushed* is at its bound the moment
+Mario runs at the cap, because `max_x` is forced. A level that wants it *held back* needs a freeze,
+and the only freeze a player can create costs all of his speed. That is why 4-2 is the only
+framerule level with a live question, and why the question is a price rather than a possibility.
