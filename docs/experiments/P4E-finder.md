@@ -277,3 +277,39 @@ content of 8-4 is the return legs and the pipe approaches — and 8-4 is unquant
 is the record**. The water room is additionally the one 8-4 segment nobody has ever searched (696
 frames, swimming, cheep-cheeps), and running on the real emulator makes the model's unvalidated
 swimming irrelevant.
+
+---
+
+## E5 — the destination audit, and what it closes
+
+`tools/area_data.py` over every area on the route. **Every** area-change command:
+
+| area | level | commands |
+|---|---|---|
+| `E_GroundArea6` | 1-1 | p1c1 → `$42`/0 |
+| `E_UndergroundArea1` | 1-2 | p2c13 → `$42`/2; p10c14 → `$25`/11 |
+| `E_GroundArea3` | 4-1 | p1c2 → `$42`/6 |
+| `E_UndergroundArea2` | 4-2 | p2c1 → **`$2F`/0**; p5c15 → `$42`/8; p11c14 → `$25`/11 |
+| `E_GroundArea17` | 8-1 | p1c13 → `$42`/2 |
+| `E_GroundArea19` | 8-2 | p7c15 → `$42`/8 |
+| `E_GroundArea2` | 8-3 | **none** |
+| `E_CastleArea6` | 8-4 | the maze (F230) |
+| `E_WaterArea3` | 8-4 water | p4c2 → `$65`/16 (Bowser room) |
+
+**The only cross-world destinations on the entire route are 1-2's warp zone and 4-2's `$2F`, and the
+WR uses both.** Everything else is the shared bonus room `$42` or a level's own ending. F233 prices
+the bonus-room detours: worth 292 frames in 1-1 (taken) and a 226–379 frame **loss** in 4-1, 8-1 and
+8-2 (correctly skipped). **The route topology is forced.**
+
+### The one new primitive found today, and its bound
+A pipe's destination is read at the **load**, 48 frames after entry, and the screen keeps scrolling
+through the descent off the stale `Player_X_Scroll` (which only `OnGroundStateSub`/`JumpSwimSub`
+write). So a pipe can be entered *before* its destination command is parsed and still land correctly
+— but the descent scroll stops the moment rel falls below 80, so
+
+> **`ScreenLeft_at_load <= x_entry − 80`.**
+
+For 8-4 room 3 that needs `x_entry >= 3424` against a pipe-entry window ending near 3411, so the
+turnaround stands (F232); for 4-2 the same clause is what breaks F129's candidate. The primitive is
+real, bounded, and on this route worth nothing — but it is worth remembering, because it is the only
+lever that moves a *destination* without touching `WorldNumber`.
