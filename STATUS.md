@@ -5,7 +5,13 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
+**Updated:** 2026-08-25 (session 21 — **L7 claimed and RUNNING on the Linux box**: the novelty sweep had never been run on **8-4**, the only unquantized level, and no sweep had ever carried an **object-slot lens** (F266: the nearest class fired only on `Enemy_ID > $36` over five of the six slots, so `$31` — F258's 857-frame mechanism — was invisible to it everywhere). `explore --anomaly` now has classes 17/18 and covers all six slots; 8-4's five sub-area roots are mapped (F265). `r5` (Bowser room, also a live H1 probe) is running; `r1`-`r4` are queued behind the E7 archives. Nothing else was started: the box had 2.5 GB spare.)
+
+<details><summary>Previous stamp (session 19)</summary>
+
 **Updated:** 2026-08-25 (session 19 — **E9a DONE and positive-controlled** (F246): no face admits a *full-speed* lateral entry, and the classifier reproduces 1-2's known clip frame for frame. **8-2's 114-frame site is real on the core** (F247): the jump clears the wall at speed 40 and reaches the pole 112 frames early, but loses HappyLee's flag glitch and ends the level 63-126 frames LATE. **Track E now runs natively on the Mac, byte-identical and 3x faster** (F248), and E9b-1 is RUNNING there.)
+
+</details>
 
 ## Where we are
 - ## >>> **`docs/open-threads.md` (2026-08-25) is the full enumeration of what is left** — 49
@@ -144,6 +150,15 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
+- **[L7, session 21] THE 8-4 NOVELTY SWEEP, LINUX.** `runs/L7-w84/` — `r5.log` (Bowser room, root 17577,
+  `--cells 40000`, `MemoryMax=800M`, 6 h) is **running now**; `r1`-`r4` (roots 15210 / 15905 / 16342 / 16707,
+  `--cells 80000`, `MemoryMax=1500M`) are **queued**: a detached `WAIT=1 WAITN=1 SKIP=r5 ./runs/L7-w84/launch.sh`
+  polls every 60 s and fires them when only one `explore` remains (i.e. when the E7 archives exit). If that waiter
+  is gone (`pgrep -af "L7-w84/launch.sh"` empty) just run the launcher by hand — it is idempotent per tag.
+  **How to read it:** `grep ANOMALY runs/L7-w84/*.log`, then `tools/e3_replay.py runs/L7-w84/anom_<class>_f<frame>.path`.
+  **Priced:** a class-18 hit (`*** SECOND STAR FLAG ***`) that is live is **857 frames** (1,329 with the music,
+  F259); class 17 is worth reading, not priced in advance. On `r5` only, a `best_*.path` with `last_input < 17846`
+  is a record on the ending-input coast (H1). Write-up: `docs/experiments/L7-w84-sweep.md`; facts F265/F266.
 - **[E9b-1, session 19] TWO `build/explore` archives ON THE MAC** — `ssh mac`, logs
   `~/code/smb/runs/E9b/{arc16,arc32}.log`, rooted at 12157 with `--subcell 16/32 --ysubcell 64`,
   6 h each, RSS watchdog at 3 GB. Both reproduced the control (`GOAL frame=12953`) at startup.
@@ -784,6 +799,13 @@ speed-killing mint is the only mechanism 4-2 has.
 count and go in the table above; and **a search goal must be the quantity the record is measured in
 and monotone with it** — three proxy goals produced three fake records this session (F230, F237).
 
+**Added session 21 (L7, both cheap and both un-run):** (i) **read the L7 sweep out** once `runs/L7-w84/r1`-`r5`
+finish — `grep ANOMALY runs/L7-w84/*.log`, replay each hit, and record the verdict per sub-area (a dry is a
+statement about the rollout policy from that root, not a proof); (ii) **re-run E6's six roots with the object
+lens** (`runs/E6-vram/launch.sh`, same binary) — F266 makes every earlier sweep silent on in-table ids in
+occupied slots and on slot 5, so 1-1 / 1-2 / 4-1 / 4-2 / 8-2 / 8-3 have never been looked at through the class
+that matters. Both are RAM-blocked behind whatever is running, not blocked on thought.
+
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
 | **E9b-1** | **8-2's cols 201-212 — the largest geometric loss on the route (114 f, F245/H48). START HERE.** The launcher is written: **`./runs/E9b/launch.sh`** (read `runs/E9b/README.md`). **Blocked only on RAM** — wait for `pgrep -x explore` to be empty. The site: a one-column pillar (col 203, top row 6, `Y` 96), a two-column bottomless shaft (204-205), a two-column wall (206-207, rows 3-12, top `Y` 48). The WR falls into the shaft and **wall-jumps** up it — 183 frames for 173 px against a 69-frame bound. Its faces **refuse** (col 205 is empty top to bottom) and F244's sink needs a foot at x >= 3284 while the side probe impedes from x = 3283 unless `Y <= 55`, by which height Mario is already over the wall — **so it is a jump-arc problem, not a clip problem**. H48: the direct jump from the pillar needs 41 px of rise before x = 3283, the WR's own arc gives 42 px in 25 px of travel, so it must be issued at x <= 3259 and the first issuable frame after landing at x 3258 is x ~ 3260 — **it misses by 1-2 px**. Land 3-10 px earlier and it clears with 10-25 px of margin; the cost is a flatter approach jump that must still clear the col-199/201 staircase (2 px of margin at the WR's). **No-memory fallback while the box is full:** splice a jump into the WR inputs at dump 12289 and replay on the core. | A | M | — | Either a core-replayed path with `StarFlagTaskControl == 5` at core <= 12952 (banked) or <= 12931 (a record), or a swept statement that no pillar landing at x <= 3252 with speed >= 39 exists |
@@ -835,6 +857,13 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s21 (Linux) — **L7 claimed: 8-4's novelty sweep built, controlled and launched, and the sweep's
+  object-slot blind spot closed** (F265, F266, `docs/experiments/L7-w84-sweep.md`). `explore --anomaly` gained
+  class 17 (`Enemy_ID` novel in a **live** slot, calibrated against every id the reference line parks anywhere)
+  and class 18 (a **second** `StarFlagObject`, calibrated by count), and class 5 widened from five slots to six —
+  so E6's hits in class 5 are no longer comparable. 8-4's five sub-areas mapped to core frames (F265), controlled
+  on the Bowser room in 45 s (calibrator green, WR ending reproduced exactly, no new-class hit). `tools/build_explore.sh`
+  now builds via temp + `mv`, so a rebuild cannot disturb a search in flight.
 - 2026-08-25 s20 (Mac) — **L5 / H2 CLOSED: the load lag frame is irreducible, and its cause was
   misattributed** (F264, `docs/experiments/H2-lag-frames.md`). The overrunning routine is
   `InitializeArea`/`InitializeMemory` — a 1,868-byte RAM clear at 18 cycles/byte = ~33,370 cycles plus

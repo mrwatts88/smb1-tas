@@ -57,6 +57,7 @@
 #define PXFRAC   0x705   /* Player_X_MoveForce - the horizontal subpixel */
 #define PYFRAC   0x433   /* Player_Y_MoveForce */
 #define ENID     0x16
+#define ENFLAG   0x0f   /* Enemy_Flag: slot i is a live object iff $0f+i != 0 */
 #define ENX      0x87
 
 static uint8_t cur_pad;
@@ -183,25 +184,31 @@ static const char *ANOM_NAME[] = {
     "Y above world", "GES", "OperMode", "WorldNumber", "AreaPointer", "Enemy_ID out of table",
     "EnemyFrenzyBuffer", "VRAM_Buffer1_Offset", "Player_State", "PlayerSize",
     "WarpZoneControl", "AltEntranceControl", "ScrollLock", "EnemyFrenzyQueue",
-    "SecondaryHardMode", "DuplicateObj_Offset", "position jump (clip/teleport)" };
-#define NANOM 17
+    "SecondaryHardMode", "DuplicateObj_Offset", "position jump (clip/teleport)",
+    "Enemy_ID novel in a live slot", "StarFlagObject in a slot" };
+#define NANOM 19
 /* Self-calibrating: the allowed value sets are collected from the WR's OWN line through this same
  * region during --seed-wr, so "anomaly" means "a state the reference movie never produces here"
  * rather than a hand-guessed predicate.  Without --seed-wr only the absolute predicates fire. */
 static uint8_t ok_ges[256], ok_oper[256], ok_world[256], ok_area[256], ok_pstate[256], ok_size[256];
-static uint8_t ok_wzc[256], ok_alt[256], ok_lock[256];
+static uint8_t ok_wzc[256], ok_alt[256], ok_lock[256], ok_enid[256];
 static int g_calibrating=1;   /* learn from the root + the WR line before judging anything */
+static int ok_nstarflag=0;    /* how many StarFlagObject slots the reference line ever holds here */
 static inline void anom_learn(const uint8_t *r){
     ok_ges[r[0x0e]]=1; ok_oper[r[OPERMODE]]=1; ok_world[r[WORLDNUM]]=1;
     ok_area[r[AREAPTR]]=1; ok_pstate[r[PSTATE]&3]=1; ok_size[r[0x754]]=1;
     ok_wzc[r[0x6d6]]=1; ok_alt[r[0x752]]=1; ok_lock[r[0x723]]=1;
+    /* Object-slot lens (L7).  Learn every id the reference line ever parks in a slot,
+     * live or stale, so a stale byte cannot masquerade as novel; judge only LIVE slots. */
+    for(int q=0;q<6;q++) ok_enid[r[ENID+q]]=1;
+    { int n=0; for(int q=0;q<6;q++) if(r[ENID+q]==0x31) n++; if(n>ok_nstarflag) ok_nstarflag=n; }
 }
 /* Report each (class, VALUE) pair once, not each class once: otherwise the first mundane
  * WorldNumber masks the one that matters.  vals[] carries the offending value per class. */
 static uint8_t anom_seen_val[NANOM][256];
 static long g_px=-1, g_py=-1;   /* previous frame's position, for the discontinuity test */
 static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
-    /* 16 classes; see ANOM_NAME */
+    /* 19 classes; see ANOM_NAME */
     unsigned m=0;
     if(r[0x0e]==0) return 0;                       /* mid-load: the RAM is being reinitialised */
     if(r[0xb5]==0 && r[PY]>=0xfa){ m|=1u<<0; vals[0]=r[PY]; }  /* F210's 2-px doorway window */
@@ -209,7 +216,7 @@ static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
     if(!ok_oper[r[OPERMODE]]){ m|=1u<<2; vals[2]=r[OPERMODE]; }
     if(!ok_world[r[WORLDNUM]]){ m|=1u<<3; vals[3]=r[WORLDNUM]; }
     if(!ok_area[r[AREAPTR]]){ m|=1u<<4; vals[4]=r[AREAPTR]; }
-    for(int q=0;q<5;q++) if(r[ENID+q]>0x36){ m|=1u<<5; vals[5]=r[ENID+q]; }
+    for(int q=0;q<6;q++) if(r[ENID+q]>0x36){ m|=1u<<5; vals[5]=r[ENID+q]; }  /* 6 slots: $16-$1b */
     if(r[0x6cb]){ m|=1u<<6; vals[6]=r[0x6cb]; }
     if(r[0x300]>80){ m|=1u<<7; vals[7]=r[0x300]; }
     if(!ok_pstate[r[PSTATE]&3]){ m|=1u<<8; vals[8]=r[PSTATE]&3; }
@@ -220,6 +227,16 @@ static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
     if(r[0x6cd]){ m|=1u<<13; vals[13]=r[0x6cd]; }
     if(r[0x6cc]){ m|=1u<<14; vals[14]=r[0x6cc]; }
     if(r[0x6cf]){ m|=1u<<15; vals[15]=r[0x6cf]; }
+    /* The object-slot lens (L7).  17: a LIVE slot (Enemy_Flag != 0) holding an id the reference
+     * line never parked in any slot here -- the general "the parser put something impossible in a
+     * slot" detector.  18: StarFlagObject ($31) in any slot at all, live or not -- that is F258's
+     * 857-frame mechanism.  It is calibrated by COUNT, not by presence: the end-of-level castle
+     * legitimately parks one, so the class fires only when MORE slots hold $31 than the reference
+     * line ever holds here.  value = the count, bit 7 set when at least one of them is live
+     * (Enemy_Flag != 0), i.e. when it would actually be dispatched by ProcELoop. */
+    for(int q=0;q<6;q++) if(r[ENFLAG+q] && !ok_enid[r[ENID+q]]){ m|=1u<<17; vals[17]=r[ENID+q]; }
+    { int n=0, live=0; for(int q=0;q<6;q++) if(r[ENID+q]==0x31){ n++; if(r[ENFLAG+q]) live++; }
+      if(n>ok_nstarflag){ m|=1u<<18; vals[18]=(uint8_t)(n|(live?0x80:0)); } }
     /* Mario cannot move more than ~4 px horizontally or ~8 px vertically in one frame of normal
      * play.  Anything larger is a clip, an ejection or a teleport -- the general glitch detector. */
     { long cx=(long)r[PPAGE]*256+r[PX], cy=(long)r[PYHI]*256+r[PY];
@@ -415,7 +432,9 @@ int main(int argc, char **argv) {
                            (b_==3 && av_[b_]==7) ? "   *** WORLD 8 REACHED ***" : \
                            (b_==3 && av_[b_]==35) ? "   (the Minus World -- H6, refuted)" : \
                            (b_==10) ? "   *** WARP ZONE CONTROL SET -- THE 3957-FRAME CELL ***" : \
-                           (b_==5||b_==6) ? "   *** OOB ENEMY PRIMITIVE ***" : ""); } \
+                           (b_==5||b_==6) ? "   *** OOB ENEMY PRIMITIVE ***" : \
+                           (b_==18) ? "   *** SECOND STAR FLAG -- F258'S 857 FRAMES ***" : \
+                           (b_==17) ? "   *** OBJECT-SLOT ANOMALY (F258 class) ***" : ""); } \
                 fflush(stdout); } } \
         if(!req_ok(ram)) break; \
         if(!tab[p_].key){ \
@@ -467,9 +486,9 @@ int main(int argc, char **argv) {
         }
         g_calibrating=0;
         { for(int b=0;b<NANOM;b++) for(int q=0;q<256;q++) anom_seen_val[b][q]=0; }
-    if(anomaly){ int ng=0,no=0,nw=0,na=0,np=0;
-            for(int q=0;q<256;q++){ ng+=ok_ges[q]; no+=ok_oper[q]; nw+=ok_world[q]; na+=ok_area[q]; np+=ok_pstate[q]; }
-            printf("anomaly calibration from the WR line: %d GES / %d OperMode / %d World / %d AreaPointer / %d PlayerState values are normal here\n",ng,no,nw,na,np); }
+    if(anomaly){ int ng=0,no=0,nw=0,na=0,np=0,ne=0;
+            for(int q=0;q<256;q++){ ng+=ok_ges[q]; no+=ok_oper[q]; nw+=ok_world[q]; na+=ok_area[q]; np+=ok_pstate[q]; ne+=ok_enid[q]; }
+            printf("anomaly calibration from the WR line: %d GES / %d OperMode / %d World / %d AreaPointer / %d PlayerState / %d Enemy_ID values are normal here\n",ng,no,nw,na,np,ne); }
         printf("seeded WR line: %ld cells, incumbent last_input=%ld\n",nlive,best_last);
         fflush(stdout);
     }
@@ -563,7 +582,7 @@ int main(int argc, char **argv) {
             double el=now()-t0; char bl[32]; long bb = g_ngoal?best_frame:best_last;
             if(bb==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",bb);
             printf("[%6.0fs] cells=%ld rollouts=%ld frames=%.2fM (%.0fk fps) goals=%ld deaths=%ld "
-                   "best=%s maxx=%ld maxrel=%ld maxaddr=%ld anom=0x%03x improved=%ld evict=%ld\n",
+                   "best=%s maxx=%ld maxrel=%ld maxaddr=%ld anom=0x%05x improved=%ld evict=%ld\n",
                    el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,best_off,best_max,anom_seen,improved,evict);
             if(wlo>=0){ printf("          mint curve (rel: earliest frame | x-scroll 0):");
                 for(int q=112;q<=160;q+=2) if(wcurve[q]<(1L<<30))

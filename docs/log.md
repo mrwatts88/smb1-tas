@@ -2014,3 +2014,62 @@ check the cost, not the story.**
 **Next.** The board is now five items: L1 and L2 running (both at their controls, no banked frames),
 L3 (8-4 room 3's approach, corrected form) and L4 (8-4 room 2's exit pipe, subpixel key) un-run, L6
 folds into L2. Both un-run items are in 8-4, the only level where one frame is the record.
+
+## 2026-08-25 — Session 21 (Linux): L7 — 8-4's first corner search, and the lens the sweep never had
+
+**Context: a memory-bound session.** Five searches were already in flight — three E7 archives on
+the Linux box (~2 h left) and two E9b archives on the Mac (~3.5 h) — leaving 2.5 GB spare on a
+15 GB box. So the unit had to be one that is mostly *thought and tooling*, with a small tail of
+compute. L7 is exactly that shape.
+
+**Did.** Two gaps on the board's L7 row, and the second turned out to be the interesting one.
+
+**(1) 8-4 had never been swept.** `build/explore --anomaly` — the P3.4 corner search, which reports
+the first occurrence of each (class, value) pair the WR's own line through the same region never
+produces — was run once, on 1-1, 1-2, 4-1, 4-2, 8-2 and 8-3. **Never on 8-4**, in any of its five
+sub-areas: the only unquantized level, the one place a single anomalous frame *is* the record, had
+had no corner search at all. Mapped its five sub-areas to core frames from the WR dump (F265):
+control at 15224 / 15918 / 16355 / 16720 / 17590, each exactly 122 frames after its load — and
+those five loads are exactly F264's last five lag frames, which is the independent check that the
+map is right.
+
+**(2) No sweep had ever carried an object-slot lens — and the blind spot was the exact shape of the
+mechanism we priced at 857 frames.** The nearest class was 5, `Enemy_ID out of table`:
+
+```c
+for(int q=0;q<5;q++) if(r[ENID+q]>0x36){ ... }
+```
+
+`Enemy_ID` is `$16-$1b` and `Enemy_Flag` `$0f-$14` — **six** slots (F261) — so slot 5 was never
+looked at; and `StarFlagObject` is **`$31`, below `$36`**, so a second star flag in *any* slot could
+never have fired it. F258 measured that mechanism at 857 frames and F262 closed the write path to
+it; but the one class a sweep would have needed to *see* it was the one class the sweep did not
+have. Added class 17 (`Enemy_ID` novel in a **live** slot — calibrated against every id the
+reference line parks in any slot, live or stale, so a stale byte cannot masquerade as novel) and
+class 18 (**a second** `StarFlagObject` — calibrated by *count*, since the end-of-level castle
+legitimately parks one), and widened class 5 to all six slots. F266.
+
+**Controlled, then launched.** 45 s on the Bowser room: the calibrator reports 6 normal `Enemy_ID`
+values, the seeded WR line reproduces the ending exactly (`GOAL victory=17865 last_input=17846`,
+WR 17846), and neither new class fires on 3,393 rollouts — the expected null. `r5` is running now at
+`--cells 40000` under `MemoryMax=800M` (the RAM there was); `r1`-`r4` are queued behind a detached
+`WAIT=1 WAITN=1` waiter that fires them at 80,000 cells when the E7 archives exit.
+
+**A side effect worth naming.** The Bowser-room root is the only sweep root whose horizon reaches
+the end of the game, so its default goal (`OperMode 2 && World >= 7`) is live: any `best_*.path`
+with `last_input < 17846` is a record on the ending-input coast. That makes `r5` a free H1 probe,
+and it sits in the room where H17 (suppress Bowser for a faster axe) lives too.
+
+**Also fixed:** `tools/build_explore.sh` builds to a temp file and `mv`s it into place. Rebuilding
+`build/explore` while five searches have it mapped would otherwise either fail with ETXTBSY or
+disturb a job in flight; a rename is atomic and leaves the running inode alone.
+
+**Learned.** A sweep's verdict is only as wide as its predicates, and ours had been read as
+"the novelty search found only mundane hits" when what it actually said was "found only mundane
+hits *among ids above `$36` in five of six slots*". The negative was never wrong; it was narrower
+than the sentence people (we) carried forward. Same failure mode as F210/F216 and the `timing-model`
+attribution the day before: **check what the evidence covers, not the summary of it.**
+
+**Next.** Read the sweep out when the five jobs finish (`grep ANOMALY runs/L7-w84/*.log`, replay
+each hit, verdict per sub-area). Then the cheap follow-up F266 opens: re-run E6's six roots with the
+object lens, because 1-1 / 1-2 / 4-1 / 4-2 / 8-2 / 8-3 have never been looked at through it either.

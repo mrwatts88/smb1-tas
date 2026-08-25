@@ -17,7 +17,7 @@ its date and fact number.
 | **L3** | **8-4 room 3's approach** (H25) — one frame, in the only unquantized level. Two searches went dry but **both goaled on the WR's own apex**, which H39's seam corollary says deletes the answer by construction. The corrected version searches the 162-frame approach with generic buckets and emits a *set* of apex states. | 1 | 38 | **un-run** |
 | **L4** | **8-4 room 2's exit pipe** — 15 frames of measured geometric loss at cols 150–152 (F245). An arc problem, never searched with a subpixel cell key. (Its sibling, 4-2's warp-zone drop, is 30 frames but 4-2 needs 13 and is measured closed on both routes.) | 1 | 15 | **un-run** |
 | ~~L5~~ | **CLOSED 2026-08-25 (F264) — H2, lag frames.** The overrunning routine is `InitializeArea`/`InitializeMemory`, not `InitScreen`: a 1,868-byte RAM clear at 18 cycles/byte = ~33,370 cycles + ~2,000 prologue against an NTSC frame's 29,780 = **119 %**, so exactly one NMI is lost per load and never two. Overrun ~5,600 cycles; the only parameter can save 1,368. Irreducible, and nothing about it is ours. (Route has **17** load lag frames, five inside 8-4.) | 1 | **0** | **closed** |
-| **L7** | **The novelty sweep has never been run on 8-4 — the one unquantized level.** `build/explore --anomaly` (the 17-class sweep, `runs/E6-vram/`) was run on **1-1, 1-2, 4-1, 4-2, 8-2 and 8-3**, each rooted at its level start; **8-4 was never swept, in any of its five sub-areas.** Two gaps, not one: (a) the level where a single frame *is* the record has had no corner-search at all, and (b) no sweep has ever carried an **object-slot lens** — an `Enemy_ID` slot holding a value the parser should never put there — which is precisely the class F258 measured at 857 frames. Note what this is *not* competing with: L1/L2's five running archives are **goal-directed optimizers over the joypad**, and by construction cannot surface a structural anomaly (all of session 19's real finds came from reading, not from 809 M simulated frames). Cheap: same binary, same launcher shape as `runs/E6-vram/launch.sh`, one root per sub-area. | 1 | ? | **un-run** |
+| **L7** | **The novelty sweep on 8-4 — the one unquantized level — with the object-slot lens it never had.** Two gaps, both now addressed. (a) `build/explore --anomaly` (`runs/E6-vram/`) was run on 1-1, 1-2, 4-1, 4-2, 8-2 and 8-3; **8-4 was never swept, in any of its five sub-areas** — the level where one frame *is* the record had had no corner-search at all. (b) **No sweep ever carried an object-slot lens**, and F266 shows why that mattered: the nearest class fired only on `Enemy_ID > $36` over five of the six slots, so `$31` (`StarFlagObject`, the class F258 priced at 857 frames) was invisible to it in every slot. explore.c now has class 17 (`Enemy_ID` novel in a **live** slot, calibrated) and class 18 (a **second** star flag, calibrated by count), and class 5 covers all six slots. Roots = the five sub-area control frames (F265). Note what this is *not* competing with: L1/L2's running archives are goal-directed optimizers over the joypad and by construction cannot surface a structural anomaly (all of session 19's real finds came from reading, not from 809 M simulated frames). | 1 | ? | **RUNNING**, Linux — `r5` (Bowser room) live, `r1`–`r4` queued behind the E7 archives (`runs/L7-w84/`, `docs/experiments/L7-w84-sweep.md`). Follow-up: re-run E6's six roots with the object lens |
 | **L6** | **Big Mario, route-wide** (H18/F238) — his left probe covers two rows, so he free-passes a face more easily, but he is strictly fatter and the static census says he adds nothing (F243). | — | — | fold into L2; **not its own campaign** |
 
 **Where the frames can actually come from.** A level only pays if it saves its **whole** framerule
@@ -61,13 +61,16 @@ work on its own; each is a lens to apply while doing something else.
 - **H32** — the 4-2 lift as a launch pad (jump from the descending lift at Y 132, not the floor at 176).
 - **H12** — L+R / U+D semantics beyond the known 1-frame reversal.
 - **H16** — sprite-0 / PPU timing: prevent a lag frame by controlling what renders. *(Overlaps L5.)*
-- **H17** — object-slot spawn suppression: suppress Bowser in 8-4 for a faster axe.
+- **H17** — object-slot spawn suppression: suppress Bowser in 8-4 for a faster axe. *(L7's `r5` root
+  sits in that room and carries the new object-slot lens, so it is being looked at in passing.)*
 - **H20** — uninitialised-RAM reads under the emulator's defined initial RAM.
 - **H14** — vine teleport / screen-edge tricks skipping a section of 8-4 or 4-2.
 - **H4** — time-bonus countdown phase at the flagpole. *(F257 gives the arithmetic: a frame saved in
   a flag level is worth 1 except when it crosses a 24-frame tick, where it is worth 0.)*
 - **H1** — ending-input coast: a final jump from farther away that makes the *last input* earlier
-  while Mario still reaches the axe. Partly closed (F223 settled the WR's own final jump).
+  while Mario still reaches the axe. Partly closed (F223 settled the WR's own final jump). *(L7's
+  `r5` job is the only sweep whose horizon reaches the ending, so its `best_*.path` — anything with
+  `last_input < 17846` — is a live H1 probe as a side effect.)*
 
 ---
 
