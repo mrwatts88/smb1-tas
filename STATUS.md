@@ -109,8 +109,13 @@ pre-cleanup narrative version of this file is archived at
   `V_FORCE_AREA_INIT` is correct for a control frame (`W84Room3` shows the identical pattern).
   **NEXT: the room-2 enemy port — and it is the CHEAP one.** Live objects are two Buzzy Beetles (id $02, plain
   walkers, same shape as the goombas already in `w11enemies`) and three piranha plants (id $0d, class already in
-  `w42enemies`). **No cheep frenzy, no LFSR** — F126/F130's expensive part is not needed here. Port → difftest to
-  0 over the WR's 267 → then the d266 search with `--beam-buckets`.
+  `w42enemies`). **No cheep frenzy, no LFSR** — F126/F130's expensive part is not needed here. Plus **ONE new
+  class**: `$0e` is a **jumping Green Paratroopa**, not a lift as MrWint's comment claims — traced from the dump
+  (rows 16008-16088), constant x-speed -8 leftward with a repeating parabolic arc 184→141→185, period ~56 frames.
+  Two of them (x 2224, 2256) sit inside room 2's span. Plant pipes for room 2 = **(115,9), (122,8), (132,9)**
+  (col = (x-8)/16, row = (rest_y-32)/16 — mapping confirmed exact by room 3's x-3400 plant landing on (212,5),
+  the case's own pipe). Port → difftest to 0 over the WR's 267 → then the d266 search with `--beam-buckets`.
+  Full derivation + raw `E_CastleArea6` bytes + the implementation plan: `docs/experiments/P2.2f-84-room2-seam.md`.
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
