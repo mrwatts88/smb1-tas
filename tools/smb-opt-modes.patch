@@ -716,7 +716,7 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..cf4dced
+index 0000000..8983b07
 --- /dev/null
 +++ b/src/case/w42.rs
 @@ -0,0 +1,278 @@
@@ -877,7 +877,7 @@ index 0000000..cf4dced
 +      // 120, Mario's box bottom Y+32 >= its box top y+14 -> Y >= 102); every other stompable object (the goombas
 +      // after falling, the koopa, the beetle, kicked shells) is lower. Existence needs the group's spawn
 +      // (ScreenLeft >= 433, F99), and ScreenLeft <= Mario's x -> x_pos >= 433 px.
-+      surf.push(Surface { y: 102, xs: vec![(433 << 8, ::std::i32::MAX)], bounce: true });
++      surf.push(Surface { y: 102, xs: vec![(433 << 8, ::std::i32::MAX)], bounce: true, embedded: false });
 +    }
 +    let gate = YGate::new::<NTSC>((gy >> 8) - 0x100, surf);
 +    println!("W42Main position goal x >= {} Y <= {}{}: {}", gx >> 8, (gy >> 8) - 0x100, if self.bounce_band { " (enemy-aware: bounce band)" } else { "" }, gate.describe());
@@ -2164,10 +2164,10 @@ index c9bbf89..4b83b01 100644
      let len = max_dists.len();
 diff --git a/src/heuristics/ygate.rs b/src/heuristics/ygate.rs
 new file mode 100644
-index 0000000..f7bc203
+index 0000000..9fe6485
 --- /dev/null
 +++ b/src/heuristics/ygate.rs
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,301 @@
 +//! P2.3c-2c — a sound y-coupled lower bound ("y gate") for position goals `x_pos >= gx && Player_Y <= gy`.
 +//!
 +//! Relaxation (a superset of the model's vertical behaviour, x handled only through MrWint's x table):
@@ -2215,7 +2215,12 @@ index 0000000..f7bc203
 +/// A standable cell top: Mario standing on it has pixel Y `y`; `xs` = merged inclusive x_pos intervals in which
 +/// one of his foot points is inside a cell of that row.
 +#[derive(Clone, Debug)]
-+pub struct Surface { pub y: i32, pub xs: Vec<(i32, i32)>, pub bounce: bool }
++pub struct Surface { pub y: i32, pub xs: Vec<(i32, i32)>, pub bounce: bool,
++  /// F153: every cell of this row is **embedded** — the cell directly above it is solid too, so Mario standing
++  /// here has his body inside terrain. He can only have got here by crossing a solid vertical face, and
++  /// `impede_player_move` does `x_spd &= 0xff` — his integer speed is **zero**. So the running and walking
++  /// jump arcs are not available to him on arrival; he has to earn them back by accelerating first.
++  pub embedded: bool }
 +
 +#[derive(Clone, Copy, Debug)]
 +struct Air { y: i32, v: i16, g: u8, gd: u8 }
@@ -2228,6 +2233,11 @@ index 0000000..f7bc203
 +  jumps: [(i16, u8, u8); 3],  // (y_spd0, jump gravity, fall gravity): running, walking, standing
 +  bounces: [(i16, u8, u8); 3], // the stomp bounce (-4 px, fall gravity kept) under each fall gravity
 +  fall_g: u8,                 // the largest fall gravity (fastest walk-off descent)
++  /// F153: frames needed, from a standstill, to earn each jump class back. `PlayerCtrlRoutine` picks the class
++  /// from `Player_XSpeedAbsolute` against `X_SPD_ABS_CUTOFFS[3]` (running) and `[2]` (walking), and the largest
++  /// per-frame acceleration in the model is `FRICTION_RUN`, so `ceil(cutoff * 256 / FRICTION_RUN)` is a sound
++  /// lower bound on the frames to reach that class. Indexed like `jumps`: [running, walking, standing].
++  accel_cost: [Dist; 3],
 +}
 +
 +#[inline] fn px(y_pos: i32) -> i32 { (y_pos >> 8) - 0x100 }
@@ -2237,24 +2247,39 @@ index 0000000..f7bc203
 +/// Every standable cell top of a block buffer of `width` columns (cells != 0 that are not coins or climbables;
 +/// hidden blocks are included — bumped they become platforms), merged into per-Y x intervals.
 +pub fn surfaces_from_blocks<B: BlockBuffer>(width: usize) -> Vec<Surface> {
-+  let mut by_y: ::std::collections::BTreeMap<i32, Vec<(i32, i32)>> = ::std::collections::BTreeMap::new();
++  // F153: keyed by (y, embedded), NOT by y alone. A row like Y96 spans the whole level and is embedded only
++  // where it is a pipe/wall interior; merging it into one row made the flag useless (every such row has at
++  // least one open cell somewhere, so the row was never embedded and nothing was ever charged).
++  let mut by_key: ::std::collections::BTreeMap<(i32, bool), Vec<(i32, i32)>> = ::std::collections::BTreeMap::new();
++  let solid = |c: usize, r: usize| -> bool { let v = B::get_block_at(c, r); v != 0 && !is_coin(v) && !is_climb(v) };
 +  for c in 0..width { for r in 0..13 {
 +    let cv = B::get_block_at(c, r);
 +    if cv == 0 || is_coin(cv) || is_climb(cv) { continue; }
 +    let lo = ((16 * c as i32) - 12) << 8; let hi = (((16 * c as i32) + 12) << 8) | 0xff;
-+    by_y.entry(16 * r as i32).or_insert_with(Vec::new).push((if lo < 0 { 0 } else { lo }, hi));
++    // row 0 has open sky above it (1-2's wall route runs along the top of the buffer), so it is never embedded.
++    let e = r > 0 && solid(c, r - 1);
++    by_key.entry((16 * r as i32, e)).or_insert_with(Vec::new).push((if lo < 0 { 0 } else { lo }, hi));
 +  } }
 +  let mut out = Vec::new();
-+  for (y, mut xs) in by_y {
++  for ((y, e), mut xs) in by_key {
 +    xs.sort();
 +    let mut merged: Vec<(i32, i32)> = Vec::new();
 +    for (lo, hi) in xs {
 +      if let Some(last) = merged.last_mut() { if lo <= last.1 + 1 { if hi > last.1 { last.1 = hi; } continue; } }
 +      merged.push((lo, hi));
 +    }
-+    out.push(Surface { y, xs: merged, bounce: false });
++    out.push(Surface { y, xs: merged, bounce: false, embedded: e });
 +  }
 +  out
++}
++
++
++/// F153: a sound lower bound on the frames needed to reach `X_SPD_ABS_CUTOFFS[ci]` from a standstill — each
++/// frame adds at most `FRICTION_RUN` to `x_spd`, so `ceil((cutoff << 8) / FRICTION_RUN)` frames are required.
++fn accel_frames<P: Platform>(ci: usize) -> Dist {
++  let need = (P::X_SPD_ABS_CUTOFFS[ci] as i32) << 8;
++  let per = P::FRICTION_RUN as i32;
++  ((need + per - 1) / per) as Dist
 +}
 +
 +impl YGate {
@@ -2266,15 +2291,16 @@ index 0000000..f7bc203
 +      bounces: [(-0x400, P::V_FORCE_FALL_RUNNING, P::V_FORCE_FALL_RUNNING),
 +                (-0x400, P::V_FORCE_FALL_WALKING, P::V_FORCE_FALL_WALKING),
 +                (-0x400, P::V_FORCE_FALL_STANDING, P::V_FORCE_FALL_STANDING)],
-+      fall_g: P::V_FORCE_FALL_RUNNING };
++      fall_g: P::V_FORCE_FALL_RUNNING,
++      accel_cost: [accel_frames::<P>(3), accel_frames::<P>(2), 0] };
 +    g.surf.sort_by_key(|sf| sf.y);
-+    for i in 0..g.surf.len() { let t = g.t_ground_yonly(g.surf[i].y, i); g.t_surf.push(t); }
++    for i in 0..g.surf.len() { let t = g.t_ground_yonly(g.surf[i].y, i, g.surf[i].embedded); g.t_surf.push(t); }
 +    g
 +  }
 +  pub fn describe(&self) -> String {
 +    let mut s = format!("y gate: Y <= {}; {} surface rows:", self.y_max, self.surf.len());
 +    for (i, sf) in self.surf.iter().enumerate() {
-+      s.push_str(&format!(" Y{}{}:T={}", sf.y, if sf.bounce { "(bounce band)" } else { "" }, if self.t_surf[i] >= Y_NEVER { "never".to_string() } else { self.t_surf[i].to_string() }));
++      s.push_str(&format!(" Y{}{}{}:T={}", sf.y, if sf.bounce { "(bounce band)" } else { "" }, if sf.embedded { "(embedded)" } else { "" }, if self.t_surf[i] >= Y_NEVER { "never".to_string() } else { self.t_surf[i].to_string() }));
 +      s.push_str(&format!("[{}]", sf.xs.iter().map(|&(lo, hi)| format!("{}..{}", lo >> 8, hi >> 8)).collect::<Vec<_>>().join(",")));
 +    }
 +    s
@@ -2327,19 +2353,26 @@ index 0000000..f7bc203
 +  }
 +  /// y-only T(Ys): min steps from standing at pixel Y `y` to Y <= y_max using only surfaces with index < n_above;
 +  /// from a bounce band the only take-offs are the stomp bounces.
-+  fn t_ground_yonly(&self, y: i32, n_above: usize) -> Dist {
++  /// `embedded`: the surface can only be entered through a solid face, so Mario is standing on it at integer
++  /// x speed **0** (F153). The running and walking arcs are still allowed — he can accelerate on the spot and
++  /// then jump — but each is charged `accel_cost` frames first, which is what keeps this a lower bound.
++  fn t_ground_yonly(&self, y: i32, n_above: usize, embedded: bool) -> Dist {
 +    if y <= self.y_max { return 0; }
 +    let mut best = Y_NEVER;
 +    let mut k1 = vec![Y_NEVER; self.surf.len()];
 +    let bounce = n_above < self.surf.len() && self.surf[n_above].y == y && self.surf[n_above].bounce;
-+    for &(v0, gj, gd) in (if bounce { &self.bounces } else { &self.jumps }) {
++    let set: &[(i16, u8, u8); 3] = if bounce { &self.bounces } else { &self.jumps };
++    for (ci, &(v0, gj, gd)) in set.iter().enumerate() {
++      // A stomp bounce is not a jump: no class is read, so it is never charged.
++      let pre: Dist = if embedded && !bounce { self.accel_cost[ci] } else { 0 };
++      if pre >= best { continue; }
 +      let mut a = Air { y: (y + 0x100) << 8, v: v0, g: gj, gd };
 +      a.y += a.v as i32; a.v += gj as i16; // the jump's first frame (fraction cleared, then the move)
-+      if px(a.y) <= self.y_max { best = dmin(best, 1); } // the first frame alone may reach the goal height (bounce arcs: 102 -> 98)
++      if px(a.y) <= self.y_max { best = dmin(best, pre + 1); } // the first frame alone may reach the goal height (bounce arcs: 102 -> 98)
 +      for v in k1.iter_mut() { *v = Y_NEVER; }
 +      let (kd, _) = self.hold_terms(a, n_above, 1, &mut k1);
-+      best = dmin(best, kd);
-+      for i in 0..n_above { if k1[i] != Y_NEVER && self.t_surf[i] != Y_NEVER { best = dmin(best, k1[i] + self.t_surf[i]); } }
++      if kd != Y_NEVER { best = dmin(best, pre + kd); }
++      for i in 0..n_above { if k1[i] != Y_NEVER && self.t_surf[i] != Y_NEVER { best = dmin(best, pre + k1[i] + self.t_surf[i]); } }
 +    }
 +    best
 +  }
