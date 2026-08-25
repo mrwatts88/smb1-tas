@@ -123,7 +123,13 @@ settled for this boot by F31).
 The old condition was *"Tier 1 dry, Tier 2 done, and E10 clean."* **E10 is now clean** and the state
 surface is closed. So the remaining condition is narrow and concrete:
 
-> **L1 and L2 dry, and L3/L4 run and dry.** (L5 closed 2026-08-25, F264.)
+> **L1 and L2 dry, L3/L4 run and dry, and L7 — the novelty sweep — run to completion on 8-4.**
+> (L5 closed 2026-08-25, F264.)
+>
+> **L7 is explicitly part of the condition (user, 2026-08-25).** It is the only *structural* look at
+> the only unquantized level; L1-L4 are goal-directed optimizers over the joypad and by construction
+> cannot surface an anomaly. Do not treat the sweep as optional colour — a dry board without it is
+> not a dry board.
 
 That is one to two sessions of work, not three to four. If it lands there, PLAN §7 already treats
 "the census is empty and the audit is clean" as a tier-1 publishable result in its own right rather
