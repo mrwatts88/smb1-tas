@@ -810,6 +810,16 @@ explicitly *without* conceding the question.
   xorg-x11-server-Xvfb mono-core mono-devel libgdiplus lsb_release cmake clang gdb strace`)
   would let `tools/fceux_run.sh` skip the container. Convenience only.
 
+## The premise behind every closure (H47 — read before trusting the list)
+
+Every "closed" verdict on this board — 1-1 end to end (F124), 4-1/8-1/8-3 cannot deliver a framerule
+from movement (F225), 4-2 closed both routes (F122/F123), 8-4's movement half (F232), 1-2's loss map
+(F152) — rests on an x-table lower bound that prices per-frame progress at the **running speed cap**.
+Those bounds are loose in the admissible direction only while nothing beats the cap. **If any
+over-cap forward displacement exists (H47), all of them become inadmissible at once and the board
+reopens.** Prior is low and the reasons are in H47; the point of writing it here is that the premise
+was implicit across a dozen facts and is now stated once.
+
 ## Key numbers (current headline numbers; each reproducible by a script in tools/ — per-unit numbers live in the experiment files)
 | Quantity | Value | Source / script |
 |---|---|---|
