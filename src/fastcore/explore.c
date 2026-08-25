@@ -173,6 +173,38 @@ static long trim_path(const uint8_t *path, long plen, long root, long coast, lon
     return li;
 }
 
+/* P3.4 novelty sweep: states the game should never reach.  Each is a known glitch class or the
+ * doorway to one -- Mario off the world, an out-of-table enemy id (the JumpEngine OOB of H43), a
+ * non-zero frenzy buffer, a world/area/mode the level cannot legitimately produce, an
+ * over-filled VRAM buffer (F218/F234).  Returns a bit mask; 0 = ordinary. */
+static const char *ANOM_NAME[] = {
+    "Mario ABOVE the world (Y_HighPos 0)", "GES the WR never uses here", "OperMode the WR never uses here",
+    "WorldNumber the WR never has here", "AreaPointer the WR never has here", "Enemy_ID > 0x36 (out of table)",
+    "EnemyFrenzyBuffer != 0", "VRAM_Buffer1_Offset > 80", "Player_State 3 (climbing) with no vine",
+    "PlayerSize/status changed" };
+/* Self-calibrating: the allowed value sets are collected from the WR's OWN line through this same
+ * region during --seed-wr, so "anomaly" means "a state the reference movie never produces here"
+ * rather than a hand-guessed predicate.  Without --seed-wr only the absolute predicates fire. */
+static uint8_t ok_ges[256], ok_oper[256], ok_world[256], ok_area[256], ok_pstate[256], ok_size[256];
+static int g_calibrating=1;   /* learn from the root + the WR line before judging anything */
+static inline void anom_learn(const uint8_t *r){
+    ok_ges[r[0x0e]]=1; ok_oper[r[OPERMODE]]=1; ok_world[r[WORLDNUM]]=1;
+    ok_area[r[AREAPTR]]=1; ok_pstate[r[PSTATE]&3]=1; ok_size[r[0x754]]=1;
+}
+static inline unsigned anom_mask(const uint8_t *r){
+    unsigned m=0;
+    if(r[0xb5]==0) m|=1u<<0;                       /* above the top of the world (F210's doorway) */
+    if(!ok_ges[r[0x0e]]) m|=1u<<1;
+    if(!ok_oper[r[OPERMODE]]) m|=1u<<2;
+    if(!ok_world[r[WORLDNUM]]) m|=1u<<3;
+    if(!ok_area[r[AREAPTR]]) m|=1u<<4;
+    for(int q=0;q<5;q++) if(r[ENID+q]>0x36) m|=1u<<5;
+    if(r[0x6cb]) m|=1u<<6;
+    if(r[0x300]>80) m|=1u<<7;
+    if(!ok_pstate[r[PSTATE]&3]) m|=1u<<8;
+    if(!ok_size[r[0x754]]) m|=1u<<9;
+    return m;
+}
 typedef struct { uint64_t key; int32_t frame; int32_t plen; int32_t sidx; int32_t visits; int32_t prog; } Cell;
 
 int main(int argc, char **argv) {
@@ -180,7 +212,7 @@ int main(int argc, char **argv) {
     const char *core=argv[1], *rom=argv[2], *inputs=argv[3], *outdir="runs/E3";
     long root=-1, input_skip=2, ncells=150000, rlo=8, rhi=64, horizon=900, secs=300, report=15, coast=400;
     long xcell=4, ycell=8, scell=64, spdcell=8, ecell=16, seedwr=1, probex=-1, nullmax=200, relcell=2;
-    long wlo=-1, whi=-1;
+    long wlo=-1, whi=-1, maxaddr=-1, maxw=0, anomaly=0;
     double tournp=0.75;
     long gaddr[8], gval[8]; int ngoal=0; long baseline=-1; const char *seedpaths[8]; int nseed=0;
     long raddr[8], rval[8]; int nreq=0; long progx=-1, progoff=0, progfw=5;
@@ -198,6 +230,9 @@ int main(int argc, char **argv) {
         else if(!strcmp(argv[i],"--ycell")) ycell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--scell")) scell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--relcell")) relcell=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--max-addr")) maxaddr=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--max-weight")) maxw=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--anomaly")) anomaly=1;
         else if(!strcmp(argv[i],"--watch-x")){ char*t=argv[++i]; wlo=strtol(t,NULL,0);
             char*c2=strchr(t,','); if(c2) whi=strtol(c2+1,NULL,0); else whi=wlo; }
         else if(!strcmp(argv[i],"--spdcell")) spdcell=strtol(argv[++i],NULL,0);
@@ -262,6 +297,7 @@ int main(int argc, char **argv) {
     g_root_state = malloc(g_ssz); g_retro_serialize(g_root_state, g_ssz);
     g_lives0 = ram[LIVES];
     long wr_last=-1; for(long i=0;i<root;i++) if(in[i+input_skip]) wr_last=i;
+
     printf("root=%ld  state=%zu B  lives=%u  area=$%02x  x=%d  y=%d  WR last input before root=%ld\n",
            root,g_ssz,ram[LIVES],ram[AREAPTR],ram[PPAGE]*256+ram[PX],ram[PYHI]*256+ram[PY],wr_last);
 
@@ -282,17 +318,19 @@ int main(int argc, char **argv) {
         long rl=ax-sl; if(rl<0) rl=0; if(rl>255) rl=255; \
         uint64_t ed=0; if(ecell) for(int q=0;q<5;q++) if((r)[ENID+q]) \
             ed = ed*1000003ULL + (uint64_t)((r)[ENID+q])*131ULL + (uint64_t)((r)[ENX+q]/ecell); \
+        uint64_t mv = maxaddr>=0 ? (uint64_t)(r)[maxaddr] : 0; \
         uint64_t k = (uint64_t)(ax/xcell) | ((uint64_t)(ay/ycell)<<14) | ((uint64_t)((sp+128)/spdcell)<<26) \
                    | ((uint64_t)((r)[PSTATE]&3)<<32) | ((uint64_t)(rl/relcell)<<34) | ((uint64_t)((r)[SCTIMER]!=0)<<42) \
                    | ((uint64_t)(sl/scell)<<43) | ((uint64_t)(r)[AREAPTR]<<48) \
                    | ((uint64_t)((r)[GES]&15)<<56); \
-        k ^= ed*0x9e3779b97f4a7c15ULL; k ^= k>>29; k *= 0xbf58476d1ce4e5b9ULL; k ^= k>>32; k|1ULL; })
+        k ^= ed*0x9e3779b97f4a7c15ULL; k ^= mv*0x94d049bb133111ebULL; k ^= k>>29; k *= 0xbf58476d1ce4e5b9ULL; k ^= k>>32; k|1ULL; })
 
     long inserted=0, improved=0, rollouts=0, frames=0, goals=0, evict=0, deaths=0, probes=0;
+    unsigned anom_seen=0; long anom_hits=0;
     /* promise: how far ahead of a constant-max-speed schedule this cell is (2.5 px/frame),
      * minus a visit penalty so exploration spreads instead of collapsing onto one cell. */
     #define PROMISE(c) ((long)tab[c].prog*2 - ((long)tab[c].frame-root)*progfw - (long)tab[c].visits*3)
-    long best_last=1L<<30, best_prog=0, best_frame=1L<<30, best_off=0, best_off_near=0, best_watch=0;
+    long best_last=1L<<30, best_prog=0, best_frame=1L<<30, best_off=0, best_off_near=0, best_watch=0, best_max=-1;
     long wcurve[256], wcurve0[256];   /* earliest frame reaching each rel in the window; ...0 = with Player_X_Scroll==0 */
     for(int i=0;i<256;i++){ wcurve[i]=1L<<30; wcurve0[i]=1L<<30; }
 
@@ -320,7 +358,30 @@ int main(int argc, char **argv) {
                         fwrite(path,1,(size_t)(PL),o2); fclose(o2); } \
                 printf("  WATCH x=%ld rel=%ld frame=%ld Player_X_Scroll=%u %s\n",ax_,off_,(long)(F), \
                        ram[0x6ff], off_>=132?"  <-- WARP-CAPABLE LEAD":""); fflush(stdout); } } \
-        int32_t pg_=(int32_t)((progx>=0 ? -labs(ax_-progx) : ax_) + progoff*off_); \
+        int32_t pg_=(int32_t)((progx>=0 ? -labs(ax_-progx) : ax_) + progoff*off_ \
+                              + (maxaddr>=0 ? maxw*(long)ram[maxaddr] : 0)); \
+        if(maxaddr>=0 && (long)ram[maxaddr]>best_max){ best_max=(long)ram[maxaddr]; \
+            char fnm[512]; snprintf(fnm,sizeof fnm,"%s/max_%02lx_%ld.path",outdir,maxaddr,best_max); \
+            FILE *om=fopen(fnm,"wb"); \
+            if(om){ fprintf(om,"root %ld len %ld addr 0x%lx value %ld frame %ld x %ld\n", \
+                            root,(long)(PL),maxaddr,best_max,(long)(F),ax_); \
+                    fwrite(path,1,(size_t)(PL),om); fclose(om); } \
+            printf("  MAX $%04lx = %ld  at frame %ld x %ld%s\n",maxaddr,best_max,(long)(F),ax_, \
+                   best_max>=227?"   *** REACHES Block_BBuf_Low ***":(best_max>67?"   (above the WR's 67)":"")); \
+            fflush(stdout); } \
+        if(anomaly && g_calibrating){ anom_learn(ram); } \
+        else if(anomaly){ unsigned am_=anom_mask(ram); \
+            if(am_ & ~anom_seen){ unsigned nw_=am_ & ~anom_seen; anom_seen|=am_; anom_hits++; \
+                for(int b_=0;b_<10;b_++) if(nw_>>b_&1){ \
+                    char fa[512]; snprintf(fa,sizeof fa,"%s/anom_%d_f%ld.path",outdir,b_,(long)(F)); \
+                    FILE *oa=fopen(fa,"wb"); \
+                    if(oa){ fprintf(oa,"root %ld len %ld anomaly %d %s frame %ld x %ld y %ld\n", \
+                            root,(long)(PL),b_,ANOM_NAME[b_],(long)(F), \
+                            (long)ram[PPAGE]*256+ram[PX],(long)ram[PYHI]*256+ram[PY]); \
+                            fwrite(path,1,(size_t)(PL),oa); fclose(oa); } \
+                    printf("  *** ANOMALY [%s] at frame %ld x %ld y %ld -- %s\n",ANOM_NAME[b_], \
+                           (long)(F),(long)ram[PPAGE]*256+ram[PX],(long)ram[PYHI]*256+ram[PY],fa); } \
+                fflush(stdout); } } \
         if(!req_ok(ram)) break; \
         if(!tab[p_].key){ \
             if(nlive>=ncells) evict++; \
@@ -355,11 +416,13 @@ int main(int argc, char **argv) {
 
     /* root cell */
     { long plen=0; ram=RAMP(); INSERT(root,plen); }
+    if(!seedwr) g_calibrating=0;
 
     /* seed the archive with the movie's own continuation: the finder starts from an incumbent
      * and improves it, instead of having to discover the axe by chance. */
     if(seedwr){
         g_retro_unserialize(g_root_state,g_ssz); ram=RAMP();
+        anom_learn(ram);
         long plen=0, f=root;
         for(long i=0;i<horizon && root+i+input_skip < nin; i++){
             cur_pad=in[root+i+input_skip]; g_retro_run(); f++; path[plen++]=cur_pad; ram=RAMP();
@@ -367,6 +430,10 @@ int main(int argc, char **argv) {
             if(goal_hit(ram)){ ONGOAL(f,plen); break; }
             INSERT(f,plen);
         }
+        g_calibrating=0;
+        if(anomaly){ int ng=0,no=0,nw=0,na=0,np=0;
+            for(int q=0;q<256;q++){ ng+=ok_ges[q]; no+=ok_oper[q]; nw+=ok_world[q]; na+=ok_area[q]; np+=ok_pstate[q]; }
+            printf("anomaly calibration from the WR line: %d GES / %d OperMode / %d World / %d AreaPointer / %d PlayerState values are normal here\n",ng,no,nw,na,np); }
         printf("seeded WR line: %ld cells, incumbent last_input=%ld\n",nlive,best_last);
         fflush(stdout);
     }
@@ -459,8 +526,8 @@ int main(int argc, char **argv) {
             double el=now()-t0; char bl[32]; long bb = g_ngoal?best_frame:best_last;
             if(bb==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",bb);
             printf("[%6.0fs] cells=%ld rollouts=%ld frames=%.2fM (%.0fk fps) goals=%ld deaths=%ld "
-                   "best=%s maxx=%ld maxrel=%ld relnear=%ld improved=%ld evict=%ld\n",
-                   el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,best_off,best_off_near,improved,evict);
+                   "best=%s maxx=%ld maxrel=%ld maxaddr=%ld anom=0x%03x improved=%ld evict=%ld\n",
+                   el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,best_off,best_max,anom_seen,improved,evict);
             if(wlo>=0){ printf("          mint curve (rel: earliest frame | x-scroll 0):");
                 for(int q=112;q<=160;q+=2) if(wcurve[q]<(1L<<30))
                     printf(" %d:%ld%s",q,wcurve[q],wcurve0[q]<(1L<<30)?"*":"");
