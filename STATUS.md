@@ -65,26 +65,22 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A] RUNNING — the one experiment that could bank 1-2's three frames.**
-  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64 **--goal-sl 2658**
-  --threads 5 --layer-dir runs/P2.3e/sl_layers` under `systemd-run … MemoryMax=6G`. Log `runs/P2.3e/sl_d79.log`.
-  Expect ~470 s and ~19 GB (the goal narrowing does not change the frontier, only termination).
-  **`--goal-sl` is new this session:** the goal transition must ALSO have absolute ScreenLeft >= N. F144 showed
-  the clip's 3 frames are real but the scroll refunds them, because 1-2's warp zone arms on ScreenLeft, not on
-  Mario. 2658 is **the WR's own ScreenLeft at its step 1160**, so this asks: *can the clip be done in 79 frames
-  while keeping the WR's scroll?*
-  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.3e/sl_d79.log`.
-  **GOAL** ⇒ the 3 frames are bankable: reconstruct → chain → `replay_check --enemies 0` → re-run the carry and
-  the final rung (F144's recipe, `runs/P2.3e/{clip77.bin,carry60.bin,seg137.bin}` are the templates).
-  **No goal** ⇒ the refund is structural and **1-2 is closed** (F145) — move to 4-1, whose block map already
-  extracts cleanly (`blockmap_from_dump.py … 3816 5424 --rust BB41`, array staged at `runs/P2.3e/bb41.txt`).
-  No separate control is needed: the same rung without `--goal-sl` already found goals at layer 77, and adding
-  a conjunct can only remove them.
-  Delete `runs/P2.3e/sl_layers` either way.
-The P2.2f cross-seam shot **finished: no goal within
-  196 steps** (697 s, frontier extinct at layer 190) and is **uninformative by its own diagnostic** — the
-  same run reports the WR's path leaving the frontier at layer 41 (F138). Layers deleted. `pgrep -x smb-opt`
-  empty; 145G free. Log kept: `runs/P2.2f/seam70_d196.log`.
+- **[TRACK A] RUNNING — the clip search RE-RUN on the coin-fixed model (F147).**
+  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64 --goal-sl 2658
+  --threads 5 --layer-dir runs/P2.3e/sl2_layers` under `systemd-run … MemoryMax=6G`.
+  Log `runs/P2.3e/sl_d79_fixed.log`. ~500 s, ~19 GB.
+  **Why it is running again:** the pre-fix version of this search produced a candidate that **the core killed
+  Mario on** — `IgnoreCoins` had the area parser running a frame early, which put a warp-zone piranha plant
+  1 px low (F147). Fixed; **F144's three frames must be re-earned on the corrected model.**
+  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.3e/sl_d79_fixed.log`.
+  **GOAL at layer <= 78** ⇒ census the arrival against the WR's step-1160 state (x_pos 0xae0f0, y 0x140b0,
+  x_spd 0x28d8, STANDING, scroll byte 98 = ScreenLeft 2658) — it must dominate, not just arrive early (F143);
+  then reconstruct → chain → **`replay_check --enemies 0` MUST pass** → carry with `--goal-sl 2807` to the
+  WR's step-1220 milestone → final rung to the pipe at d60. The pre-fix run of exactly this pipeline reached
+  step 1218 two frames ahead with the scroll matched before the core rejected it, so the recipe is known
+  to work; the templates are `runs/P2.3e/{clip78.bin,carry2_60.bin,seg138.bin}` (all now INVALID as paths).
+  **No goal** ⇒ the clip frames were an artifact of the parser bug and **1-2 is closed outright**.
+  Delete `runs/P2.3e/sl2_layers` either way.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -349,7 +345,15 @@ The P2.2f cross-seam shot **finished: no goal within
     step-1113 state the next milestone is **dry at d46** and reached at 47, and the WR pays 47, so **the WR
     is optimal on that stretch too**. Method note now in the experiment file: model step k = fceux row
     **2486 + k**; a hand-mapped RAM row briefly turned that tie into a phantom frame.
-  • **F144 — THREE FRAMES EXIST IN 1-2's WALL CLIP, AND THE SCROLL TAKES THEM BACK.** Exhaustive rung from
+  • **F147 — THE CORE CAUGHT A SILENT MODEL BUG, AND F144 IS NOW PROVISIONAL.** A searched path core-replayed
+    to a **death the model did not have**. `IgnoreCoins` meant collecting a coin never filled `VRAM_Buffer1`,
+    a busy buffer **stalls the area parser for a frame**, and the stall moves every piranha-plant spawn after
+    it — model f3058 vs core f3059 for the pipe-(103,8) plant, which by the warp zone was **1 px** of plant y
+    and exactly the pixel between a valid path and a death. Fixed (`coin_list_handler!` moved to
+    `case/mod.rs`; `W12WarpCoins`, 17 cells; key 20 → 22). **Re-verified identical on the fixed model:** WR
+    1280/1280, the loss map (66 frames, tight from 1234), F142's rungs (dry at layers 4 and 14), F143's (16),
+    and 4-2 + 8-4's regressions. **So F142/F143/F145 stand; F144's three frames are being re-earned.**
+  • **F144 (PROVISIONAL, re-running) — three frames in 1-2's wall clip, and the scroll takes them back.** Exhaustive rung from
     the WR's step 1080 to the post-clip milestone: **goal at layer 77 where the WR pays 80**, and the arrival
     **dominates** the WR's (same Y / STANDING / running timer, at the x-speed cap with a better fraction, and
     0.25 px further right). **Core-verified 77/77, 0 mismatches.** The lead survives to step 1217 — the
