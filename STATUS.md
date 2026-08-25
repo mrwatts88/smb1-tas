@@ -200,6 +200,26 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- **E10 pass 2 — the write-primitive audit, retargeted at the ZERO PAGE** (Mac, started
+  2026-08-25 s20). *Claimed here first specifically to avoid the H50 duplication that happened
+  earlier today — if the Linux box wants it, say so and I will drop it.*
+  **Goal:** exhibit any store that can put `$31` into a spare `Enemy_ID` ($16-$1b) with its
+  `Enemy_Flag` ($0f-$14) non-zero — that is 857 frames (F258) and it removes the framerule from
+  all five flag levels. The second write ($0723 = 0, +472 more, F259/F260) is a bonus, not the
+  target.
+  **Why this is a real gap and not a re-read:** `Enemy_ID`/`Enemy_Flag` are in the **zero page**,
+  and `tools/oob_audit.py` *excludes zero-page bases by construction* (`docs/oob-audit.md` line 6:
+  "zero-page bases are excluded for targets >= $100") because every audit so far aimed at
+  $06D6/$0750/$075F. Zero-page indexed addressing **wraps at $FF**, so any `sta zp,x`/`sta zp,y`
+  with a large or unbounded index can land anywhere in the zero page. That whole class has never
+  been bounded. One instance is already known: `DuplicateEnemyObj` `FSLoop` (8526) does
+  `sta Enemy_Flag,y` with an *unbounded* y (F253) — wrong value ($80|x, and it stops at the first
+  zero byte), but it proves the class is live.
+  **Acceptance:** a table of every zero-page indexed store with its index bound and whether it can
+  reach $0f-$1b, plus a verdict per candidate on the value it can place. Then the same for the
+  other two unaudited classes (stack over/underflow, `VRAM_Buffer` overflow indexed by
+  `VRAM_Buffer1_Offset`, which only `ColorRotation` bounds).
+  **Artifact:** `docs/experiments/E10-rom-read.md` §7 (new section).
 ### >>> SESSION 18 CLOSE — READ THIS FIRST, THEN `docs/strategy-review.md`, THEN the Next-up table.
 
 **What this session was.** The user asked for a fresh look outside the normal loop: we have failed to
