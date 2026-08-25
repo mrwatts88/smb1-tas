@@ -35,7 +35,8 @@ pre-cleanup narrative version of this file is archived at
   castles 4-1/8-1/8-2/8-3 all carry. **NEXT UNIT AFTER E9b: poke it.** `build/harness --poke`
   already exists (F251) — set `Enemy_ID+k = $31` and `Enemy_Flag+k = 1` for a spare slot a few
   frames before 1-1's grab and read the next area-load frame. ~20 minutes to settle a 1,300-frame
-  claim. **>>> DONE, SAME SESSION — IT WORKS: 1,329 FRAMES, MEASURED (F258).**
+  claim. **>>> DONE, SAME SESSION — IT WORKS: 857 FRAMES AT N=2 (F258, measured independently by BOTH
+  sessions the same day), 1,329 WITH THE WIN MUSIC DROPPED (F259/F260).**
   `tools/starflag_poke.py --n 2 --no-music` (new tool; each level runs its own WR control in the
   same invocation). Next-area-load moves 1941->1629, 6039->5750, 10810->10600, 12953->12675,
   15054->14814 = **312+289+210+278+240 = 1,329 frames**; **857** at N=2 without touching the music,
@@ -812,7 +813,8 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 
 ## Done (one line per unit, newest first; details in the pointed file)
 - 2026-08-25 s20 (Mac) — **H50 MEASURED AND CONFIRMED: 1,329 frames** (`docs/experiments/H50-star-flag.md`,
-  F258/F259). New tool `tools/starflag_poke.py`; `build/harness --poke` cap raised 8 -> 64. A second
+  F258/F259/F260; the other session measured the same 857 independently as F258 with
+  `tools/starflag_probe.py`). New tool `tools/starflag_poke.py` adds the N sweep and the music half; `build/harness --poke` cap raised 8 -> 64. A second
   `Enemy_ID` = $31 halves the end-of-level countdown and makes `DelayToAreaEnd` stop honouring the
   framerule timer (observed: 1-1 advances with `EnemyIntervalTimer[0]` = 4); adding a `ScrollLock`
   clear so the win music never queues takes the area-end wait to **0** (`SFTC` 3 -> 5 in one frame).

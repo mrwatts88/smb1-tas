@@ -3,7 +3,10 @@
 **Unit:** H50 (Track B). Mac session, 2026-08-25, same day as E10 raised it.
 **Tool:** `tools/starflag_poke.py` (new). **Harness:** `build/harness --poke` (F251's flag; its
 poke cap was raised 8 → 64 this session so N > 2 fits).
-**Status:** the *mechanism* is confirmed by direct core measurement. **Reachability is not** —
+**Status:** the *mechanism* is confirmed by direct core measurement — and independently by the
+Linux session within the hour (F258, `tools/starflag_probe.py`), which reproduced the N = 2 gains
+exactly. F259/F260 below are the extension this file adds: the N-saturation, the music floor and
+how to remove it, the health check, and the second reachability question. **Reachability is not** —
 it needs the same missing write primitive as H43, which E10 narrowed the same day (F252).
 
 ## Reproduce

@@ -1905,7 +1905,8 @@ frame at all. The new floor is `DelayToAreaEnd`'s second condition, `EventMusicB
 win music, whose length is fixed. `PlayerEndLevel` queues it only if `ScrollLock` is still set when
 Mario passes Y ≥ $ae, so `--no-music` clears `$0723` one frame earlier: **`StarFlagTaskControl` then
 goes 3 → 5 in a single frame, task 4 skipped entirely**, and the five levels give
-312+289+210+278+240 = **1,329 frames**. F258.
+312+289+210+278+240 = **1,329 frames**. F259/F260. (The Linux session, having picked up the E10 push,
+ran the same N=2 test independently within the hour and got the same 857 — that is F258, `tools/starflag_probe.py`. Independent agreement on the number, which is worth more than the duplicated effort cost.)
 
 Health-checked past the early exit rather than assuming: 1-2 loads at 1629, runs its intro, hands
 off to the main area at 2125 through the normal `ScreenRoutineTask` 6 → 8 sub-area path, control at

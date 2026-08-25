@@ -9,7 +9,7 @@
 A level only pays if it saves its **whole** framerule deficit — except 8-4, which is unquantized and
 pays per frame. From `tools/slack_table.py`:
 
-> **Caveat added 2026-08-25 (F258):** this table holds only while the end-of-level wait does. H50,
+> **Caveat added 2026-08-25 (F258/F259):** this table holds only while the end-of-level wait does. H50,
 > measured on the core, removes it — a second star-flag object makes every flag level unquantized
 > like 8-4, so the "must save" column collapses to 1 and every banked sub-threshold frame revives.
 > It needs a write we do not have (F259), but price movement work against **both** columns.
@@ -70,7 +70,8 @@ is fighting over, and more than a third of it is at one place in 8-2.
    two-player/demo paths, and the `JumpEngine` sites outside the enemy and area-object tables.
    Same shape: pure reading, no compute.
 
-4''. **H50 — MEASURED: 1,329 frames and the framerule is gone (F258/F259, `H50-star-flag.md`).**
+4''. **H50 — MEASURED: 857 frames at N=2 (F258), 1,329 with the win music dropped (F259/F260,
+   `H50-star-flag.md`); the framerule is gone in every level where it fires.**
    Done the same day it was raised. `tools/starflag_poke.py --n 2 --no-music`, each level against
    its own WR control: next-area-load moves 1941→1629, 6039→5750, 10810→10600, 12953→12675,
    15054→14814 = **312+289+210+278+240 = 1,329 frames**; at N=2 without touching the music it is
