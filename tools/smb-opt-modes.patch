@@ -2388,7 +2388,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..a83e185 100644
+index 350d469..1674323 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2399,7 +2399,7 @@ index 350d469..a83e185 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,360 @@ mod ida;
+@@ -20,8 +21,361 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -2521,18 +2521,19 @@ index 350d469..a83e185 100644
 +  //   offset-census CASE LAYER_FILE [--top K] [--min N]
 +  if args.len() >= 4 && args[1] == "offset-census" {
 +    let path = args[3].clone();
-+    let mut top: usize = 5; let mut minoff: i64 = 0;
++    let mut top: usize = 5; let mut minoff: i64 = 0; let mut by_sl = false;
 +    let mut i = 4;
 +    while i < args.len() {
 +      if args[i] == "--top" { top = args[i + 1].parse().unwrap(); i += 2; }
++      else if args[i] == "--sl" { by_sl = true; i += 1; }   // P2.3e: rank by absolute ScreenLeft, not offset
 +      else if args[i] == "--min" { minoff = args[i + 1].parse().unwrap(); i += 2; }
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    match args[2].as_str() {
-+      "W42Main" => offset_census::<case::w42::W42Main, [u8; 20]>(&path, top, minoff),
-+      "W84Room3" => offset_census::<case::w84::W84Room3, [u8; 12]>(&path, top, minoff),
-+      "W84Room2" => offset_census::<case::w84::W84Room2, [u8; 20]>(&path, top, minoff),
-+      "W12Warp" => offset_census::<case::w12::W12Warp, [u8; 20]>(&path, top, minoff),
++      "W42Main" => offset_census::<case::w42::W42Main, [u8; 20]>(&path, top, minoff, by_sl),
++      "W84Room3" => offset_census::<case::w84::W84Room3, [u8; 12]>(&path, top, minoff, by_sl),
++      "W84Room2" => offset_census::<case::w84::W84Room2, [u8; 20]>(&path, top, minoff, by_sl),
++      "W12Warp" => offset_census::<case::w12::W12Warp, [u8; 20]>(&path, top, minoff, by_sl),
 +      other => panic!("offset-census: unsupported case {}", other),
 +    }
 +    return;
@@ -2760,7 +2761,7 @@ index 350d469..a83e185 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +399,1561 @@ fn calc_prng() {
+@@ -46,4 +400,1568 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -3788,7 +3789,12 @@ index 350d469..a83e185 100644
 +/// P2.3c-8 (H39): census a bfscx layer file by SCROLL OFFSET (x - ScreenLeft16), the quantity F122/F123
 +/// turn on and the one `tools/pick_parent.py` cannot decode. Prints the top-K states plus the decimal
 +/// record string `bfscx-path` needs, so a minted state can be reconstructed and core-verified.
-+fn offset_census<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(path: &str, top: usize, minoff: i64) {
++/// P2.3e (F144): `--sl` ranks by **absolute ScreenLeft, descending** instead of by scroll offset. The two are
++/// not the same question. Offset (x − ScreenLeft) is what 4-2's mint work cared about; but where a warp zone
++/// arms on the SCROLL — 1-2's `ScrollLockObject_Warp` at ScreenLeft 2816 — the state you want out of a layer
++/// is the one whose scroll is furthest along, which is the *lowest* offset at a given x. Without this the
++/// only ranking available was `bfscx`'s auto-pick by (x speed, x), which is the wrong axis there.
++fn offset_census<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(path: &str, top: usize, minoff: i64, by_sl: bool) {
 +  use std::fs::File;
 +  use std::io::{BufReader, Read};
 +  use state::{CompressedState, StateCompressor};
@@ -3805,7 +3811,8 @@ index 350d469..a83e185 100644
 +    let off = (st.x_pos >> 8) as i64 - screen_left16(&st) as i64;
 +    if off > maxoff { maxoff = off; }
 +    if off >= minoff {
-+      best.push((off, (st.x_pos >> 8) as i64, r));
++      let key = if by_sl { screen_left16(&st) as i64 } else { off };
++      best.push((key, (st.x_pos >> 8) as i64, r));
 +      if best.len() > top * 8 {
 +        best.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)));
 +        best.truncate(top);
@@ -3814,10 +3821,11 @@ index 350d469..a83e185 100644
 +  }
 +  best.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)));
 +  best.truncate(top);
-+  println!("offset-census {}: {} records, key {} bytes, max offset {}", path, n, klen, maxoff);
-+  for &(off, x, ref rec) in best.iter() {
++  println!("offset-census {}: {} records, key {} bytes, max offset {}, ranked by {}", path, n, klen, maxoff,
++    if by_sl { "ScreenLeft (descending)" } else { "scroll offset (descending)" });
++  for &(_k, x, ref rec) in best.iter() {
 +    let st = Key::<C, A>::from_bytes(&rec[..klen]).decompress();
-+    println!("--- offset {} (x {} = {:#x}, ScreenLeft16 {}) ---", off, x, st.x_pos, screen_left16(&st));
++    println!("--- offset {} (x {} = {:#x}, ScreenLeft16 {}) ---", (st.x_pos >> 8) as i64 - screen_left16(&st) as i64, x, st.x_pos, screen_left16(&st));
 +    println!("{}", st);
 +    let bytes: Vec<String> = rec[..].iter().map(|b| b.to_string()).collect();
 +    println!("record: [{}]", bytes.join(", "));

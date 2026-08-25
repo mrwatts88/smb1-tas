@@ -65,23 +65,9 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A, session 17/18] RUNNING — the 1-2 WALL-CLIP rung, the decisive one for that level.**
-  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64 --check-path 80
-  --threads 5 --layer-dir runs/P2.3e/clip_layers` under `systemd-run --user --scope -p MemoryMax=6G
-  -p MemorySwapMax=0`. Log `runs/P2.3e/clip_d79.log`. Root bound 48, deadline 79 (**the WR pays 80**), so
-  slack 31 — but the deadline bound bites hard from layer ~19 (pruning exceeds 85% of generated) and the
-  frontier plateaus around 2.7M/layer, ~400 MB/layer. Expect ~25 GB and ~30 min total.
-  **Why it matters:** F143 showed 1-2's bound tracks the WR exactly for ~1000 frames (speed cap) and loses
-  31 frames in ONE place, the wall clip at steps 1080-1120. Everything after step 1113 is already proved
-  optimal (F142 + F143). **So this rung is the last place 1-2's missing 5-8 frames could be.**
-  **How to read it:** `grep -E "goal reached|no goal|no live|^total " runs/P2.3e/clip_d79.log`.
-  **DRY** ⇒ the clip stretch is optimal ⇒ **1-2 is closed from step 1080 to the end**, and the level's hope
-  narrows to its first 1080 frames (which are at the speed cap throughout — i.e. essentially closed too).
-  **GOAL** ⇒ census the arrival state FIRST (runbook §3.2): it only counts if it arrives at the x-speed cap
-  standing, like the WR's does — F143's near-miss reached the same gate 9 frames early with ~0 speed and
-  paid every frame back. Then reconstruct → chain → `replay_check --enemies 0` → continue to the pipe.
-  Delete `runs/P2.3e/clip_layers` either way.
-- **[TRACK A, session 17] No other Track A job running.** The P2.2f cross-seam shot **finished: no goal within
+- **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, all layer dirs deleted).
+  The 1-2 wall-clip rung **finished: goal at layer 77 vs the WR's 80** — see F144 and P2.3e §16-18.
+The P2.2f cross-seam shot **finished: no goal within
   196 steps** (697 s, frontier extinct at layer 190) and is **uninformative by its own diagnostic** — the
   same run reports the WR's path leaving the frontier at layer 41 (F138). Layers deleted. `pgrep -x smb-opt`
   empty; 145G free. Log kept: `runs/P2.2f/seam70_d196.log`.
@@ -344,6 +330,27 @@ pre-cleanup narrative version of this file is archived at
     step-1113 state the next milestone is **dry at d46** and reached at 47, and the WR pays 47, so **the WR
     is optimal on that stretch too**. Method note now in the experiment file: model step k = fceux row
     **2486 + k**; a hand-mapped RAM row briefly turned that tie into a phantom frame.
+  • **F144 — THREE FRAMES EXIST IN 1-2's WALL CLIP, AND THE SCROLL TAKES THEM BACK.** Exhaustive rung from
+    the WR's step 1080 to the post-clip milestone: **goal at layer 77 where the WR pays 80**, and the arrival
+    **dominates** the WR's (same Y / STANDING / running timer, at the x-speed cap with a better fraction, and
+    0.25 px further right). **Core-verified 77/77, 0 mismatches.** The lead survives to step 1217 — the
+    60-frame carry is **bound-tight** (h = deadline = 60) and the whole 137-frame segment core-verifies at
+    **0 mismatches** — and then **the pipe is DRY at 60**, exactly the cost the WR pays from its own
+    step-1220 state. **Mechanism: `ScrollLockObject_Warp` arms `WarpZoneControl = 4` when SCREEN LEFT hits
+    its locked maximum 2816 — a property of where Mario has BEEN.** At step 1217 we match the WR's x with far
+    more speed (40 vs 22) and height (Y 107 vs 124), but ScreenLeft **2806 vs 2809**. *In 1-2 a frame banked
+    before the warp zone is a frame lent to the scroll.* The §3.2 check was run — `offset-census --sl` (new
+    flag: rank by absolute ScreenLeft) over layer 59's 639,657 records gives max ScreenLeft **2803**, and our
+    auto-pick came through it, so the refund is **not** a pick artifact.
+  **WHERE 1-2 STANDS:** last 60 frames optimal (F142); steps 1113-1160 optimal (F143); the WR is x-optimal
+  from step 40 to 1080 (h drops by exactly 1 per frame there — see the loss map in P2.3e §12: only **66**
+  frames are lost to the bound in the whole level, 11 in the entrance fall, 1 at step 487, 31 at the clip,
+  23 at the turnaround). **The 3 clip frames are the only ones found, and the scroll refunds them.**
+  **The remaining openings, in order:** (1) one of the **2.0M** goal transitions at clip-layer 77 might reach
+  the milestone with a better scroll — a deeper search than has been run; (2) the isolated **1 frame at step
+  487** (x 1183, mid-jump over the col-80..82 pit at x speed 38 instead of 40) is cheap to probe and untested;
+  (3) 1-2's **intro area** (fceux rows 1946-2443, ~500 frames) is not modelled at all and Maru's 3-frame gain
+  over the WR has to be somewhere — this is the only stretch nobody has looked at.
   **NEXT: `P2.2f-bound` — and it is now a TWO-level unlock.** 1-2 loses ~22 frames of bound slack over its
   open region and 8-4 room 2 loses 14, for the same reason: **an x-only bound cannot price a turnaround's
   vertical half.** Build the coupled end-game term and both ladders go deeper. After that: re-run 1-2's
