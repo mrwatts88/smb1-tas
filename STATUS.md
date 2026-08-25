@@ -1119,6 +1119,12 @@ explicitly *without* conceding the question.
   *cheapest* mint on the top route. That measurement is P2.3c-9 Part B and it is the whole decision.
 
 ## Loose ends (small, unassigned)
+- **`runs/E9b/launch_mac.sh` has the same machine-wide watchdog bug that cost two searches today.** Its
+  RSS watchdog loops over `pgrep -x explore` and kills anything over 3 GB — i.e. it can reach processes it
+  did not start. It is currently harmless (the queued L7 sweeps are ~0.77 GB each, well under the
+  threshold), but fix it the same way `runs/L7-w84/launch_mac.sh` was fixed: collect the PIDs the script
+  launches in a variable and iterate over those only. Same for any future launcher — **a watchdog must
+  never be able to kill a process it did not start.**
 - **Kept artifact:** `runs/P2.2a-prime/keep/apex_candidates_4333.bin` — the 4,333 room-3 apex states (step 162)
   from the wide diversity beam. 416 KB. This is the candidate set F133's negative rests on; keep it until H25 is
   settled proof-grade, so a later exhaustive approach can be diffed against it rather than re-derived. The 15 GB
