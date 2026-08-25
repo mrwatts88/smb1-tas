@@ -312,7 +312,12 @@ The P2.2f cross-seam shot **finished: no goal within
   **Acceptance:** a scan table in a new experiment file (block map via `tools/blockmap_from_dump.py`,
   enemies via `tools/area_data.py`, model gaps, which segments are RNG-free, warp-zone entry condition)
   with the chosen level and why; then a case exact on the WR's frames and a first segment bound vs the WR.
-  **Order:** 1-2 first (cheapest deficit AND unsearched), then 8-3, then 4-1.
+  **Order:** 1-2 first (cheapest deficit AND unsearched) — **DONE, F145**. Then 8-3 vs 4-1 is decided by a
+  **code-level cost comparison of the Hammer Bro ($05) against Lakitu ($11)+Spiny ($12)**, not a guess:
+  scanning the WR's own enemy slots showed **4-1 is NOT blocker-free** (an earlier claim here, corrected) —
+  both remaining candidates carry an RNG-coupled object. 8-3 leads on deficit (7 vs 9) and needs no new
+  block map; 4-1's map is already extracted (`BB41`, committed). F130 is the precedent for pricing the RNG
+  at code level before assuming it is expensive.
   **DONE s17 (F140/F141/F142) — `W12Warp` IS EXACT ON ALL 1280 FRAMES, AND THE WR's LAST 60 ARE PROVED OPTIMAL.**
   • Span: fceux row **2486** (the GES 7 -> 8 handoff; NOT 2469 — that handoff **duplicates a frame**) ->
     row **3766**, the world-4 warp pipe. **1280 frames, one piece, no room seam.** Map `BB12W` = MrWint's
