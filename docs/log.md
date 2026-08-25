@@ -1186,3 +1186,35 @@ plus `tools/regen_patch.sh` with HEAD/pin, intent-add and shrink guards. Written
 
 **Next.** 8-4 primary track: P2.2a-port (unblocked by F130). 4-2 work is gated behind P2.3c-9 Part A,
 which is now an M-L case-level change, not the S I estimated.
+
+### 2026-08-24 — session 16, part 5: 8-4 room 3 reduced to one question; H42 born
+
+**Did.** P2.2a′ — the 8-4 room-3 multi-apex seam, enemy-free, with the diversity beam.
+
+**Learned (F133).** The room collapses to a single question. No mint is available in room 3 (census:
+max offset 112), so dragging the scroll to 3345 forces x >= 3457. The return bound enumerates 30,720
+end classes with costs [33..39] — so **33 is the floor from anywhere**, generalising F125, which only
+covered the WR's own apex. And the WR crosses x 3457 at step **161**, finishing at 195: a **34**-frame
+return where the cheapest class pays **33**. That one frame is exactly H25's claim, now stated
+precisely: *is a 33-cost end class reachable at step <= 161?*
+
+Answer so far: no. 2,303 apex candidates → exhaustive continuation dry (extinct at layer 188). Widened
+5x with a finer key and a `vf` axis → 4,333 candidates → dry again, **identical death point and max x**.
+Doubling the set changed nothing. Convergent, but layers 1–162 were beamed, so it is not a refutation;
+proof-grade needs the exhaustive approach (slack 13 ⇒ cloud-sized).
+
+**H42 (the user's idea, and the best strategic lead on the board).** The record may hide at MrWint's
+segment seams, because F66 shows the WR *equals* his segment optima — so the WR is provably no better
+than a segment-decomposed optimum, and inherits every loss in the decomposition. Evidence it leaks:
+the pipe-clip segments start from **hand-picked mid-air states**; and F66's own table has 1-1 stairs →
+grab at 67 segmented vs the WR's 66 — the decomposition lost a frame there.
+
+**H42 sub-check (the user's follow-on: are the seams where the enemies are?) — partially confirmed.**
+MrWint's source literally comments a segment "enemy-free (E_CastleArea6: nothing between the pages 8-9
+lifts…)", so enemy placement did drive boundary choice. Decoding E_CastleArea6: room 2's middle
+(x 1981 → 2373) contains four enemy objects and the clip seam at x 2373 sits exactly between the page-8
+group and the page-9 pair. But pages 10–13 hold no enemies at all, so room 3's seams are geometric, not
+enemy-driven. Net: enemy-adjacent seams are where generate-and-test buys new coverage — room 2 is one.
+
+**Next.** P2.2f — build a `W84Room2` case (MrWint ships only the two halves), WR-exact + battery, then
+dissolve the x-1981/x-2373 seams as one span. 8-4 is unquantized: one frame is the record.
