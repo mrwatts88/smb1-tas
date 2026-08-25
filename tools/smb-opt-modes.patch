@@ -2388,7 +2388,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..683f793 100644
+index 350d469..a83e185 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -3158,7 +3158,7 @@ index 350d469..683f793 100644
 +  let mut slots = Slots::unpack(&ext.0);
 +  let frame = s.blocks.frame;
 +  let aptn_pre = pre.blocks.aptn;
-+  let f = Frame { edata: &w42enemies::W84_ENEMY_DATA[..], pipes: &w42enemies::W84_ROOM2_PIPES[..],
++  let f = Frame { edata: &w42enemies::W84_ENEMY_DATA[..], pipes: &w42enemies::W84_ROOM2_PIPES[..], lift_class: w42enemies::CLASS_LIFT,
 +    sl16: screen_left16(s),
 +    fc_odd: ((<case::w84::W84Room2Blocks as BlockStates>::FC0 as u16 + frame as u16) & 1) != 0,
 +    fc_b1: ((<case::w84::W84Room2Blocks as BlockStates>::FC0 as u16 + frame as u16) & 2) != 0,
@@ -3187,7 +3187,7 @@ index 350d469..683f793 100644
 +  let mut slots = Slots::unpack(&ext.0);
 +  let frame = s.blocks.frame;
 +  let aptn_pre = pre.blocks.aptn;
-+  let f = Frame { edata: &w42enemies::W12_ENEMY_DATA[..], pipes: &w42enemies::W12_PIPES[..],
++  let f = Frame { edata: &w42enemies::W12_ENEMY_DATA[..], pipes: &w42enemies::W12_PIPES[..], lift_class: w42enemies::CLASS_LIFTPLAT,
 +    sl16: screen_left16(s),
 +    fc_odd: ((<case::w12::W12WarpBlocks as BlockStates>::FC0 as u16 + frame as u16) & 1) != 0,
 +    fc_b1: ((<case::w12::W12WarpBlocks as BlockStates>::FC0 as u16 + frame as u16) & 2) != 0,
@@ -3261,7 +3261,7 @@ index 350d469..683f793 100644
 +    t.class = w42enemies::CLASS_VINE; t.state = 0; t.x = 1024; t.y = 80; t.itimer = 0; t.ftimer = 0; t.yhi = 1; t.dn = 0;
 +    slots.vineflag = 1;
 +  }
-+  let f = Frame { edata: &w42enemies::ENEMY_DATA[..], pipes: &w42enemies::PIPES[..],
++  let f = Frame { edata: &w42enemies::ENEMY_DATA[..], pipes: &w42enemies::PIPES[..], lift_class: w42enemies::CLASS_LIFT,
 +    sl16: screen_left16(s),
 +    fc_odd: ((<case::w42::W42MainBlocks as BlockStates>::FC0 as u16 + frame as u16) & 1) != 0,
 +    fc_b1: ((<case::w42::W42MainBlocks as BlockStates>::FC0 as u16 + frame as u16) & 2) != 0,
@@ -4939,10 +4939,10 @@ index 0000000..d8adad9
 +}
 diff --git a/src/w42enemies.rs b/src/w42enemies.rs
 new file mode 100644
-index 0000000..9e413b4
+index 0000000..0e6d6b3
 --- /dev/null
 +++ b/src/w42enemies.rs
-@@ -0,0 +1,547 @@
+@@ -0,0 +1,650 @@
 +//! P2.5c-2 — the 4-2 main-area enemies as a per-step object hook for `W42Main` (`--enemies`): the enemy-data loader
 +//! (`ProcessEnemyData`), the `$3A` goomba group, the green koopa, the buzzy beetles, the piranha plants the area
 +//! parser inserts into the pipes, and the lift's slot occupancy, with the per-slot RAM packed into the record's ext
@@ -4956,7 +4956,7 @@ index 0000000..9e413b4
 +//! [4..64] six slots of 10 bytes as described at `Slot::pack`.
 +use blockbuffer::BlockBuffer;
 +use options::BlockStates;
-+use state::State;
++use state::{Dir, PlayerState, State};
 +
 +/// `E_UndergroundArea2` (tools/area_data.py): page-skip to page 2, the page-2 area change, the `$3A` group at col 14,
 +/// the lift `$27` at page 3 col 10, the koopa `$00` at page 4 col 13, the beetles `$02` at page 5 cols 3 and 8, the
@@ -5018,8 +5018,33 @@ index 0000000..9e413b4
 +/// low bits 000 (= EMPTY) with byte 0's bit 7 set. That bit means "plant travelling up" only for a plant
 +/// (class 4, low bits 100), so the two never collide, and every 4-2 record keeps its exact old bytes.
 +pub const CLASS_PARA: u8 = 8;
-+const ID_OF_CLASS: [u8; 9] = [0, 0x06, 0x00, 0x02, 0x0d, 0x27, 0x2e, 0x2f, 0x0e];
-+fn class_of_id(id: u8) -> u8 { match id { 0x06 => CLASS_GOOMBA, 0x00 => CLASS_KOOPA, 0x02 => CLASS_BEETLE, 0x0d => CLASS_PLANT, 0x0e => CLASS_PARA, 0x27 => CLASS_LIFT, 0x2f => CLASS_VINE, _ => CLASS_ITEM } }
++/// P2.3e: the **`MoveLiftPlatforms` class** — ids `$26`/`$27`, both of which `LargePlatformSubroutines`
++/// dispatches to `MoveLargeLiftPlat` (smbdis.asm:9163). Its motion is the simplest in the game and is
++/// completely player-independent: `YMF_Dummy += Y_MoveForce; Y_Position += Y_Speed + carry` (10982), with Y
++/// wrapping mod 256 and `Enemy_Y_HighPos` left alone — 1-2's elevator pair rides that wrap forever at
++/// `Y_Speed 0 / Y_MoveForce $f0`, i.e. 15/16 px per frame downward. **4-2's lift is the same object**: its
++/// bespoke `lift_y_after(k) = Y0 + m - m/16` is exactly the closed form of this recurrence, which is why
++/// that hook's collision code is reused here. Mario meets it through `LargePlatformCollision` +
++/// `PositionPlayerOnVPlat`, NOT `PlayerEnemyCollision` — so no stomp, no kick, no BG collision.
++pub const CLASS_LIFTPLAT: u8 = 9;
++const LIFTPLAT_W: i32 = 0x30;   // BoundBoxCtrlData[6]: x..x+$30, y..y+$0d (the non-castle large platform)
++const LIFTPLAT_H: i32 = 0x0d;
++/// P2.3e: the **red koopa** ($03). `InitRedKoopa` = `InitNormalEnemy` plus `Enemy_State = 1`, and its one
++/// behavioural difference lives in `ChkForRedKoopa` (12550): when there is nothing under it and it is in
++/// state 0 it **turns around instead of walking off the ledge**, and that path `rts`es, skipping the side
++/// check and the state update. Everything else is the green koopa.
++pub const CLASS_REDKOOPA: u8 = 10;
++const ID_OF_CLASS: [u8; 11] = [0, 0x06, 0x00, 0x02, 0x0d, 0x27, 0x2e, 0x2f, 0x0e, 0x27, 0x03];
++/// `liftc` is the class id `$27` maps to in THIS area: 4-2 keeps `CLASS_LIFT` (its lift is the bespoke
++/// `w42_lift_u16` hook and the slot is occupancy only), 1-2 uses `CLASS_LIFTPLAT` (real motion).
++fn class_of_id(id: u8, liftc: u8) -> u8 { match id {
++  0x06 => CLASS_GOOMBA, 0x00 => CLASS_KOOPA, 0x02 => CLASS_BEETLE, 0x0d => CLASS_PLANT, 0x0e => CLASS_PARA,
++  0x03 => CLASS_REDKOOPA,
++  0x27 => liftc,
++  // `$26` is `LargeLiftUp`, the same class going the other way — but only where the area asks for it, so
++  // 4-2 (whose own `$26` has always been inert) is untouched.
++  0x26 if liftc == CLASS_LIFTPLAT => CLASS_LIFTPLAT,
++  0x2f => CLASS_VINE, _ => CLASS_ITEM } }
 +
 +const SETBITS: [u8; 7] = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02];
 +const XOFF: [u8; 16] = [0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01, 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff];
@@ -5048,7 +5073,7 @@ index 0000000..9e413b4
 +    let cb = self.cbits;
 +    let plant = self.class == CLASS_PLANT;
 +    b[0] = (self.class & 7) | ((self.dir & 1) << 3) | (((cb >> 3) & 1) << 4) | (((cb >> 2) & 1) << 5) | ((self.masked as u8) << 6)
-+      | ((((plant && self.spd & 0x80 != 0) || self.class == CLASS_PARA) as u8) << 7);
++      | ((((plant && self.spd & 0x80 != 0) || self.class >= 8) as u8) << 7);
 +    b[1] = self.state;
 +    b[2] = (self.x & 0xff) as u8;
 +    b[3] = ((self.x >> 8) & 0x0f) as u8 | ((cb & 1) << 4) | (((cb >> 6) & 1) << 5) | (((cb >> 5) & 1) << 6) | (((cb >> 4) & 1) << 7);
@@ -5063,7 +5088,10 @@ index 0000000..9e413b4
 +    b[9] = self.up;
 +  }
 +  fn unpack(b: &[u8]) -> Slot {
-+    let class = if b[0] & 0x80 != 0 && b[0] & 7 == 0 { CLASS_PARA } else { b[0] & 7 };
++    // Classes 8..15 are stored as their low 3 bits with byte 0's bit 7 set. That bit means "plant travelling
++    // up" only for a plant (class 4 = low bits 100), so every code except 12 is free and 4-2's records are
++    // byte-for-byte unchanged.
++    let class = if b[0] & 0x80 != 0 && b[0] & 7 != 4 { 8 | (b[0] & 7) } else { b[0] & 7 };
 +    let cb = ((b[3] >> 4) & 1) | (((b[3] >> 5) & 1) << 6) | (((b[3] >> 6) & 1) << 5) | (((b[3] >> 7) & 1) << 4) | (((b[0] >> 4) & 1) << 3) | (((b[0] >> 5) & 1) << 2);
 +    let mut s = Slot { class, state: b[1], x: b[2] as u16 | (((b[3] & 0x0f) as u16) << 8), y: b[4], force: b[5],
 +      dir: if b[0] & 8 != 0 { 1 } else { 2 }, masked: b[0] & 0x40 != 0, yhi: 1, cbits: cb, ..Default::default() };
@@ -5079,7 +5107,8 @@ index 0000000..9e413b4
 +  }
 +  /// The horizontal speed for (class, state, dir): walkers ±8, kicked shells ±$30, defeated ±$10, lift/items 0.
 +  fn speed_of(class: u8, state: u8, dir: u8) -> u8 {
-+    if class == CLASS_LIFT || class == CLASS_ITEM || class == CLASS_VINE { return 0; }
++    if class == CLASS_LIFT || class == CLASS_ITEM || class == CLASS_VINE || class == CLASS_LIFTPLAT { return 0; }
++    let _ = CLASS_REDKOOPA;   // walkers: same +-8 / kicked / defeated magnitudes as the green koopa
 +    let mag: u8 = if state & 0x20 != 0 { 0x10 } else if state & 0x80 != 0 { 0x30 } else { 0x08 };
 +    if dir == 1 { mag } else { mag.wrapping_neg() }
 +  }
@@ -5134,6 +5163,20 @@ index 0000000..9e413b4
 +  0
 +}
 +#[inline] fn overlap(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> bool { a.0 <= b.2 && b.0 <= a.2 && a.1 <= b.3 && b.1 <= a.3 }
++/// `CheckRightScreenBBox` / `CheckLeftScreenBBox` (smbdis.asm:12891). Bounding boxes are screen-RELATIVE
++/// bytes, so an object near a screen edge has a box that wraps — and without this clamp an enemy at the
++/// right edge collides with one at the left edge 256 px away. The game pushes such a box fully offscreen
++/// ($ff on the right, $00 on the left) instead. Found by the 1-2 battery (P2.3e): two goombas **250 px
++/// apart** turned each other around in the model and not in the core.
++fn clamp_bbox(b: (u8, u8, u8, u8), x16: i32, sl16: i32) -> (u8, u8, u8, u8) {
++  let (ul, ut, dr, db) = b;
++  if x16 >= sl16 + 128 {                       // right half of the screen
++    if dr < 0x80 { return (if ul < 0x80 { 0xff } else { ul }, ut, 0xff, db); }
++  } else if ul >= 0xa0 {                       // left half, and the left edge really wrapped
++    return (0x00, ut, if dr < 0x80 { dr } else { 0x00 }, db);
++  }
++  b
++}
 +fn turn_around(s: &mut Slot) { s.spd = s.spd.wrapping_neg(); s.dir ^= 3; }
 +/// EraseEnemyObject (9173-9183): clears flag/id/state/timers; x, y, speeds, move force, collision bits, dir and the
 +/// sub-pixel accumulators stay as stale slot memory for the next occupant.
@@ -5211,6 +5254,9 @@ index 0000000..9e413b4
 +      land_init(s);
 +    } else if st == 2 { s.itimer = 0x10; s.state = 3; landing(s); }
 +  } else {
++    // ChkForRedKoopa: a red koopa in state 0 with nothing underneath turns around and RETURNS — no state
++    // update and no side check. That is the whole "does not walk off ledges" behaviour.
++    if s.class == CLASS_REDKOOPA && s.state == 0 { turn_around(s); return; }
 +    if s.state & 0x80 != 0 { s.state |= 0x40; }
 +    else if s.state < 6 { s.state = BGC_STATE[s.state as usize]; }
 +    side_check::<B>(s);
@@ -5254,13 +5300,28 @@ index 0000000..9e413b4
 +  }
 +  side_check::<B>(s);                                    // DoEnemySideCheck
 +}
-+fn init_enemy(s: &mut Slot) {
-+  s.masked = true; s.yhi = 1;   // CheckpointEnemyID: EnemyOffscrBitsMasked = 1
++fn init_enemy(s: &mut Slot, id: u8) {
++  // CheckpointEnemyID (8054): the +8 px on the spawn Y and `EnemyOffscrBitsMasked = 1` are applied **only to
++  // ids < $15** — the comment in the ROM even says "($00-$14 only)". Objects at or above that (the `$26`/`$27`
++  // platforms, `$2e` powerups, `$2f` vines) branch straight to the init table and keep the loader's row Y.
++  // Getting this wrong put 1-2's elevators 8 px below the core's (P2.3e).
++  if id < 0x15 { s.y = s.y.wrapping_add(8); s.masked = true; }
++  s.yhi = 1;
 +  match s.class {
 +    CLASS_GOOMBA | CLASS_KOOPA | CLASS_BEETLE => { s.spd = 0xf8; s.dir = 2; s.yspd = 0; s.yforce = 0; }   // InitNormalEnemy / SetBBox / InitVStf
++    CLASS_REDKOOPA => { s.spd = 0xf8; s.dir = 2; s.yspd = 0; s.yforce = 0; s.state = 1; }   // InitRedKoopa
 +    // InitJumpGPTroopa: dir 2, x speed $f8, TallBBox2/SetBBox2 -> NO InitVStf, so y speed / y force / the
 +    // YMF dummy stay as whatever the slot's previous occupant left behind (F135).
 +    CLASS_PARA => { s.spd = 0xf8; s.dir = 2; }
++    // `PlatLiftDown` ($27): Y_MoveForce $f0 / Y_Speed $00 = 15/16 px per frame down. `PlatLiftUp` ($26):
++    // $10 / $ff = the same rate up. Both then fall through `CommonSmallLift` -> `PosPlatform` with Y = 1,
++    // which adds `PlatPosDataLow[1]` = **12 px to the X**, not the Y (8988) — the platform is nudged right,
++    // not down. Neither path runs `InitVStf`, so the YMF dummy stays as the slot's stale memory, which
++    // `occupy` already preserves.
++    CLASS_LIFTPLAT => {
++      s.x = (s.x + 12) & 0x0fff; s.dir = 2;
++      if id == 0x26 { s.yforce = 0x10; s.yspd = 0xff; } else { s.yforce = 0xf0; s.yspd = 0; }
++    }
 +    _ => { s.dir = 2; }
 +  }
 +}
@@ -5271,13 +5332,13 @@ index 0000000..9e413b4
 +/// P2.2f: `edata`/`pipes` are the AREA's enemy-object bytes and plant-bearing pipes. They used to be the
 +/// 4-2 constants `ENEMY_DATA`/`PIPES` hard-coded below; parameterising them lets 8-4 reuse this machinery
 +/// unchanged (4-2 passes its own, so behaviour is bit-identical — regression: the F101/F102 difftest).
-+pub struct Frame { pub edata: &'static [u8], pub pipes: &'static [(u8, u8)], pub sl16: i32, pub fc_odd: bool, pub fc_b1: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
++pub struct Frame { pub edata: &'static [u8], pub pipes: &'static [(u8, u8)], pub lift_class: u8, pub sl16: i32, pub fc_odd: bool, pub fc_b1: bool, pub itc_tick: bool, pub aptn_pre: u8, pub px: i32, pub py: i32, pub bx: i32, pub by: i32, pub pys_pos: bool, pub bounce_cell: u16 }
 +
 +impl Slots {
 +  /// ProcessEnemyData for free slot `slot` (CheckRightBounds / CheckRightExtBounds / HandleGroupEnemies).
 +  /// Returns true on the paths that fall through to `CheckFrenzyBuffer` in the game (the EOD terminator and
 +  /// "beyond the extended right boundary") — where the H34 vine injection can happen.
-+  fn process_enemy_data(&mut self, slot: usize, sl16: i32, edata: &[u8]) -> bool {
++  fn process_enemy_data(&mut self, slot: usize, sl16: i32, edata: &[u8], liftc: u8) -> bool {
 +    let sr16 = sl16 + 255;
 +    let ext16 = (sr16 + 48) & !15;
 +    loop {
@@ -5306,14 +5367,14 @@ index 0000000..9e413b4
 +          let free = (0..5).find(|&i| !self.s[i].live());
 +          let free = match free { Some(i) => i, None => break };
 +          let t = &mut self.s[free];
-+          occupy(t, class, (gx & 0x0fff) as u16, y + 8);
-+          init_enemy(t);
++          occupy(t, class, (gx & 0x0fff) as u16, y);   // the +8 is CheckpointEnemyID's, applied in init_enemy
++          init_enemy(t, ID_OF_CLASS[class as usize]);
 +          gx += 24;
 +        }
 +      } else {
 +        let t = &mut self.s[slot];
-+        occupy(t, class_of_id(eid), (x16 & 0x0fff) as u16, (row << 4) + 8);
-+        init_enemy(t);
++        occupy(t, class_of_id(eid, liftc), (x16 & 0x0fff) as u16, row << 4);
++        init_enemy(t, eid);
 +      }
 +      self.eoff += 2; self.epsel = false;
 +      return false;
@@ -5334,7 +5395,7 @@ index 0000000..9e413b4
 +    let mut stomp_timer = 0u8;
 +    let mut ev = EnemyEvent::Nothing;
 +    let prelx = ((f.bx - f.sl16) & 0xff) as u8;   // RelativePlayerPosition + BoundingBoxCore before PlayerBGCollision (F101)
-+    let pbox = (prelx.wrapping_add(3), (f.by + 20) as u8, prelx.wrapping_add(13), (f.by + 32) as u8);
++    let pbox = clamp_bbox((prelx.wrapping_add(3), (f.by + 20) as u8, prelx.wrapping_add(13), (f.by + 32) as u8), f.bx, f.sl16);
 +    let player_ok = f.py < 0xd0;
 +    let mut boxes: [Option<(u8, u8, u8, u8)>; 6] = [None; 6];
 +    for i in 0..6 {
@@ -5343,9 +5404,50 @@ index 0000000..9e413b4
 +        continue;
 +      }
 +      if self.s[i].class == CLASS_ITEM || self.s[i].class == CLASS_VINE { continue; }   // vine slots: inert (slot 5's growth/KillVine run after the loop)
++      if self.s[i].class == CLASS_LIFTPLAT {
++        // RunLargePlatform (9143): bound box -> LargePlatformCollision -> MoveLargeLiftPlat (= MoveLiftPlatforms
++        // then ChkYPCollision/PositionPlayerOnVPlat) -> OffscreenBoundsCheck. No BG collision, no
++        // EnemiesCollision, no PlayerEnemyCollision. The collision flag is taken from the platform's position
++        // BEFORE the move and the player is then placed on its position AFTER it, exactly as `w42_lift_u16`.
++        let mut sl = self.s[i];
++        let y_pre = sl.y as i32;
++        let sr16 = f.sl16 + 255;
++        let mut land = false;
++        if s.y_pos >= 0x10000 && s.y_pos < 0x1d000 {   // CheckPlayerVertical
++          let (my, mx) = ((s.y_pos >> 8) & 0xff, s.x_pos >> 8);
++          let rel = sl.x as i32 - f.sl16;
++          let onscreen = rel < 256 && rel + LIFTPLAT_W >= 0;   // GetXOffscreenBits: fully off either edge = no collision
++          let pl = if rel < 0 { 0 } else { rel };
++          let pr = if rel + LIFTPLAT_W > 255 { 255 } else { rel + LIFTPLAT_W };
++          let pt = y_pre & 0xff;
++          let pb = (y_pre + LIFTPLAT_H) & 0xff;
++          let (ul, ur) = ((mx - f.sl16 + 3) & 0xff, (mx - f.sl16 + 13) & 0xff);   // small Mario: BoundBoxCtrlData[1]
++          let (ut, ub) = ((my + 0x14) & 0xff, (my + 0x20) & 0xff);
++          if onscreen && pl <= ur && ul <= pr && pt <= ub && ut <= pb {
++            if ((pb - ut) & 0xff) < 4 && s.y_spd < 0 { s.y_spd = 0x100 | (s.y_spd & 0xff); }   // head under it
++            if ((ub - pt) & 0xff) < 6 && s.y_spd >= 0 { s.player_state = PlayerState::STANDING; land = true; }
++            else if ((ur - pl) & 0xff) < 8 {
++              if s.x_spd >= 0 { s.x_spd &= 0xff; s.x_pos -= 0x100; s.side_collision_timer = 0xf; s.collision_bits -= Dir::RIGHT; }
++            } else if ((pr - ul - 1) & 0xff) < 9 {
++              if s.x_spd < 0x100 { s.x_spd &= 0xff; s.x_pos += 0x100; s.side_collision_timer = 0xf; s.collision_bits -= Dir::LEFT; }
++            }
++          }
++        }
++        // MoveLiftPlatforms (10982). Y wraps within the byte; Enemy_Y_HighPos is NOT touched.
++        let t = sl.up as u16 + sl.yforce as u16;
++        sl.up = (t & 0xff) as u8;
++        sl.y = sl.y.wrapping_add(sl.yspd).wrapping_add((t >> 8) as u8);
++        // PositionPlayerOnVPlat: Y = platform Y - 32, y speed 0; the y_pos fraction is NOT cleared.
++        if land { s.y_pos = (s.y_pos & 0xff) | 0x10000 | (((sl.y as i32) - 32) << 8); s.y_spd = 0; }
++        let left = f.sl16 - 73;
++        let right = sr16 + 72 + if left >= 0 { 1 } else { 0 };
++        if (sl.x as i32) < left || sl.x as i32 >= right { erase(&mut sl); }
++        self.s[i] = sl;
++        continue;
++      }
 +      if !self.s[i].live() {
 +        if (f.aptn_pre & 7) != 7 {
-+          let frenzy = self.process_enemy_data(i, f.sl16, f.edata);
++          let frenzy = self.process_enemy_data(i, f.sl16, f.edata, f.lift_class);
 +          // CheckFrenzyBuffer: reached only on the loader's "no level enemy here" paths (EOD / beyond the
 +          // extended right boundary). With VineFlagOffset == 1 it stores VineObject into this free slot; the
 +          // vine's init is Setup_Vine again, which raises the flag to 2 — exactly one injection. The object is
@@ -5365,6 +5467,7 @@ index 0000000..9e413b4
 +      sl.masked = bits & mask != 0;
 +      let relx = ((sl.x as i32 - f.sl16) & 0xff) as u8;
 +      let bb = if sl.masked { None } else if sl.class == CLASS_GOOMBA || sl.class == CLASS_PLANT { Some((relx.wrapping_add(3), sl.y.wrapping_add(14), relx.wrapping_add(13), sl.y.wrapping_add(20))) } else { Some((relx.wrapping_add(2), sl.y.wrapping_add(9), relx.wrapping_add(14), sl.y.wrapping_add(21))) };
++      let bb = bb.map(|b| clamp_bbox(b, sl.x as i32, f.sl16));
 +      boxes[i] = bb;
 +      if sl.class == CLASS_PARA { enemy_jump::<B>(&mut sl, f.bounce_cell); } else { bg_collision::<B>(&mut sl, f.px, f.bounce_cell); }
 +      // EnemiesCollision (odd FrameCounter; plants excluded on both sides)
