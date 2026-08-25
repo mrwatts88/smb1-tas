@@ -2218,7 +2218,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..64ea5b0 100644
+index 350d469..07c2569 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2586,7 +2586,7 @@ index 350d469..64ea5b0 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +395,1501 @@ fn calc_prng() {
+@@ -46,4 +395,1517 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2825,13 +2825,15 @@ index 350d469..64ea5b0 100644
 +    "spd" | "speed" => 2u8,
 +    "sub" | "subpixel" => 3u8,
 +    "vf" | "vforce" => 4u8,
-+    other => panic!("unknown --beam-buckets dimension {} (want off,y,spd,sub,vf)", other),
++    "x" | "xband" => 5u8,
++    "e" | "enemy" => 6u8,
++    other => panic!("unknown --beam-buckets dimension {} (want off,y,spd,sub,vf,x,e)", other),
 +  }).collect()
 +}
 +
 +/// P2.3c-8: coarse physical bucket id for the diversity beam. Deliberately coarse — the point is to keep one
 +/// representative per *situation*, not to defeat deduplication.
-+fn bucket_key(dims: &[u8], s: &State, sl: i64) -> u64 {
++fn bucket_key(dims: &[u8], s: &State, sl: i64, ext: &Ext) -> u64 {
 +  let mut k: u64 = 0;
 +  for &d in dims {
 +    let v: u64 = match d {
@@ -2840,6 +2842,20 @@ index 350d469..64ea5b0 100644
 +      2 => ((((s.x_spd as i64) >> 8) + 64) >> 2) as u64 & 0x3f,    // x speed band, 4 px/frame
 +      3 => (((s.x_pos >> 5) & 0x7) as u64),                        // x subpixel phase, top 3 bits of the fraction
 +      4 => (s.v_force as u64) & 0xff,                              // airborne arc identity
++      // P2.2f (F138): ABSOLUTE x band, 16 px. Without it every other axis is measured relative to a frontier
++      // that h-first ordering pins to its leading edge, so a route that is deliberately BEHIND -- which the
++      // 8-4 room-2 WR is, by 15 frames of bound slack -- is deleted wholesale. The `--check-path` per-layer
++      // report is what showed this: the WR left the frontier at layer 40 of 267, not at the climb.
++      5 => ((s.x_pos >> 12) & 0xffff) as u64,                      // x band, 16 px
++      // H40: a coarse enemy-configuration axis -- which classes are live in which slot, each live object's
++      // Enemy_State, and its x to 16 px. Two states with identical physics but different enemy phases are
++      // different situations and must not compete for the same beam slots.
++      6 => { let mut h: u64 = 0;
++             for i in 0..6 { let b = &ext.0[4 + 10 * i..14 + 10 * i];
++               let v = ((b[0] & 7) as u64) | (((b[0] >> 7) & 1) as u64) << 3 | (b[1] as u64) << 4
++                     | (((b[2] >> 4) as u64 | ((b[3] & 0x0f) as u64) << 4) << 12);
++               h = h.wrapping_mul(1099511628211).wrapping_add(v); }
++             h }
 +      _ => 0,
 +    };
 +    k = k.wrapping_mul(1099511628211).wrapping_add(v.wrapping_add(0x9e3779b9));
@@ -3461,7 +3477,7 @@ index 350d469..64ea5b0 100644
 +          let (k1, k2) = if beam_offset { (sl, hh) } else { (hh, sl) };
 +          let elt = (k1, k2, -((st.x_pos >> 8) as i32), br);
 +          if bucketed {
-+            let bk = bucket_key(beam_buckets, &st, sl);
++            let bk = bucket_key(beam_buckets, &st, sl, &ext);
 +            let e = buckets.entry(bk).or_insert_with(BinaryHeap::new);
 +            if e.len() < nbeam { e.push(elt); }
 +            else if elt < *e.peek().unwrap() { e.pop(); e.push(elt); }
@@ -4705,10 +4721,10 @@ index 0000000..d8adad9
 +}
 diff --git a/src/w42enemies.rs b/src/w42enemies.rs
 new file mode 100644
-index 0000000..c16dc8c
+index 0000000..6590663
 --- /dev/null
 +++ b/src/w42enemies.rs
-@@ -0,0 +1,528 @@
+@@ -0,0 +1,533 @@
 +//! P2.5c-2 — the 4-2 main-area enemies as a per-step object hook for `W42Main` (`--enemies`): the enemy-data loader
 +//! (`ProcessEnemyData`), the `$3A` goomba group, the green koopa, the buzzy beetles, the piranha plants the area
 +//! parser inserts into the pipes, and the lift's slot occupancy, with the per-slot RAM packed into the record's ext
@@ -4989,11 +5005,16 @@ index 0000000..c16dc8c
 +/// EnemyJump (12661) — `EnemyToBGCollisionDet`'s branch for `GreenParatroopaJump`. Nothing like the walkers'
 +/// `HandleEToBGCollision`: no $23 stun, no landing state machine. It only re-launches the hop when the object
 +/// is falling AND standing on a solid, then runs the same side check as everything else.
-+fn enemy_jump<B: BlockBuffer>(s: &mut Slot) {
++fn enemy_jump<B: BlockBuffer>(s: &mut Slot, bounce_cell: u16) {
 +  if s.state & 0x20 != 0 { return; }                     // EnemyToBGCollisionDet: d5 (defeated) -> leave
 +  if ((s.y as i32 + 0x3e) & 0xff) < 0x44 { return; }     // SubtEnemyYPos
 +  if s.yspd.wrapping_add(2) >= 3 {                       // "if green paratroopa not falling, branch ahead"
-+    let under = block_at::<B>(s.x as i32 + 8, s.y as i32 + 24);   // ChkUnderEnemy (adders $08/$18)
++    let (ux, uy) = (s.x as i32 + 8, s.y as i32 + 24);
++    let mut under = block_at::<B>(ux, uy);                // ChkUnderEnemy (adders $08/$18)
++    // A block bumped from below reads $23 while its object is in flight, exactly as in `bg_collision`.
++    // $23 is not in ChkForNonSolids' list, so the paratroopa lands on it and re-launches; without this the
++    // model would read the cell's real metatile, and a hidden block ($5f) IS in that list.
++    if uy >= 32 && bounce_cell == 1 + (((ux >> 4) as u16) << 4 | (((uy - 32) >> 4) as u16)) { under = 0x23; }
 +    if under != 0 && !non_solid(under) {                 // ChkForNonSolids
 +      landing(s);                                        // EnemyLanding: InitVStf + snap y to (y & $f0) | 8
 +      s.yspd = 0xfd;                                     // "make the paratroopa jump again"
@@ -5113,7 +5134,7 @@ index 0000000..c16dc8c
 +      let relx = ((sl.x as i32 - f.sl16) & 0xff) as u8;
 +      let bb = if sl.masked { None } else if sl.class == CLASS_GOOMBA || sl.class == CLASS_PLANT { Some((relx.wrapping_add(3), sl.y.wrapping_add(14), relx.wrapping_add(13), sl.y.wrapping_add(20))) } else { Some((relx.wrapping_add(2), sl.y.wrapping_add(9), relx.wrapping_add(14), sl.y.wrapping_add(21))) };
 +      boxes[i] = bb;
-+      if sl.class == CLASS_PARA { enemy_jump::<B>(&mut sl); } else { bg_collision::<B>(&mut sl, f.px, f.bounce_cell); }
++      if sl.class == CLASS_PARA { enemy_jump::<B>(&mut sl, f.bounce_cell); } else { bg_collision::<B>(&mut sl, f.px, f.bounce_cell); }
 +      // EnemiesCollision (odd FrameCounter; plants excluded on both sides)
 +      if f.fc_odd && sl.class != CLASS_PLANT && !sl.masked {
 +        if let Some(sb) = bb {

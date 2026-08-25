@@ -1369,3 +1369,53 @@ external command exit 1/134). Recovery is `zmodload zsh/files` + builtin `rm`. R
 **Next.** The d267 beam control (the pre-registered gate: **d266 means nothing until d267 finds a goal**).
 If width alone does not do it, the bucket key has no enemy axis — H40's beetle/plant/paratroopa phase and
 slot occupancy — which is the next lever.
+
+### 2026-08-24 — session 17, part 2: two proof-grade verdicts for room 2, and the beam is the wrong tool
+
+**Did.** Searched room 2 with the ported enemies, and diagnosed the search instead of tuning it.
+
+**F138 — `--check-path` is the diagnostic nobody had used on a beam.** It reports, per layer, whether the
+reference path is still in the frontier. It says the beam throws the WR away at **layer 40** of 267 from a
+step-0 root, and at **layer 41** from a step-70 root — the same ~40 layers in wherever it starts, at widths
+50 / 200 / 2000 / 3000 and with a new absolute-x bucket axis. The cause is measurable and constant: rooting
+on the WR's own state at steps 70 / 180 / 200 / 220 / 240 gives **14, 14, 14, 14, 13 frames of slack**. An
+h-first order therefore prefers, on every layer, the family that is ahead of the WR on x — and the WR's is
+behind by exactly that slack. Width and bucket diversity cannot compensate for a loose bound. Also added
+`--beam-buckets e` (a coarse enemy-configuration axis, H40) while in there; it was not the blocker.
+
+**F139 — so root on the WR's own state and search the tail EXHAUSTIVELY.** No beam, nothing discarded, so a
+dry is a verdict and a goal is a genuine improvement on the WR. Positive control first: prefix 240 at the
+WR's own deadline 27 finds goals at layer 27 with 0 bound violations. Then: prefix 240 **d26 DRY**, prefix
+220 **d46 DRY**. **The WR's last 47 frames of 8-4 room 2 are optimal.**
+
+And it is not just re-checking MrWint's homework, because I measured where his seams actually are in the
+WR: **step 70 (x 1981)** and **step 227 (x 2373)**. The d46 rung spans 220 → 267, so it **crosses the
+x-2373 seam** — that is the H42 test for that seam, and the answer is that it does not leak a frame.
+
+The ladder's cost wall is between d46 (209 s) and d56 (9.9M states by layer 14, `pruned 0`); d66 grows
+x3.3/layer. F98's law at 14 frames of slack.
+
+**Two corrections the user made, both right.**
+1. *"Why must the d267 control pass before running d266? We want a record, not a proof."* Correct — a
+   control only tells you what a DRY means; a d266 that finds a path is a record either way, and both cost
+   the same. The right move is to run the real deadline with `--check-path` piggybacked. Rule changed.
+2. *"Wasn't the plan to put two segments together and beam it with the bucketing strategy?"* Also correct —
+   that is P2.3c-11a's shape and I had drifted into a whole-room pass. Relaunched on the measured seams:
+   root = the WR's state at step 70, span = his middle + pipe-entry segments in one piece, known combined
+   cost 197, deadline **196**. Running.
+
+**And a correction of my own.** I proposed room 3's `build_overshoot_bound` as the fix for the slack; it is
+not — that is an x-overshoot-and-return table, the wrong geometry. The slack is located precisely: at the
+WR's step 240 the bound says **13** and the truth is **27**, i.e. all 14 frames sit in the last 27. The
+bound takes `max(x-cost, y-cost)` as independent when they are coupled — `Y <= 64` is only possible while
+standing on the pipe cap (x in [2432, 2464)), and you arrive there at ~0 speed, so the last 13 px are
+walked from a standstill while the x table prices them at full running speed. The fix is a small exact
+end-game table over the last ~30 frames, indexed by (Y, y_spd, v_force, x, x_spd), built by backward search
+on the real model — affordable, since the prefix-240 rung searched that region exhaustively in ~10 s.
+
+**Strategic note (the user's question, worth keeping in view).** The edge is only at the seams. One of
+room 2's two is now closed; the 157-frame middle is at the speed cap (F67) and the first 70 frames are
+MrWint's own exhaustively-searched segment. If the end-game term does not open the step-70 question, room 2
+should be declared closed rather than ground on.
+
+**Next.** The coupled end-game term, then re-run the step-70 cross-seam question exhaustively.
