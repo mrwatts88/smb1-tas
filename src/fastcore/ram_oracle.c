@@ -169,12 +169,27 @@ int main(int argc, char **argv) {
     uint64_t *bhash = malloc(sizeof(uint64_t) * nframes);
     uint8_t *blives = malloc(nframes);
     long base_victory = -1;
+    /* Route-progress table: each distinct (WorldNumber, AreaPointer) pair in order of first
+     * appearance, with the baseline frame that first reached it.  A perturbed run that reaches
+     * one of these pairs EARLIER than the baseline did has skipped ahead on the route — which is
+     * worth frames even when the game does not end.  This is the "closer to the end" test. */
+    #define MAXST 128
+    static uint8_t st_w[MAXST], st_a[MAXST]; static long st_f[MAXST]; int nst = 0;
+    /* Route-AGNOSTIC progress: the baseline frame at which each WorldNumber value is first reached.
+     * Scores a skip that lands OFF the WR's itinerary entirely (a different world/level that may
+     * still be faster overall) — which the (world,area) table above cannot see, since it only
+     * knows states the WR itself visits. */
+    long world_first[256]; { int k; for (k = 0; k < 256; k++) world_first[k] = -1; }
     for (long i = 0; i < nframes; i++) {
         cur_pad = in[i + input_skip];
         retro_run();
         bhash[i] = fnv(ram, 0x800);
         blives[i] = ram[LIVES];
         if (base_victory < 0 && ram[OPERMODE] == 2) base_victory = i;
+        { int k, found = 0;
+          for (k = 0; k < nst; k++) if (st_w[k] == ram[WORLDNUM] && st_a[k] == ram[AREAPTR]) { found = 1; break; }
+          if (!found && nst < MAXST) { st_w[nst] = ram[WORLDNUM]; st_a[nst] = ram[AREAPTR]; st_f[nst] = i; nst++; } }
+        if (world_first[ram[WORLDNUM]] < 0) world_first[ram[WORLDNUM]] = i;
         if (i == at) { if (!retro_serialize(state, ssz)) { fprintf(stderr, "serialize failed\n"); return 1; } }
     }
     if (base_victory < 0) { fprintf(stderr, "baseline never reached OperMode 2\n"); return 1; }
@@ -189,7 +204,8 @@ int main(int argc, char **argv) {
     if (!out) { perror(outpath); return 1; }
     fprintf(out, "# ram_oracle at=%ld baseline_victory=%ld budget=%ld death_exit=%d\n",
             at, base_victory, budget, death_exit);
-    fprintf(out, "addr,value,outcome,frames_run,victory_frame,axe_frame,max_opermode,max_world,new_areas\n");
+    fprintf(stderr, "route table: %d distinct (world,area) states\n", nst);
+    fprintf(out, "addr,value,outcome,frames_run,victory_frame,axe_frame,max_opermode,max_world,ahead_frames,ahead_state,world_ahead,world_ahead_n,new_areas\n");
 
     /* ---- probe mode: one (addr,value), per-frame diagnostics ---- */
     if (probe) {
@@ -231,6 +247,7 @@ int main(int argc, char **argv) {
             uint8_t max_om = 0, max_w = 0;
             uint8_t seen_area[256]; memset(seen_area, 0, sizeof seen_area);
             const char *outcome = "CAP"; long vf = -1, axef = -1, j = 0;
+            long ahead = 0; int ahead_w = -1, ahead_a = -1; long wahead = 0; int wahead_w = -1;
             for (j = 0; j < budget; j++) {
                 long fi = at + 1 + j;
                 if (fi + input_skip >= nin) { outcome = "EOF"; break; }
@@ -240,6 +257,12 @@ int main(int argc, char **argv) {
                 if (om > max_om) max_om = om;
                 if (ram[WORLDNUM] > max_w) max_w = ram[WORLDNUM];
                 seen_area[ram[AREAPTR]] = 1;
+                if (world_first[ram[WORLDNUM]] >= 0 && world_first[ram[WORLDNUM]] - fi > wahead) {
+                    wahead = world_first[ram[WORLDNUM]] - fi; wahead_w = ram[WORLDNUM]; }
+                { int k; for (k = 0; k < nst; k++)
+                    if (st_w[k] == ram[WORLDNUM] && st_a[k] == ram[AREAPTR]) {
+                        if (st_f[k] - fi > ahead) { ahead = st_f[k] - fi; ahead_w = ram[WORLDNUM]; ahead_a = ram[AREAPTR]; }
+                        break; } }
                 /* OperMode 2 = VictoryMode, entered at EVERY castle axe (VictoryModeSubroutines:
                  * BridgeCollapse -> ... -> PlayerEndWorld).  Only PlayerEndWorld's `cpy #World8 /
                  * bcs` actually ends the game; below world 8 it increments WorldNumber and returns
@@ -252,14 +275,16 @@ int main(int argc, char **argv) {
                 if (fnv(ram, 0x800) == bhash[fi]) { outcome = "CONVERGED"; break; }
             }
             total_frames += j; nrun++;
-            int interesting = strcmp(outcome, "CONVERGED") != 0 || max_om > 1 || axef >= 0 || j > 1;
+            int interesting = strcmp(outcome, "CONVERGED") != 0 || max_om > 1 || axef >= 0 || ahead > 0 || wahead > 0 || j > 1;
+            if (ahead > 0 || wahead > 0) njack++;
             if (!strcmp(outcome, "VICTORY") && vf >= 0 && vf < base_victory) njack++;
             if (all_rows || interesting || noop) {
                 char areas[512]; int p = 0; areas[0] = 0;
                 for (int a = 0; a < 256 && p < 500; a++)
                     if (seen_area[a]) p += snprintf(areas + p, sizeof areas - p, "%s%02x", p ? " " : "", a);
-                fprintf(out, "0x%03lx,%u,%s%s,%ld,%ld,%ld,%u,%u,%s\n", addr, vals[vi], outcome,
-                        noop ? "(noop)" : "", j, vf, axef, max_om, max_w, areas);
+                fprintf(out, "0x%03lx,%u,%s%s,%ld,%ld,%ld,%u,%u,%ld,w%d/%02x,%ld,%d,%s\n", addr, vals[vi], outcome,
+                        noop ? "(noop)" : "", j, vf, axef, max_om, max_w, ahead, ahead_w, ahead_a < 0 ? 0 : ahead_a,
+                        wahead, wahead_w, areas);
             }
         }
         if ((addr - addr_lo) % 16 == 15) fflush(out);
