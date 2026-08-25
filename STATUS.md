@@ -530,20 +530,17 @@ optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. O
 | P3.5 | NES Minus World re-examination with oracle + audit (WorldNumber = 36 OOB reads). | B | M | P3.1, P3.2 | Ledger entry with proof artifact |
 | P4.1 | Assemble, verify in two emulators, draft submission text. | ship | M | a result | User-reviewed before anything is submitted |
 
-Wrap-up items (fold into whichever unit touches them first): **AUDIT EVERY `IgnoreCoins` CASE FOR F147's BUG
-CLASS.** Collecting a coin fills `VRAM_Buffer1`, a busy buffer stalls the area parser for a frame, and the
-parser gates BOTH plant spawns and the enemy loader (`aptn_pre & 7 != 7`) — so `IgnoreCoins` on a map that
-has reachable coins silently desynchronises every enemy spawn. Checked so far: **1-2 was broken** (fixed,
-F147); **8-4 room 2 is clean** (no `$c2` cell in its span); **1-1's `BB11` has zero `$c2` cells**, so
-`W11Room1E`'s `IgnoreCoins` cannot bite through metatile coins — but its `CELLS` include question blocks
-whose *bump* also awards a coin — and that path is now **confirmed** to fill the buffer: `GiveOneCoin` ->
-`UpdateNumber` -> `PrintStatusBarNumbers` -> `OutputNumbers` writes through `VRAM_Buffer1_Offset`
-(smbdis.asm:7084, 7113, 2530). So **any** coin award stalls the parser, from a `$c2` touch or a block bump
-alike, and the model's `busy` only covers the bounce restore, ColorRotation and RunGameTimer. **F124 is
-exposed exactly to the extent that a 1-1 room-1 path bumps a coin-awarding cell of
-`[(22,3),(16,7),(21,7),(23,7)]`** — check that, and if so give `W11Room1E` the same treatment 1-2 just got. Note the trap: 1-2's **150-trial battery passed with the bug in it**, because the battery
-compares Mario's fields and a mis-timed plant only reaches Mario in rare configurations — only the core
-replay of a searched path found it. **RE-RUN F139's 8-4 ROOM-2 d46 RUNG ON THE BBOX-FIXED ENGINE** — the screen-edge bounding-box clamp (F141) was missing when `prefix 240 d26` and `prefix 220 d46`
+Wrap-up items (fold into whichever unit touches them first): **The `IgnoreCoins` audit (F147's bug class) is
+CLOSED — the bug was 1-2-only.** The engine already models both coin paths: `note_coin_award` (the
+`AwardTouchedCoin` metatile path) and `fresh_bump` (any block bump) each set `vbuf1_busy`, which stalls the
+parser. `IgnoreCoins` breaks only the first, by reporting every `$c2` cell as already collected so a touch
+never awards. Swept: **1-2 was broken and is fixed** (F147); **4-2 has a real handler**, so its metatile
+coins award normally; **8-4 room 2 has no `$c2` cell**; **1-1's `BB11` has none either**, and the coin its
+room-1 route does award (fceux f347, CoinTally 0 -> 1) comes from a **block bump**, which `fresh_bump`
+covers — so **F124 is clear**. Worth keeping: the trap that made this hard to see is that 1-2's **150-trial
+battery passed with the bug in it** — a battery compares Mario's fields, and a mis-timed plant only reaches
+Mario in rare configurations. Only the core replay of a searched path found it.
+Other wrap-up items: **RE-RUN F139's 8-4 ROOM-2 d46 RUNG ON THE BBOX-FIXED ENGINE** — the screen-edge bounding-box clamp (F141) was missing when `prefix 240 d26` and `prefix 220 d46`
 were run, and that bug is live in 8-4 as well as 1-2, so those two dries were produced by an engine that
 could spuriously collide enemies near a screen edge. The WR-line difftest and the 401-trial battery both
 pass on the fixed engine, so the model is right *now*; what is untested is whether the two dry verdicts
