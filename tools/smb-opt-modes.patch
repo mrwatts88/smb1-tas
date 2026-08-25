@@ -2064,7 +2064,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..b3f755a 100644
+index 350d469..b789421 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2425,7 +2425,7 @@ index 350d469..b3f755a 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +388,1424 @@ fn calc_prng() {
+@@ -46,4 +388,1444 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -2891,7 +2891,7 @@ index 350d469..b3f755a 100644
 +      let mut dead = false;
 +      let mut bump = false;
 +      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&s, &mut ns, &mut ext); dead = ev == LiftEvent::Death; bump = ev == LiftEvent::ItemBump; } }
-+      let g = match gxy { Some((gx, gy)) => !dead && res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy, None => goal.is_goal_state(&ns, &res) && !goal_refused(hook, &ns) };
++      let g = match gxy { Some((gx, gy)) => !dead && res == EmuResult::Success && ns.x_pos >= gx && ns.y_pos <= gy, None => goal.is_goal_state(&ns, &res) && !goal_refused(hook, &s, &ns) };
 +      println!("{} {:#x} {:#x} {:#x} {:#x} {:?} {} {} {:?}{}{}{}", i + 1, ns.x_pos, ns.y_pos, ns.x_spd, ns.y_spd, ns.player_state, hof(&goal, &ns, ext.u16(), i + 1), g as u8, res, if dead { " DEAD" } else { "" }, if bump { " ITEMBUMP" } else { "" }, extra(&ns));
 +      s = ns;
 +      if res != EmuResult::Success || dead { break; }
@@ -2900,7 +2900,24 @@ index 350d469..b3f755a 100644
 +}
 +/// P2.3c-5: the F40 refusal also applies to the goal transition itself (the search tests the goal before the hook
 +/// runs): a pipe entry whose own frame scrolled ScreenLeft16 to >= 1217 warps wrong, like any refused state.
-+fn goal_refused(hook: Option<Hook>, ns: &State) -> bool { hook.map_or(false, |h| h as usize == w42_enemies as usize) && screen_left16(ns) >= 1217 }
++/// The wrong warp needs the page-5-col-15 area command NOT to have parsed: ScreenLeft <= 1216 (F40/F120).
++///
++/// P2.3c-9 (F131) — this is NECESSARY BUT NOT SUFFICIENT, and the sufficient version cannot live here.
++/// Measured on the core (session 16): `ChangeAreaTimer` is 48 at entry, `Player_X_Scroll` is latched on the
++/// GES-3 entry frame and is NOT recomputed during the descent, so the screen keeps scrolling for the whole
++/// animation; the instant ScreenLeft reaches 1217 the command parses, AreaPointer $2F -> $42, and it never
++/// flips back. The WR survives because its entry frame advances Mario's integer x by 0 (ScreenLeft pinned at
++/// 1216 for all 48 frames); our F127 path advanced it by 2 and decayed 132 -> 107, warping to $42.
++///
++/// But that delta belongs to a frame this search does not simulate. The model's goal fires on the frame Mario
++/// *reaches* the entry x (the WR's own goal step advances integer x 1346 -> 1348, d = 2); the core's GES-3
++/// frame is a later one on which x does not advance. A `ScreenLeft + 48*d <= 1216` test at the goal transition
++/// therefore **rejects the WR's own warp** — verified by the reference-path control below, which is why that
++/// control now applies this function. Warp validity is adjudicated downstream instead (core replay + the
++/// destination check, runbook §4.3) until the case models the entry frame under Down.
++fn goal_refused(hook: Option<Hook>, _pre: &State, ns: &State) -> bool {
++  hook.map_or(false, |h| h as usize == w42_enemies as usize) && screen_left16(ns) >= 1217
++}
 +/// replayc with an optional per-frame object hook (e.g. the 4-2 lift) carrying `ext`; returns (state, ext, alive).
 +fn replayce<C: case::SmbSearchCase>(data: &[u8], first: usize, n: usize, trace: bool, hook: Option<Hook>, ext0: u16) -> (State, Ext, bool) {
 +  use emu::{Emu, EmuResult};
@@ -3041,7 +3058,10 @@ index 350d469..b3f755a 100644
 +    for k in 0..check_path {
 +      let input = nes_to_model(data[first + prefix + k]);
 +      let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs.clone(), input);
-+      let g = xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset);
++      // P2.3c-9: the reference-path audit is the project's positive control (F124), so it must apply the SAME
++      // goal refusal the search does — otherwise a refusal that rejects the WR's own warp passes unnoticed.
++      let g = xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset)
++        && !(goal_x.is_none() && goal_offset.is_none() && goal_refused(hook, &rs, &ns));
 +      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&rs, &mut ns, &mut re); if ev != LiftEvent::Nothing { println!("reference path: step {} object event {:?} ext {:x}", k + 1, ev, re); } } }
 +      let hv = hval(&goal, &ns, &re, k + 1);
 +      // admissibility check against the reference path itself: h(state after step k+1) must not exceed the steps the reference still needs
@@ -3119,7 +3139,7 @@ index 350d469..b3f755a 100644
 +            let ps = key.decompress();
 +            for &ib in &inputs {
 +              let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+              if xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset) { if goal_x.is_none() && goal_offset.is_none() && goal_refused(hook, &ns) { dead += 1; continue; } goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
++              if xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset) { if goal_x.is_none() && goal_offset.is_none() && goal_refused(hook, &ps, &ns) { dead += 1; continue; } goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
 +              match res {
 +                EmuResult::Success => {
 +                  let mut ne = pe;

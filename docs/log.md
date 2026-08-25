@@ -1126,3 +1126,34 @@ disassembly rather than accepting it, and it holds up with one correction and on
 22. Bottom route ~31; top route 43 as found today, on a path that does not yet warp correctly and
 gets *more* expensive once F129's zero-scroll entry is enforced. Nobody has measured the cheapest
 top-route mint. That is P2.3c-9 Part B.
+
+### 2026-08-24 — session 16, part 3: the goal fix failed the control (and the control was broken too)
+
+**Did.** Started P2.3c-9 Part A. Before implementing, measured what the scroll actually does through the
+whole pipe descent instead of assuming — prompted by the user asking whether a high-but-decaying offset
+could work, which is exactly the case a "require `Player_X_Scroll` = 0" rule would have over-constrained away.
+
+**Learned (F131).**
+- The measurement: `ChangeAreaTimer` = 48 at entry; `Player_X_Scroll` is latched on the GES-3 frame and never
+  recomputed, so the screen scrolls ~43 of those 48 frames (ScreenLeft 1216 → 1269) and stops only at the
+  level's right edge. Threshold crossing overwrites AreaPointer $2F → $42 permanently.
+- So the general rule is `ScreenLeft + 48·d <= 1216` with `d` the entry frame's integer-x advance. That
+  *doesn't* over-constrain the user's idea — it prices it: offset ≥ 180 at d=1, ≥ 228 at d=2, on a 256 px
+  screen at a 0.65–0.82 px/frame mint rate. Expensive, not excluded.
+- **But the rule rejects the WR's own warp.** The delta belongs to a frame the search never simulates: the
+  model's goal fires when Mario *reaches* the entry x, and the WR's own goal step advances integer x 1346 →
+  1348 (d = 2), while the core's actual entry frame advances 0. Implemented it, the WR's ` GOAL` marker
+  vanished, reverted, it came back.
+- **The control was not testing the refusal at all.** `--check-path`'s goal flag was `xy_goal(...)` with no
+  `goal_refused` (`main.rs:1023`) — so a bad refusal could reject the WR silently and the project's standard
+  positive control (F124) would have said nothing. Fixed; that fix is what caught this.
+- Net: shipped the control fix and the sound necessary condition; P2.3c-9 Part A is re-sized M–L (a
+  case-level change to fire the goal on the entry frame), not the S I estimated. Warp validity stays with the
+  core-replay destination gate meanwhile.
+
+**Also corrected:** P2.3c-11's value. It is not the ~1 frame it might find in 4-2 (worth zero there,
+quantized) — it is that 4-2 is a validation case with a certified answer across seven single-scalar seams,
+so a sub-553 result would be evidence the seams have been leaking frames on every level we called closed,
+including 8-4 where one frame is the record.
+
+**Next.** 8-4 primary track: P2.2a-port (unblocked by F130).
