@@ -1629,3 +1629,76 @@ Five archives: `runs/E3-w42/r460.log` (4-2 mint curve) and `runs/E3-w84/{room2,r
 The water room is 696 frames nobody has ever searched; `bowser` uses the last-input objective (F17).
 **Next:** read the curves; if 4-2's stalls far above 22, retire it and put everything on 8-4, where
 one frame is the record.
+
+### Session 18, continued — the rest of the day (everything after the entry above)
+
+The first entry stops at F231. What follows is the larger half.
+
+**The finder grew into a general instrument** (`src/fastcore/explore.c`, `tools/build_explore.sh`).
+Added through the day, each for a reason: `--seed-path` (seed a search artifact, e.g. 4-2's 553
+chain); `--goal-ram` / `--require-ram` (arbitrary goals and *sound invariant pruning* — a state whose
+warp destination has already flipped can never satisfy the goal, so never archive it);
+`--watch-x` (a cost curve — earliest frame at each screen-lead inside a window); `--max-addr`
+(maximise a RAM byte, put it in the cell key); `--anomaly` (P3.4, self-calibrating novelty);
+`--subcell`/`--ysubcell` (the horizontal/vertical subpixel in the cell key). Plus
+`tools/e3_replay.py`, `tools/cap_survey.py`, `tools/entry_state_scan.py`, `tools/down_sweep.py`.
+
+**Three proxy-goal traps in one day — the single most important operational lesson.**
+1. 8-4 with goal `GES == 3` ("a pipe was entered") reported **−54 and −102 frames**; both were
+   wrong-pipe entries into 8-4's maze (F230).
+2. 8-2 with goal `GES == 5` reported **−51 frames**; replaying it showed the level ending **+126**,
+   because that path takes a normal pole slide while the WR's flag glitch skips it (F237).
+3. F131 had already done this to the project before I arrived.
+**Rule, now written into `P4E-finder.md`: the goal must be the quantity the record is measured in.**
+Flag level → `StarFlagTaskControl == 5` (the area change). Pipe level → the entry that sets the next
+`WorldNumber`. 8-4 → the last input. And it must be *monotone with the record* — checked and shown
+for 1-2 in STATUS.
+
+**What got closed, and how.** Almost every result came from reading the ROM and censusing the WR
+dump, not from compute:
+- **F225 the cap survey** — the WR is at the relevant speed cap for 80–97% of control frames in every
+  level; 4-1/8-1/8-3 are at 97% and **cannot deliver a framerule from movement at all**.
+- **F226** 1-2's "unexplored 540-frame intro" is 499 frames with the joypad overridden.
+- **F227 / F229 / F236 the scroll law** — every way to freeze the scroll, enumerated; `ScreenLeft <=
+  max_x − rel`; 1-2's clip *is* a scroll mint and its lead is exactly neutral. This one law governs
+  the endgames of 1-2, 4-2 and 8-4 room 3 and is why the record is hard.
+- **F228 / F230 / F231 / F232 / F233** — 4-2's wrong warp is a race against one command with exactly
+  one enterable pipe before it (H37 refuted); 8-4 is a maze of area-change commands; 8-4 room 1 is a
+  forced lap; **8-4 is closed on movement, route and structure**; the bonus-room detour is worth 292
+  frames in 1-1 (taken) and a 226–379 frame loss in 4-1/8-1/8-2 (correctly skipped).
+- **F235** — worlds 8-7-6 is `WarpZoneControl` row 6, which needs `AreaType == 1`, and `AreaType` is
+  stamped at load. **1-2 can never legitimately produce it.** The 3,957-frame prize is closed on the
+  legitimate path; it survives only as H7(c)'s OOB write. Restated sharply in `warp-model.md`: the
+  ask is **one more `inc $06D6`**, not an arbitrary write.
+- **F234** — F221's ceiling argument was about the wrong mechanism (the VRAM offset accumulates
+  *across* frames, gated by `VRAM_Buffer_AddrCtrl`), but the verdict survives; measured max 67 vs 227.
+- **F240** — the area parser runs a *constant* 22–24 columns ahead of `ScreenLeft`, so stalls cost
+  nothing. Killed the "avoid the coin bumps" idea before a search was spent on it.
+
+**Merged from the Mac session** (staged file, now deleted): **H46** the wall-face census, **H47** the
+speed-cap premise behind every closure, a **correction to F224** (`PlayerSize` $0754 and
+`PlayerStatus` $0756 are above the clear line, path-dependent, and change collision geometry — the H9
+refutation survives, the parenthetical did not), and **F238** (the WR is small Mario on 18,264 of
+18,268 frames). Verifying their H46 write-up produced **F239: the walk-through primitive runs at the
+FULL SPEED CAP** — the WR walks through solid row 10 in 4-2 from col 33 to col 49 with x-speed pinned
+at 40. That is the fact E7's whole premise rests on.
+
+**Two doctrine changes from the user.**
+1. *Find, don't prove* (morning): proof and exhaustiveness are no longer deliverables; only positives
+   get verified.
+2. *Banked frames count* (afternoon): a sub-threshold gain still reduces a level's deficit
+   permanently. STATUS now carries a banked-frames table. He also corrected a real error — 4-2's 35
+   frames are a **conditional asset, not banked**, because that route never reaches 4-2's endpoint
+   faster, it sprints to the pipe and warps wrong. **Banked total across the route: zero.**
+
+**Strategic assessment, stated so it is not lost.** SMB1 is the hardest target in the medium, not the
+easiest: 32 KB of code, eight levels, fifteen years of the best TASers, MrWint's optimiser, and an
+independent 2019 subpixel-perfect rewrite that landed on *exactly* 17,868. It is not scrubbed, but
+the remaining surface is small and specific, and **the productive method is reading the ROM plus
+targeted measurement — searches are a finishing tool, not the discovery engine.** One day of reading
+closed more than seventeen prior sessions of searching. What is genuinely left, in order of odds:
+**(1) the H46 wall-face census** — a proven full-speed primitive whose applicable set has never been
+enumerated, the only class that yields *distance* rather than fractions of frames; **(2) the
+unaudited half of the ROM**; **(3) 1-2's eight frames**, where the lever is identified. Falsification:
+if the census comes back empty at both hitboxes and the audit is clean, SMB1 any% is optimal and that
+is itself a publishable result (PLAN §7 tier 1).
