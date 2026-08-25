@@ -65,16 +65,18 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A, session 17] RUNNING — the P2.2f d267 beam CONTROL** (detached, `pgrep -x smb-opt`).
-  `bfscx W84Room2 data/wr/wr_inputs.bin 15917 0 267 --enemies 0 --beam 3000 --beam-buckets off,y,spd,sub
-  --beam-max 600000 --layer-dir runs/P2.2f/d267_layers --threads 5` under
-  `systemd-run --user --scope -p MemoryMax=7G -p MemorySwapMax=0`. Log `runs/P2.2f/d267_ygate_w3000.log`.
-  ~8.5 s/layer, ~480k records/layer ⇒ ≈ 40 min and ≈ 8-10 GB of layer files (145 G free at launch).
-  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.2f/d267_ygate_w3000.log`.
-  A **goal at layer 267** = the machinery is validated and d266 is the next run (change 267 → 266).
-  **No goal** = still under-powered, and the next lever is an ENEMY axis in the bucket key (H40), NOT more
-  width — narrower runs at width 50 / 200 / 2000 already failed (F137). Either way **delete the layer dir**
-  unless a d266 run follows immediately.
+- **[TRACK A, session 17] RUNNING — the P2.2f CROSS-SEAM shot** (detached; `pgrep -x smb-opt`).
+  The P2.3c-11a shape on the seams measured this session: root = the WR's OWN state at **step 70** (MrWint's
+  `W84Part2Speedup` boundary, x 1981), span = his middle segment + his pipe-entry segment **in one piece**,
+  their known combined cost **197**, deadline **196** ⇒ any goal is one frame off the world record.
+  `bfscx W84Room2 data/wr/wr_inputs.bin 15917 70 196 --enemies 0 --check-path 197 --beam 400
+  --beam-buckets x,y,spd,sub --beam-max 500000 --layer-dir runs/P2.2f/seam70_layers --threads 5` under
+  `systemd-run --user --scope -p MemoryMax=7G -p MemorySwapMax=0`. Log `runs/P2.2f/seam70_d196.log`.
+  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.2f/seam70_d196.log`.
+  A **goal** ⇒ census the goal-parent layer, `bfscx-path`, chain, `replay_check --enemies 0 --down`, then
+  the runbook §4 pipeline — that is the record. **No goal is EXPECTED and near-uninformative**: the same
+  beam already drops the WR's own path at layer 41 of this very run (F138), so it is a lottery ticket, not
+  a verdict. Either way delete `runs/P2.2f/seam70_layers`.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -247,6 +249,27 @@ pre-cleanup narrative version of this file is archived at
   into `$05E0-$06CF`, every other piece of this chain is already built and mapped, and H43 reopens immediately.
   If none can, H43 is refutable with a proof artifact for the first time. Either way it is a bounded disassembly
   job with a clear verdict, and it needs no CPU.
+  **CHECKPOINT 8 (session 17) — P3.3 DONE: all three previously-unaudited writer classes audited. None
+  yields an arbitrary write, so H7/H43 have no known opening left.**
+  **(1) Non-indexed writes (F220) — adds nothing.** Every store to the four H7 cells is a legitimate
+  transition already modelled by P0.6. `WorldNumber` in particular has exactly two writers in the whole ROM:
+  `GoContinue` (1056) and the `inc` in `PlayerEndWorld` (1241). Nothing sets it to an arbitrary value.
+  **(2) Stack (F219) — closed to redirection.** Exactly ONE `txs` in the ROM (line 680, power-on init) and
+  **no `tsx` anywhere**: the stack pointer is set once and never read back, so no input relocates it.
+  Residual named: no static call-graph depth / pha-pla balance analysis.
+  **(3) VRAM_Buffer overflow (F218 + F221) — the live one, now bounded.** `VRAM_Buffer1` is 64 bytes at
+  `$0301` but the store is 8-bit indexed, so the reach is `$0301-$0400`, which contains **`Block_Orig_YPos`
+  `$03e4` / `Block_BBuf_Low` `$03e6`** — corrupting those would make the deferred block write land anywhere in
+  `$0500-$06FE`, **including `$06D6` WarpZoneControl**. `SetVRAMOffset` has NO clamp. What bounds it: the offset
+  is reset every NMI by `InitBuffer` (indexed by a 2-entry table, x ∈ {$00,$40}); the amplifier is `MoveVOffset`
+  (+10 per block-metatile write) whose only callers are **one head bump per frame**, **`BlockObjMT_Updater`
+  (self-gated: `lda VRAM_Buffer1 / bne NextBUpd` skips when the buffer is in use)** and **bridge collapse (one
+  tile/frame)**; enemies write the block buffer directly (`HandleEToBGCollision`) and never advance the offset;
+  `RemoveCoin_Axe` targets buffer 2. Enumerated ceiling ~40-70, **observed max 67 over 18,268 WR frames**,
+  needed **227**. Narrowed to a small specific residual, **not formally refuted**.
+  **NEXT (Track B):** the only remaining moves are (a) machine-check F221's per-frame sum to make the VRAM class
+  proof-grade, (b) F219's call-depth analysis, or (c) accept H43 as blocked and return the Track B slot to the
+  P3.2 follow-ups (temporal sweep, `$06CD`, band B). Recommend (c) then (a) — the payoff-weighted order.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 s16; port DONE s17).**
   Span: the room in ONE piece — control (WR dump row **15918**, fceux RAM index 15917, page 7, x 1848) →
   the clip pipe entry at **(col 152, row 4)**, x 2436. WR = **267** frames, 8-4 is unquantized (H24), so a
@@ -274,20 +297,46 @@ pre-cleanup narrative version of this file is archived at
     carries a full `Ext`; and a **latent shared bug fixed** — `BlockStateData::parser_col` is a u8 but only
     7 bits were packed, so 136 round-tripped to 8 (4-2/1-1 both start at 24, so nothing had noticed). The
     top bit moved into a spare bit at the END of the field: every existing record stays byte-identical.
-  **THE SEARCH IS THE REMAINING STEP, and its bound had to be rebuilt first (F137).** The x-only table is
-  satisfied **at floor level ~15 frames before the goal**, so h = 0 across the whole climb and a bucketed
-  beam finds no goal even at the WR's own deadline 267 (width 50: no goal; width 2000 / ~300k per layer:
-  no goal, frontier races past to x 2471). Added a y-coupled `YGate` bound over the goal's own NECESSARY
-  condition `x >= 2436 && Player_Y <= 64` (`W84R2_PIPE_Y`), joined with the x table. Trap recorded:
-  `YGate::steps_xy` scans from k = 1 so it never returns 0 and prunes the WR's own goal — states already
-  satisfying the condition are given h = 0 explicitly. Audits clean: 0 bound violations on the WR line,
-  and `ygate_audit --mutate` = **1335 checks, 0 violations, min slack 0**.
-  **PRE-REGISTERED READING (do not skip): the d266 run is meaningless until the d267 CONTROL FINDS A GOAL.**
-  A beam that cannot reproduce the WR's own 267 says nothing about 266. Width 200 with the new bound went
-  extinct at layer 264, 7 px short (max x 2429) — too narrow at the end, not a verdict.
-  **NEXT: (1) read the running d267 control (Running jobs); (2) if it still finds no goal, the bucket key
-  has no ENEMY axis — H40 asks for beetle x/state, plant phase, paratroopa phase and slot occupancy, so add
-  an ext-derived axis to `--beam-buckets`; (3) only then d266, and core-replay any goal (runbook §4).**
+  **THE SEARCH: two proof-grade verdicts, one clear blocker (F137/F138/F139).**
+  • **F137 — the x-only bound cannot carry the tail.** It is satisfied at floor level ~15 frames before the
+    goal, so h = 0 across the climb. Added a y-coupled `YGate` over the goal's NECESSARY condition
+    `x >= 2436 && Player_Y <= 64` (`W84R2_PIPE_Y`). Trap: `steps_xy` scans from k = 1 so it never returns 0
+    and prunes the WR's own goal — states already satisfying the condition get h = 0 explicitly. Audits
+    clean (0 bound violations on the WR; `ygate_audit --mutate` 1335 checks / 0 violations / min slack 0).
+  • **F139 — THE WR's LAST 47 FRAMES OF ROOM 2 ARE OPTIMAL (proof-grade).** The right shape is the one
+    P2.3c-11a already argued: root on the WR's OWN state and search the tail **exhaustively** (no beam), so
+    a dry is a verdict and a goal is a real improvement. Rungs: prefix 240 **d27 = positive control**
+    (goals at layer 27, reference GOAL, 0 bound violations); prefix 240 **d26 DRY** (~10 s); prefix 220
+    **d46 DRY** (209 s). **Seam map measured in the WR: MrWint's boundaries are at step 70 (x 1981) and
+    step 227 (x 2373).** So the d46 rung SPANS the x-2373 seam ⇒ **that seam is not leaking a frame** —
+    a real, negative, H42 answer. Cost wall between d46 and d56: prefix 210/d56 hits 9.9M states at layer
+    14 (x2.7/layer, `pruned 0`); prefix 200/d66 x3.3/layer. F98's law at 14 frames of slack.
+  • **F138 — a beam is the WRONG TOOL for this room, and `--check-path` is what proves it.** It reports per
+    layer whether the reference path is still in the frontier. The beam drops the WR at **layer 40** from a
+    step-0 root and at **layer 41** from a step-70 root — the same ~40 layers in regardless of where it
+    starts, at widths 50/200/2000/3000 and with a new absolute-x bucket axis. Cause: the bound is loose by
+    **14 frames at EVERY root** (probes at steps 70/180/200/220/240 give slack 14/14/14/14/13), so h-first
+    ordering systematically prefers the family that is AHEAD of the WR on x. Width and bucket diversity
+    cannot compensate. (An enemy-config axis `--beam-buckets e` was added for H40 at the same time; not the
+    blocker.)
+  **CONTROL-RULE CORRECTION (user, this session).** "Do not run d266 until the d267 control passes" was
+  wrong for the goal. A control only tells you what a DRY means; a d266 run that finds a path is a record
+  regardless. Since both cost the same, **run the real deadline and piggyback `--check-path` on it** — you
+  get the hunt and the trustworthiness readout in one run. Applied from now on.
+  **NEXT UNIT — the coupled end-game term (this is the whole blocker).** All 14 frames of slack sit in the
+  last 27 frames: at the WR's step 240 the bound says **13** and the truth is **27**. Cause: the bound takes
+  `max(x-cost, y-cost)` as independent when they are coupled — Y <= 64 is only possible while standing on
+  the cap (x in [2432, 2464)), and you arrive there at ~0 speed, so the last 13 px are WALKED from a
+  standstill while the x table prices them at full running speed. **NOT room 3's `build_overshoot_bound`**
+  (that is an x-overshoot-and-return table — wrong geometry). Build a small exact end-game table over the
+  last ~30 frames indexed by (Y, y_spd, v_force, x, x_spd) by backward search on the real model; the
+  prefix-240 rung searched that region exhaustively in ~10 s, so it is affordable. Collapsing the slack is
+  worth ~x3 frontier per frame recovered — the difference between a 47-frame exhaustive reach and one deep
+  enough to answer the x-1981 seam outright.
+  **USER'S STANDING QUESTION (answered, keep in view):** the edge is only at the seams, and one of the two
+  is now closed. Room 2's remaining hope is the step-70 seam; the 157-frame middle is at the speed cap
+  (F67) and the first 70 frames are MrWint's own exhaustively-searched `W84Part2Speedup`. If the end-game
+  term does not open the step-70 question, **room 2 should be declared closed and the effort moved on.**
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
