@@ -313,3 +313,38 @@ For 8-4 room 3 that needs `x_entry >= 3424` against a pipe-entry window ending n
 turnaround stands (F232); for 4-2 the same clause is what breaks F129's candidate. The primitive is
 real, bounded, and on this route worth nothing — but it is worth remembering, because it is the only
 lever that moves a *destination* without touching `WorldNumber`.
+
+---
+
+## P3.4 — the novelty sweep (`--anomaly`), and what it found
+
+Never run before this session. `build/explore --anomaly` reports the first occurrence of each
+**(class, value)** pair that the WR's own line through the same region never produces. The allowed
+sets are learned automatically during `--seed-wr`, so "anomalous" is calibrated rather than guessed;
+sixteen classes are watched, including the ones that would be jackpots — `WorldNumber`,
+`AreaPointer`, `WarpZoneControl`, an out-of-table `Enemy_ID`, a non-zero `EnemyFrenzyBuffer`, and
+`VRAM_Buffer1_Offset > 80`. Each hit dumps its path; `tools/e3_replay.py` replays any of them.
+
+**Hits so far (1-1, 1-2, 4-2):**
+
+| where | hit | reading |
+|---|---|---|
+| 1-1 | `Y above world` = 254 at x 383, and 253 at **x 436** | **F210's doorway, at column 11 on an odd page** — the H43 trigger geometry, produced away from the WR's own 8 occurrences (F211). Two pixels of Y from the exact window. Still blocked by F215's value-minting. |
+| 1-2 | `WorldNumber` = 1, 2, 4, **35** | the warp zone's other pipes, plus **the Minus World** (world 36; H6 refuted at table level: `AreaPointer $01` = Water2, loops) |
+| 1-2 | **`WarpZoneControl` = 5** at core 3710 | a genuinely new capability — see F235 |
+| 4-2 | `PlayerSize` = 0 / `GES` = 9 at x 466 | the mushroom (H34), which the WR bumps without taking |
+| 4-2 | `AreaPointer` = `$42` at x 1349 | the top route's wrong warp (F228), reproduced |
+| both | `GES` = 11 | deaths |
+
+**What F235 concludes.** Chasing the WZC = 5 hit into the disassembly settled the biggest prize on
+the board: **worlds 8-7-6 is `WarpZoneControl` row 6, which `ScrollLockObject_Warp` will only write
+when `AreaType == 1`, and `AreaType` is fixed at area load — so 1-2 can never legitimately produce
+it.** 4-2's own warp zone is `AreaType` 2 as well and lands on row 5, `{36, 5, 36}` — the minus-world
+row — which is precisely why the WR wrong-warps into `$2F` (a *ground* area) instead of using it.
+
+So the 3,957-frame "1-2 straight to world 8" idea is closed on the legitimate path, and survives
+only as H7(c): an out-of-bounds write of `$06D6` = 6, still blocked by F203's reach bound and by
+F234's ceiling on the one write primitive that could reach further.
+
+**Caveat on the logs:** the `*** WORLD 8 REACHED ***` banner fires on any `WorldNumber >= 7` and so
+also fires on **35 (the Minus World)**. Read the value, not the banner.
