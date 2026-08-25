@@ -500,7 +500,13 @@ optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. O
 | P3.5 | NES Minus World re-examination with oracle + audit (WorldNumber = 36 OOB reads). | B | M | P3.1, P3.2 | Ledger entry with proof artifact |
 | P4.1 | Assemble, verify in two emulators, draft submission text. | ship | M | a result | User-reviewed before anything is submitted |
 
-Wrap-up items (fold into whichever unit touches them first): audit the truncated goal-parent
+Wrap-up items (fold into whichever unit touches them first): **RE-RUN F139's 8-4 ROOM-2 RUNGS ON THE FIXED
+ENGINE** — the screen-edge bounding-box clamp (F141) was missing when `prefix 240 d26` and `prefix 220 d46`
+were run, and that bug is live in 8-4 as well as 1-2, so those two dries were produced by an engine that
+could spuriously collide enemies near a screen edge. The WR-line difftest and the 401-trial battery both
+pass on the fixed engine, so the model is right *now*; what is untested is whether the two dry verdicts
+survive. Cheap: ~220 s for both.
+Other wrap-up items: audit the truncated goal-parent
 print (`main.rs:987`; the census-by-prefix workaround is in the runbook); `bfs11cr` grab
 bookkeeping is unbounded in the pole zone (4 OOMs in run 4 — count non-FPG grabs, key only
 FPG ones); the 552-vs-553 optimality note (at most one frame open; a third framerule would
