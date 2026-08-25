@@ -124,7 +124,10 @@ is fighting over, and more than a third of it is at one place in 8-2.
    the window with a non-zero byte at all.** The whole ACE line therefore rests on the three write
    classes P3.1 §4 never audited — stack over/underflow, non-indexed writes, and `VRAM_Buffer`
    overflow. That is #4'.
-9. **H49's residual (F251).** 8-4's water-room transition is the one whose *destination* is not a
+9. **CLOSED 2026-08-25 (F262), same enumeration as #8.** It needed `$06D6` and `$0769` non-zero, and
+   E10 pass 3 shows the three remaining write classes are page-bounded away from both (`VRAM_Buffer`
+   ceiling $0444, stack ceiling $01FF, block-buffer ceiling $06CF) while every non-indexed write to
+   them is one of the game's own constants. Original text: **H49's residual (F251).** 8-4's water-room transition is the one whose *destination* is not a
    castle, so `DisplayIntermediate` there does consult `DisableIntermediate`: `$06D6` **and** `$0769`
    non-zero during that one descent is ~96 frames. Both bytes are above the proven ceiling → E10.
 10. **H2 — lag frames.** 16 on the route, exactly one per area load (F224), four of them inside 8-4
