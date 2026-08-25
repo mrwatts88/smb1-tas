@@ -69,8 +69,12 @@ work on its own; each is a lens to apply while doing something else.
   adder tables; facing 3 teleports Mario **+24 pages (x 3063 → 9471, measured)** and facing 0 moves
   him **+131 px in-page with no clamp**. It does not pay on this route — the page-scale form is
   clamped back (F269) and the in-page form needs a vine, which 8-4 lacks. Still unread: the other
-  facing/moving-dir readers, and **swimming** (8-4's water room is 696 route frames and
-  `input-semantics.md` skipped it on a false premise).
+  facing/moving-dir readers. **Swimming is now CLOSED (F271):** water runs four caps (40/24/16/12);
+  the swim cap is **24** and the game's own 40 cap unlocks at `Player_XSpeedAbsolute >= 25` — **one
+  unit short** — worth **259 frames** in 8-4's water room. Measured open by poke, proven unreachable
+  by enumerating all eight writers of `Player_X_Speed`. **Standing note: anything that ever adds 1 to
+  `Player_X_Speed` in a water area is worth 259 frames**, because the state self-sustains above the
+  threshold.
 - **H16** — sprite-0 / PPU timing: prevent a lag frame by controlling what renders. *(Overlaps L5.)*
 - **H17** — object-slot spawn suppression: suppress Bowser in 8-4 for a faster axe. *(L7's `r5` root
   sits in that room and carries the new object-slot lens, so it is being looked at in passing.)*

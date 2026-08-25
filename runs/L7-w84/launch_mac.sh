@@ -2,8 +2,8 @@
 # L7 on the Mac (F248): the 8-4 novelty sweep with the object-slot lens, r1-r4.
 #
 # Why the Mac: `explore` runs natively there (byte-identical, ~3x faster), and the Linux box is
-# reserved for L3 (8-4 room 3's approach), which needs the machine to itself.  r5 (Bowser room)
-# is already running on Linux and is NOT repeated here.
+# reserved for L3 (8-4 room 3's approach), which needs the machine to itself.  ALL FIVE sub-area
+# roots run here — r5 was moved off Linux on 2026-08-25 for the same reason.
 #
 # Track E has no dependency on third_party/smb-opt, so the stale-engine guard does not apply.
 # REBUILD FIRST -- this unit changed src/fastcore/explore.c (classes 17/18, class 5 widened to six
@@ -16,7 +16,7 @@
 #       --input-skip 2 --ram /tmp/mac.ram && shasum -a 256 /tmp/mac.ram
 #
 # MEMORY: macOS has no cgroups.  `explore`'s archive is a fixed-capacity table (--cells) with
-# eviction, so RSS is flat; --cells 60000 is ~0.77 GB each, ~3.1 GB for the four.  The RSS
+# eviction, so RSS is flat; --cells 60000 is ~0.77 GB each, ~3.9 GB for the five.  The RSS
 # watchdog below is the belt-and-braces version of the standing never-uncapped rule.
 #
 # TWO BUGS FIXED 2026-08-25 AFTER THIS SCRIPT KILLED SOMEONE ELSE'S JOBS.  (1) The wait predicate
@@ -61,6 +61,9 @@ go r1 15210  800 81   # room 1  — control 15224, pipe 15748
 go r2 15905  550 82   # room 2  — control 15918, pipe 16185 (L4's site)
 go r3 16342  500 83   # room 3  — control 16355, pipe 16550 (L3's site)
 go r4 16707  950 84   # water   — control 16720, side pipe 17416; never searched at all
+go r5 17577  400 85   # Bowser  — control 17590, axe 17868; the only root whose horizon reaches the
+                      #           ending, so it doubles as an H1 probe (last_input < 17846 = a record).
+                      #           Moved here from Linux 2026-08-25 to clear that box for L3.
 # RSS watchdog: kill THIS SCRIPT'S jobs if one exceeds 1.5 GB, check every 60 s.  Scoped to $MINE
 # on purpose -- see the note above; a machine-wide pgrep here killed two unrelated searches.
 ( while true; do

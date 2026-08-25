@@ -159,7 +159,10 @@ pre-cleanup narrative version of this file is archived at
   reproduced its control** (`GOAL frame=12953 (baseline 12952, +1)`, `runs/E9b/relaunch.log`, pids
   78956/78957, fresh 6 h). Standing rule from this: **a watchdog must only ever kill PIDs it started**
   — never a machine-wide `pgrep`; and any portable process count is `pgrep -x NAME | wc -l`.
-- **[L4, session 21] 8-4 ROOM 2'S EXIT PIPE, LINUX — a direct record attempt in the only 1:1 level.**
+- **[L4, session 21] STOPPED to clear the box for L3 — relaunch at full size when L3 is done.**
+  The 40,000-cell placeholder (`runs/L4-w84r2/a.log`, ~1.4 h in, at the control) was killed on purpose:
+  it was undersized from the start and always wanted a full-size rerun. Restart with
+  `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh` (both roots). Everything below still applies.
   `runs/L4-w84r2/a.log` (root 16050, horizon 200, `--cells 40000`, `MemoryMax=700M`, 6 h). Goal
   `GameEngineSubroutine == 3` (pipe entry), **baseline 16182 = the WR's own, reproduced exactly by the
   control gate**; the goal is the record quantity, with the monotonicity argument written down (F267).
@@ -897,6 +900,14 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s21 (Linux) — **The swim section is closed, one unit short of 259 frames** (F271,
+  `docs/experiments/H12b-swim-cap.md`). 8-4's water room is 696 route frames at the swim cap. `X_Physics`
+  runs four caps in water — 40 / 24 / 16 / 12 — and **the 40 is gated on `Player_XSpeedAbsolute >= 25`
+  while the swim cap is 24**. Poking `$0700` = 25 flips `MaximumRightSpeed` to 40 and Mario swims at
+  2.5 px/frame (≈ **259 frames**), so the door is real; but all eight writers of `Player_X_Speed` were
+  enumerated and none can exceed the cap in water, and `InitializeArea` clears `$0700`, so it cannot
+  arrive stale either. **Standing note: any mechanism that adds even 1 to `Player_X_Speed` in a water
+  area is worth 259 frames** — the state self-sustains above the threshold.
 - 2026-08-25 s21 (Linux) — **H12 partly answered, and it produced the project's first over-cap forward
   displacement** (F268/F269/F270, `docs/experiments/H12-input-semantics.md`, repro
   `tools/climb_facing_probe.py`). `PutPlayerOnVine`'s `SetVXPl` indexes two 2-byte adder tables by
