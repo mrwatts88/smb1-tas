@@ -65,22 +65,9 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A] RUNNING — the clip search RE-RUN on the coin-fixed model (F147).**
-  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64 --goal-sl 2658
-  --threads 5 --layer-dir runs/P2.3e/sl2_layers` under `systemd-run … MemoryMax=6G`.
-  Log `runs/P2.3e/sl_d79_fixed.log`. ~500 s, ~19 GB.
-  **Why it is running again:** the pre-fix version of this search produced a candidate that **the core killed
-  Mario on** — `IgnoreCoins` had the area parser running a frame early, which put a warp-zone piranha plant
-  1 px low (F147). Fixed; **F144's three frames must be re-earned on the corrected model.**
-  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.3e/sl_d79_fixed.log`.
-  **GOAL at layer <= 78** ⇒ census the arrival against the WR's step-1160 state (x_pos 0xae0f0, y 0x140b0,
-  x_spd 0x28d8, STANDING, scroll byte 98 = ScreenLeft 2658) — it must dominate, not just arrive early (F143);
-  then reconstruct → chain → **`replay_check --enemies 0` MUST pass** → carry with `--goal-sl 2807` to the
-  WR's step-1220 milestone → final rung to the pipe at d60. The pre-fix run of exactly this pipeline reached
-  step 1218 two frames ahead with the scroll matched before the core rejected it, so the recipe is known
-  to work; the templates are `runs/P2.3e/{clip78.bin,carry2_60.bin,seg138.bin}` (all now INVALID as paths).
-  **No goal** ⇒ the clip frames were an artifact of the parser bug and **1-2 is closed outright**.
-  Delete `runs/P2.3e/sl2_layers` either way.
+- **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
+  The coin-fixed clip + carry both finished and reproduced their pre-fix results exactly — and **the core
+  still rejects the candidate** (F148). See "In progress" for what that means and what comes next.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -374,7 +361,25 @@ pre-cleanup narrative version of this file is archived at
   487** (x 1183, mid-jump over the col-80..82 pit at x speed 38 instead of 40) is cheap to probe and untested;
   (3) 1-2's **intro area** (fceux rows 1946-2443, ~500 frames) is not modelled at all and Maru's 3-frame gain
   over the WR has to be somewhere — this is the only stretch nobody has looked at.
-  **NEXT: `P2.2f-bound` — and it is now a TWO-level unlock.** 1-2 loses ~22 frames of bound slack over its
+  • **F148 — A RESIDUAL PARSER-ORDERING GAP, AND IT MAKES EVERY 1-2 SEARCH RESULT PROVISIONAL.** With F147
+    fixed the searches reproduced exactly (clip layer 78 / 3,180,666; carry layer 60 / 7,879,141) and the
+    78-frame clip core-verified 78/78 — **and the core still killed Mario at frame 3690**, same plant, same
+    1 px. The pipe-(103,8) plant now spawns f3059 in both, but the **warp-zone pipe-(182,8) plant spawns
+    f3566 in the model vs the core's f3567 — on the WR's own path**. Walking `AreaParserTaskNum` against the
+    core frame by frame, the first divergence is **step 446 / f2930**, the exact frame `CoinTally` goes
+    20 -> 21 (Mario head-bumps the coin at cell (68,6), which IS in the handler). **The defect is ORDERING:**
+    `run_step` runs `block_states_game_engine()` near the top of the frame, the award happens later in
+    `player_bg_collision`, but the game's `AreaParserTaskHandler` runs at the **end** of `GameEngine` — so a
+    same-frame award stalls the same frame's parser in the core and only the next frame's in the model.
+    **So: the 2-frame candidate is NOT verified, and F142/F143's rungs carried this gap in both runs.**
+    Unaffected: the WR difftest, the bound/loss map, 4-2, 8-4, and the structural facts of F144/F145.
+  **NEXT UNIT — fix the parser ordering (prerequisite for ALL 1-2 work).** Move the block-state/parser update
+  to the end of the frame so a same-frame VRAM_Buffer1 write stalls the same frame's parser. **Acceptance
+  test: frame-by-frame `AreaParserTaskNum` equality with the core over the WR's 1280 frames** — a far
+  stronger control than the field difftest, and the one that should have been run when the case was built.
+  Then re-run: WR difftest, the battery, F142/F143's rungs, and the clip + carry + final pipeline
+  (`runs/P2.3e/{clip78b.bin,carry3_60.bin,seg138b.bin}` are the current, UNVERIFIED templates).
+  **AFTER that: `P2.2f-bound` — a TWO-level unlock.** 1-2 loses ~22 frames of bound slack over its
   open region and 8-4 room 2 loses 14, for the same reason: **an x-only bound cannot price a turnaround's
   vertical half.** Build the coupled end-game term and both ladders go deeper. After that: re-run 1-2's
   ladder from prefix ~1150 and below, where the remaining 5-8 frames would have to live.

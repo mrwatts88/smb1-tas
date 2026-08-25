@@ -92,10 +92,44 @@ index ac14ddd..5c022d7 100644
 +[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54]
 +]);
 diff --git a/src/case/mod.rs b/src/case/mod.rs
-index b60525c..88713eb 100644
+index b60525c..e2aad75 100644
 --- a/src/case/mod.rs
 +++ b/src/case/mod.rs
-@@ -16,6 +16,7 @@ pub mod w23;
+@@ -6,6 +6,33 @@ use options::*;
+ use state::{Dir, Dist, State};
+ use store::StateStore;
+ 
++// P2.3e: `coin_list_handler!` lived in `w42.rs`, which `mod.rs` declares AFTER `w12`, so 1-2's cases could
++// not see it. Moved here, above the module list, because coins are not cosmetic: collecting one fills
++// VRAM_Buffer1 for a frame, which STALLS the area parser, which shifts piranha-plant spawn timing (F147).
++/// Coin handler over a fixed list of coin cells (one state bit per coin). A head/foot/side touch of an
++/// uncollected coin collects it and ends the collision routine for that frame (AwardTouchedCoin ->
++/// HandleCoinMetatile -> rts: no landing, no side impede that frame), so coins on the route must be modeled
++/// exactly; IgnoreCoins treats every coin as already gone. Unknown cells are treated as collected.
++macro_rules! coin_list_handler {
++  ($name:ident, $n:expr, [$(($x:expr, $y:expr)),*]) => {
++    #[allow(dead_code)]
++    pub enum $name {}
++    impl $name {
++      const COINS: [(usize, usize); $n] = [$(($x, $y)),*];
++    }
++    impl CoinHandler for $name {
++      const COIN_HANDLER_BITS: usize = $n;
++      fn is_coin_collected(s: &State, cx: usize, cy: usize) -> bool {
++        for (i, c) in Self::COINS.iter().enumerate() { if c.0 == cx && c.1 == cy { return s.collected_coins & (1 << i) != 0; } }
++        true
++      }
++      fn collect_coin(s: &mut State, cx: usize, cy: usize) -> () {
++        for (i, c) in Self::COINS.iter().enumerate() { if c.0 == cx && c.1 == cy { s.collected_coins |= 1 << i; } }
++      }
++    }
++  }
++}
++
+ pub mod w11;
+ pub mod w12;
+ pub mod w13;
+@@ -16,6 +43,7 @@ pub mod w23;
  pub mod w31;
  pub mod w32;
  pub mod w33;
@@ -284,7 +318,7 @@ index e0e1804..b2b3437 100644
 +  }
 +}
 diff --git a/src/case/w12.rs b/src/case/w12.rs
-index 32f4877..4e31be3 100644
+index 32f4877..a9ffbea 100644
 --- a/src/case/w12.rs
 +++ b/src/case/w12.rs
 @@ -29,6 +29,7 @@ fn w12_start<O: Options>() -> State {
@@ -311,7 +345,7 @@ index 32f4877..4e31be3 100644
      };
      let s = Self::Emu::run_steps_nr(s, &[L|R, A|R]);
      let s = Self::Emu::run_steps_nr(s, &[R; 19]);
-@@ -228,3 +231,141 @@ impl SearchGoal for W12Flag {
+@@ -228,3 +231,149 @@ impl SearchGoal for W12Flag {
      } else { false }
    }
  }
@@ -358,6 +392,14 @@ index 32f4877..4e31be3 100644
 +pub struct W12Warp {
 +  h: XPosHeuristic,
 +}
++/// P2.3e (F147): 1-2's **17 coin cells** ($c2 in `BB12W`). Coins are not cosmetic here — `AwardTouchedCoin`
++/// fills `VRAM_Buffer1`, and a non-empty VRAM buffer **stalls the area parser for a frame**, which shifts
++/// every piranha-plant spawn after it. With `IgnoreCoins` the model ran the parser one frame ahead of the
++/// core from the first coin onward: invisible on the WR's own line (he never touches the mis-timed plant)
++/// and fatal on a searched path, where it put a warp-zone plant 1 px low and let Mario through a collision
++/// the real game kills him in.
++coin_list_handler!(W12WarpCoins, 17, [(40, 6), (41, 3), (42, 3), (43, 3), (44, 3), (45, 6), (58, 6), (59, 6),
++  (60, 6), (61, 6), (68, 6), (84, 3), (85, 3), (86, 3), (87, 3), (88, 3), (89, 3)]);
 +pub const W12W_OVERSHOOT_X: i32 = 0xb7000;            // 2928 px: min max-x for SL >= 2816
 +pub const W12W_PIPE_XMAX: i32 = (0xb2c << 8) | 0xff;  // 2860 px: the entry window's right edge (the WR enters at 2860)
 +pub const W12W_PIPE_XMIN: i32 = 0xb2400;              // 2852 px: its left edge
@@ -379,7 +421,7 @@ index 32f4877..4e31be3 100644
 +  const IP0: u8 = 4; const FC0: u8 = 41; const GT0: u8 = 24;
 +}
 +impl Options for W12Warp {
-+  type CoinHandler = IgnoreCoins;
++  type CoinHandler = W12WarpCoins;
 +  type Platform = NTSC;
 +  type PlayerSize = Small;
 +  type Swim = NotSwimming;
@@ -394,7 +436,7 @@ index 32f4877..4e31be3 100644
 +}
 +impl super::SmbSearchCase for W12Warp {
 +  type SearchGoal = Self;
-+  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 20]>, Dist>;
++  type StateStore = ::store::VecHashMap<CompressedState<Self, [u8; 22]>, Dist>;
 +
 +  type BlockBuffer = BB12W;
 +
@@ -663,10 +705,10 @@ index e254ce8..177f74e 100644
      //let s = Self::Emu::run_steps_nr(s, &[L; 8]);
 diff --git a/src/case/w42.rs b/src/case/w42.rs
 new file mode 100644
-index 0000000..7f86931
+index 0000000..cf4dced
 --- /dev/null
 +++ b/src/case/w42.rs
-@@ -0,0 +1,301 @@
+@@ -0,0 +1,278 @@
 +//! World 4-2 cases (P2.3a): the main area from the entrance to the wrong-warp pipe (page 5 col 4 row 8) and the
 +//! warp zone (AreaPointer $2F) from its entrance to the world-8 pipe (page 3 col 2 row 8). Block buffers BB42 /
 +//! BB42Warp come from the WR dump (data/blockmaps/). Exact model options = W11PipeSpeedup's (running timer on).
@@ -744,29 +786,6 @@ index 0000000..7f86931
 +  }
 +}
 +
-+/// Coin handler over a fixed list of coin cells (one state bit per coin). A head/foot/side touch of an
-+/// uncollected coin collects it and ends the collision routine for that frame (AwardTouchedCoin ->
-+/// HandleCoinMetatile -> rts: no landing, no side impede that frame), so coins on the route must be modeled
-+/// exactly; IgnoreCoins treats every coin as already gone. Unknown cells are treated as collected.
-+macro_rules! coin_list_handler {
-+  ($name:ident, $n:expr, [$(($x:expr, $y:expr)),*]) => {
-+    #[allow(dead_code)]
-+    pub enum $name {}
-+    impl $name {
-+      const COINS: [(usize, usize); $n] = [$(($x, $y)),*];
-+    }
-+    impl CoinHandler for $name {
-+      const COIN_HANDLER_BITS: usize = $n;
-+      fn is_coin_collected(s: &State, cx: usize, cy: usize) -> bool {
-+        for (i, c) in Self::COINS.iter().enumerate() { if c.0 == cx && c.1 == cy { return s.collected_coins & (1 << i) != 0; } }
-+        true
-+      }
-+      fn collect_coin(s: &mut State, cx: usize, cy: usize) -> () {
-+        for (i, c) in Self::COINS.iter().enumerate() { if c.0 == cx && c.1 == cy { s.collected_coins |= 1 << i; } }
-+      }
-+    }
-+  }
-+}
 +/// 4-2 main area: 3 coins in the bottom corridor's ceiling (row 10, columns 27..29).
 +coin_list_handler!(W42MainCoins, 3, [(27, 10), (28, 10), (29, 10)]);
 +/// 4-2 warp zone: 19 coins (row 1 cols 30..34, row 2 cols 16..18 and 22..24, row 4 cols 26..28, row 6 cols 12..14,
@@ -2411,7 +2430,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..9fdadb0 100644
+index 350d469..ea3ec5b 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2531,7 +2550,7 @@ index 350d469..9fdadb0 100644
 +      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
 +      "W11Room1E" => bfscx_run::<case::w11::W11Room1E, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w11_enemies as Hook) } else { None }, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
 +      "W84Room2" => bfscx_run::<case::w84::W84Room2, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w84_enemies as Hook) } else { None }, w84_room2_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
-+      "W12Warp" => bfscx_run::<case::w12::W12Warp, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w12_enemies as Hook) } else { None }, w12_warp_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W12Warp" => bfscx_run::<case::w12::W12Warp, [u8; 22]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w12_enemies as Hook) } else { None }, w12_warp_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
 +      "W84Room3" => bfscx_run::<case::w84::W84Room3, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
 +      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
 +      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
@@ -2558,7 +2577,7 @@ index 350d469..9fdadb0 100644
 +      "W42Main" => offset_census::<case::w42::W42Main, [u8; 20]>(&path, top, minoff, by_sl),
 +      "W84Room3" => offset_census::<case::w84::W84Room3, [u8; 12]>(&path, top, minoff, by_sl),
 +      "W84Room2" => offset_census::<case::w84::W84Room2, [u8; 20]>(&path, top, minoff, by_sl),
-+      "W12Warp" => offset_census::<case::w12::W12Warp, [u8; 20]>(&path, top, minoff, by_sl),
++      "W12Warp" => offset_census::<case::w12::W12Warp, [u8; 22]>(&path, top, minoff, by_sl),
 +      other => panic!("offset-census: unsupported case {}", other),
 +    }
 +    return;
@@ -2588,7 +2607,7 @@ index 350d469..9fdadb0 100644
 +      "W42Main" => bfscx_path::<case::w42::W42Main, [u8; 20]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
 +      "W11Room1E" => bfscx_path::<case::w11::W11Room1E, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w11_enemies as Hook) } else { None }, threads, out, stride),
 +      "W84Room3" => bfscx_path::<case::w84::W84Room3, [u8; 12]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
-+      "W12Warp" => bfscx_path::<case::w12::W12Warp, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w12_enemies as Hook) } else { None }, threads, out, stride),
++      "W12Warp" => bfscx_path::<case::w12::W12Warp, [u8; 22]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w12_enemies as Hook) } else { None }, threads, out, stride),
 +      "W84Room2" => bfscx_path::<case::w84::W84Room2, [u8; 20]>(&layer_dir, step, &rec, goal_input, if enemies { Some(w84_enemies as Hook) } else { None }, threads, out, stride),
 +      "W42Warp" => bfscx_path::<case::w42::W42Warp, [u8; 14]>(&layer_dir, step, &rec, goal_input, hook, threads, out, stride),
 +      "W11VertPipeEntry" => bfscx_path::<case::w11::W11VertPipeEntry, [u8; 10]>(&layer_dir, step, &rec, goal_input, None, threads, out, stride),
@@ -4447,7 +4466,7 @@ index fba80ad..c267e55 100644
      if v_force == Self::V_FORCE_SWIM_TOO_HIGH { 0 }
      else if v_force == Self::V_FORCE_AREA_INIT { 1 }
 diff --git a/src/state.rs b/src/state.rs
-index e8c4d09..d373f24 100644
+index e8c4d09..7a81bcb 100644
 --- a/src/state.rs
 +++ b/src/state.rs
 @@ -1,6 +1,6 @@
@@ -4496,7 +4515,7 @@ index e8c4d09..d373f24 100644
      write!(f, "}}")
    }
  }
-@@ -105,6 +125,13 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
+@@ -105,6 +125,14 @@ pub trait StateArray: FixedSizeArray<u8> + Hash + Clone + PartialEq + Eq {
  impl StateArray for [u8; 10] { fn new() -> Self { [0; 10] } }
  impl StateArray for [u8; 11] { fn new() -> Self { [0; 11] } }
  impl StateArray for [u8; 12] { fn new() -> Self { [0; 12] } }
@@ -4507,10 +4526,11 @@ index e8c4d09..d373f24 100644
 +impl StateArray for [u8; 19] { fn new() -> Self { [0; 19] } }
 +impl StateArray for [u8; 20] { fn new() -> Self { [0; 20] } }
 +impl StateArray for [u8; 21] { fn new() -> Self { [0; 21] } }
++impl StateArray for [u8; 22] { fn new() -> Self { [0; 22] } }   // P2.3e: W12Warp with its 17-coin handler
  pub struct CompressedState<O: Options, A: StateArray> {
    buf: A,
    _options: PhantomData<O>,
-@@ -129,6 +156,56 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
+@@ -129,6 +157,56 @@ impl<O: Options, A: StateArray> ::store::VecHashKey for CompressedState<O, A> {
      CompressedState { buf: A::new(), _options: PhantomData }
    }
  }
@@ -4567,7 +4587,7 @@ index e8c4d09..d373f24 100644
  impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
    fn from_state(s: &State) -> CompressedState<O, A> {
      const Y_POS_OFFSET: u32 = 0xd000;
-@@ -136,13 +213,15 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -136,13 +214,15 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
      let mut buf = A::new();
  
      let bytes_available = buf.as_slice().len();
@@ -4585,7 +4605,7 @@ index e8c4d09..d373f24 100644
      assert!(bytes_needed == bytes_available, "bytes_needed {} != bytes_available {}", bytes_needed, bytes_available);
  
      {
-@@ -159,6 +238,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -159,6 +239,7 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        bitpack.write(O::Platform::get_x_spd_abs_cutoff(s.x_spd_abs) as u32, 3).unwrap();
        bitpack.write(if s.running_speed { 1 } else { 0 }, 1).unwrap();
        bitpack.write(s.collision_bits.bits() as u32, 2).unwrap();
@@ -4593,7 +4613,7 @@ index e8c4d09..d373f24 100644
  
        if O::PlayerSize::CROUCH_BITS > 0 {
          bitpack.write(if s.is_crouching { 1 } else { 0 }, 1).unwrap();
-@@ -169,6 +249,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -169,6 +250,9 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
        if O::RunningTimer::RUNNING_TIMER_BITS > 0 {
          bitpack.write(s.running_timer as u32, 4).unwrap();
        }
@@ -4603,7 +4623,7 @@ index e8c4d09..d373f24 100644
        if O::ScrollPos::SCROLL_POS_BITS > 0 {
          bitpack.write(s.left_screen_edge_pos as u32, 8).unwrap();
          bitpack.write(s.side_collision_timer as u32, 4).unwrap();
-@@ -183,6 +266,18 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
+@@ -183,6 +267,18 @@ impl<O: Options, A: StateArray> StateCompressor for CompressedState<O, A> {
          bitpack.write(if s.powerup_block_hit { 1 } else { 0 }, 1).unwrap();
          bitpack.write(if s.powerup_collected { 1 } else { 0 }, 1).unwrap();
        }
