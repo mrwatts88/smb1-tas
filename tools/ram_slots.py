@@ -7,7 +7,11 @@ usage: tools/ram_slots.py DUMP.ram FIRST LAST [--all]   (--all: also empty slots
 import sys
 
 E = dict(flag=0x0F, id=0x16, state=0x1E, xspd=0x58, page=0x6E, x=0x87, yspd=0xA0, yhi=0xB6, y=0xCF, dir=0x46,
-         force=0x0401, cbits=0x0491, ftimer=0x078A, itimer=0x079A, ydum=0x0433)
+         force=0x0401, cbits=0x0491, ftimer=0x078A, itimer=0x0796, ydum=0x0417)
+# NOTE (P2.3e, 2026-08-25): `itimer` was 0x079A here, four bytes past `EnemyIntervalTimer = $0796`, so every
+# printed `it` belonged to slot i+4 — it made a stomped slot 4 look like a timer on slot 0. `ydum` was 0x0433,
+# which is `SprObject_Y_MoveForce` (the PLAYER's); `Enemy_YMF_Dummy` is $0417. Both verified against a known
+# stomp (8-4 row 16007, slot 4 stomped -> $079A = 16).
 
 def main():
     a = sys.argv[1:]
