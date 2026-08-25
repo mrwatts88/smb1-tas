@@ -264,6 +264,11 @@ explicitly *without* conceding the question.
   *cheapest* mint on the top route. That measurement is P2.3c-9 Part B and it is the whole decision.
 
 ## Loose ends (small, unassigned)
+- **Cosmetic but misleading: the beam/offset log line prints `[warp needs 132]` on EVERY case.** That number
+  is 4-2's wrong-warp threshold and means nothing for `W84Room3`/`W11Room1E` — an 8-4 log now reads
+  `max offset 74 [warp needs 132]`, which a fresh session could easily misread. Make the suffix case-specific
+  (or drop it unless the hook is `w42_enemies`). `main.rs`, the `beam:` and `offset:` prints. Logs are the
+  search record here, so this is worth a one-line fix at the next engine touch.
 - **The Mac's engine is STALE (session 16 changed `tools/smb-opt-modes.patch`).** Per PROCESS/runbook §5,
   run `tools/mac_sync_engine.sh` **on the Mac** before trusting any Mac number, then the control gate
   (`bfscx W42Main data/wr/wr_inputs.bin 6584 575 587 --lift 0 --check-path 12` -> 6, 16, 34, 70, 134, 673,
