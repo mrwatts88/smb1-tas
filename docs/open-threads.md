@@ -8,7 +8,7 @@ its date and fact number.
 
 ---
 
-## THE LIVE BOARD — six items, and that is all of it
+## THE LIVE BOARD — five items, and that is all of it
 
 | # | thread | needs | has | state |
 |---|---|---|---|---|
@@ -16,7 +16,7 @@ its date and fact number.
 | **L2** | **1-2's eight frames** (H22 / H46-dynamic) — the clip's *entry* costs the speed (F246); the traversal is free. A sink entry that keeps the speed (F244) is priced at ~13 frames of overshoot against a deficit of 8. | 8 | 60 | **RUNNING**, Linux ×3 (`runs/E7-w12/{body,sub16,sub32}.log`). At the control (`best=3764` vs baseline 3763), no banked frames yet |
 | **L3** | **8-4 room 3's approach** (H25) — one frame, in the only unquantized level. Two searches went dry but **both goaled on the WR's own apex**, which H39's seam corollary says deletes the answer by construction. The corrected version searches the 162-frame approach with generic buckets and emits a *set* of apex states. | 1 | 38 | **un-run** |
 | **L4** | **8-4 room 2's exit pipe** — 15 frames of measured geometric loss at cols 150–152 (F245). An arc problem, never searched with a subpixel cell key. (Its sibling, 4-2's warp-zone drop, is 30 frames but 4-2 needs 13 and is measured closed on both routes.) | 1 | 15 | **un-run** |
-| **L5** | **H2 — lag frames.** 16 on the route, exactly one per area load (F224). **Five of them are inside 8-4**, where a frame is a frame and nothing re-absorbs it. Never attacked, never read at code level. Honest prior: the lag *is* the load, so probably irreducible — but that is an assumption nobody has checked, and checking it is a read, not a search. | 1 | ≤5 | **un-run, cheapest thing on the board** |
+| ~~L5~~ | **CLOSED 2026-08-25 (F264) — H2, lag frames.** The overrunning routine is `InitializeArea`/`InitializeMemory`, not `InitScreen`: a 1,868-byte RAM clear at 18 cycles/byte = ~33,370 cycles + ~2,000 prologue against an NTSC frame's 29,780 = **119 %**, so exactly one NMI is lost per load and never two. Overrun ~5,600 cycles; the only parameter can save 1,368. Irreducible, and nothing about it is ours. (Route has **17** load lag frames, five inside 8-4.) | 1 | **0** | **closed** |
 | **L6** | **Big Mario, route-wide** (H18/F238) — his left probe covers two rows, so he free-passes a face more easily, but he is strictly fatter and the static census says he adds nothing (F243). | — | — | fold into L2; **not its own campaign** |
 
 **Where the frames can actually come from.** A level only pays if it saves its **whole** framerule
@@ -25,7 +25,7 @@ loss map (F245):
 
 | level | must save | movement loss available | note |
 |---|---|---|---|
-| **8-4** | **any 1 frame** | 38 (room 3) + 15 (room 2 pipe) + ≤5 (lag) | **the only 1:1 level — L3, L4 and L5 all live here** |
+| **8-4** | **any 1 frame** | 38 (room 3) + 15 (room 2 pipe) | **the only 1:1 level — L3 and L4 both live here.** Its 5 lag frames are NOT available (F264) |
 | 8-2 | 19 | **114** | L1 running |
 | 1-2 | 8 | 60 | L2 running |
 | 4-2 | 13 | 33 + 30 | measured closed on both routes (F122/F123) |
@@ -106,7 +106,7 @@ settled for this boot by F31).
 The old condition was *"Tier 1 dry, Tier 2 done, and E10 clean."* **E10 is now clean** and the state
 surface is closed. So the remaining condition is narrow and concrete:
 
-> **L1 and L2 dry, and L3/L4/L5 run and dry.**
+> **L1 and L2 dry, and L3/L4 run and dry.** (L5 closed 2026-08-25, F264.)
 
 That is one to two sessions of work, not three to four. If it lands there, PLAN §7 already treats
 "the census is empty and the audit is clean" as a tier-1 publishable result in its own right rather

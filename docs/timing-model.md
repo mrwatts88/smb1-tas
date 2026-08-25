@@ -13,8 +13,12 @@ The main thread is an endless loop. Consequences:
 - A **lag frame** (FCEUX/BizHawk: no joypad read) is a frame whose vblank arrived while the
   previous NMI handler was still running (NMI re-enable happens at its end). No timer, RNG or
   logic runs on a lag frame — the ITC phase is simply delayed by one frame.
-- In the WR all 24 lag frames are boot (7), the Start frame (1) and exactly one per area load
-  at load+2 (16) — the `InitScreen`/`InitializeNameTables` frame. None depends on input.
+- In the WR all 24 lag frames are boot (7) and exactly one per area load at load+2 (**17**).
+  **CORRECTED 2026-08-25 (F264): the overrunning routine is `InitializeArea`/`InitializeMemory`,
+  NOT `InitScreen`/`InitializeNameTables`.** The RAM clear is 1,868 bytes at 18 cycles each
+  (~33,370) plus ~2,000 of NMI prologue against an NTSC frame's 29,780 — 119 %, so exactly one
+  NMI is lost and never two. `InitScreen` fits at ~21,500. **Irreducible** (overrun ~5,600
+  cycles; the only parameter can save 1,368) — H2 refuted, `docs/experiments/H2-lag-frames.md`. None depends on input.
   (Argument, not yet a proof that a load frame can never be made shorter — H2 stays parked.)
 - Input read this frame acts this frame (`SavedJoypadBits` used by the logic later in the NMI).
 

@@ -200,14 +200,7 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- **L5 / H2 — the lag-frame read** (Mac, session 20). *Claimed here to avoid duplicating the Linux box.*
-  **Goal:** determine at code level what makes the one lag frame per area load, and whether anything about
-  it is under our control. **Why it is worth a unit:** 16 on the route, and **five are inside 8-4**, where
-  nothing re-absorbs a frame and one frame is the record. Never attacked; the standing prior ("the lag *is*
-  the load, so probably irreducible") is an assumption nobody has checked. **Acceptance:** the lag frame
-  identified per load with the routine running on it, a cycle account for why the NMI overruns, and a
-  verdict on whether any input-, state- or route-dependent quantity moves it. **Artifact:**
-  `docs/experiments/H2-lag-frames.md`. Board: `docs/open-threads.md` L5.
+- (none)
 
 ## Superseded in-progress note
 - **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started
@@ -842,6 +835,16 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s20 (Mac) — **L5 / H2 CLOSED: the load lag frame is irreducible, and its cause was
+  misattributed** (F264, `docs/experiments/H2-lag-frames.md`). The overrunning routine is
+  `InitializeArea`/`InitializeMemory` — a 1,868-byte RAM clear at 18 cycles/byte = ~33,370 cycles plus
+  ~2,000 of NMI prologue, against an NTSC frame's 29,780: **119 %**, so exactly one NMI is lost per area
+  load and never two. `InitScreen`/`InitializeNameTables` (which `timing-model.md` §1 blamed, now
+  corrected) fits comfortably at ~21,500. Overrun ~5,600 cycles vs a maximum controllable variation of
+  ~1,900, and nothing is input-, position-, RNG- or route-dependent. Counts corrected: the route has
+  **17** load lag frames and **five** are inside 8-4 (the earlier list of four omitted 8-4's own main
+  entry). Also this session: `docs/open-threads.md` rewritten as a live board — **five items left**,
+  everything closed filed with its date and fact.
 - 2026-08-25 s20 (Mac) — **E10 passes 2 and 3: H50 and the ACE line CLOSE TOGETHER** (F261/F262/F263,
   `docs/experiments/E10-rom-read.md` §7-§8). Pass 2 read the **zero page** — the class every prior audit
   excluded by construction, and the one H50's target actually lives in (`Enemy_ID` = $16): the `Enemy_ID`

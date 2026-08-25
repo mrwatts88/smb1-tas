@@ -1977,3 +1977,40 @@ writers of the target rather than bound the indices of 299 stores.
 `AreaDataOffset` (nothing misaligns it), and power-on state (H20). Otherwise the state surface is
 now as closed as the movement surface, which is exactly the condition `open-threads.md` calls a
 defensible stop — that is a call for the user, not for me.
+
+## 2026-08-25 — Session 20 (Mac, cont.): the board made legible, and H2 closed
+**Did.** Two things the user asked for. **(1) Made the documentation match reality.** I had been
+answering "what's left" by reading and inferring, which meant it was not actually written down.
+Rewrote `docs/open-threads.md`: it led with four tiers of 21 items, half of which closed today, so
+it now leads with **the live board** — a table of the remaining items with what each needs, what it
+has, and whether it is running — and files everything closed at the bottom with its date and fact
+number. 180 lines → 119, and a fresh reader sees the state in one screen.
+
+**(2) H2 — the lag-frame read, and it did not go the way the prior said.** 17 lag frames on the
+route (not 16 — F224 corrected), all at exactly `load + 2`, **five inside 8-4** (the earlier list of
+four omitted 8-4's own main entry). A harness `ScreenRoutineTask` dump gives the sequence
+`ChgAreaMode` → `InitializeArea` → *lost NMI* → `InitScreen`, so **the overrunning routine is
+`InitializeArea`, not `InitScreen`** as `timing-model.md` §1 has said since P0.5. The cycle count
+settles it: `InitScreen` fits comfortably (`MoveAllSpritesOffscreen` 1,024 + `InitializeNameTables`
+18,432 ≈ 21,500 of 29,780 — and while counting it I found its `InitNTLoop` writes **960** tiles per
+name table, not the 768 its own comment claims, because `ldy #$c0` is set once and `dex / bne
+InitNTLoop` re-enters with y = 0). `InitializeMemory` does not: 18 cycles per byte over 1,868 bytes
+= **~33,370**, plus ~2,000 of prologue, against 29,780 — **119 %**. Exactly one NMI lost, and never
+two since 35,400 < 2×29,780. That is precisely the data: 17 loads, 17 lag frames, one each.
+
+**Irreducible, with margin.** The overrun is ~5,600 cycles. `InitializeMemory`'s Y argument is the
+only parameter, is a compile-time constant, and only shortens page 7 — max saving 1,368. The
+prologue varies a few hundred through `SoundEngine`. The sprite-0 busy-waits are already skipped
+(`ChgAreaMode` clears `Sprite0HitDetectFlag`). Nothing is input-, position-, RNG- or route-dependent,
+which is exactly what the data shows: lag at ITC phases 0-19, every level, both entry modes. F264.
+
+**Learned.** The standing prior ("the lag *is* the load, so probably irreducible") was right about
+the conclusion and wrong about the reason, and the reason is what a future session would have built
+on. Second time today that a documented attribution was solved one routine away from the binding
+one — F210/F216 solved `HeadChk`'s guard instead of `PlayerBGCollision`'s, and §1 blamed the
+routine that renders the screen instead of the one that clears RAM. **When a doc attributes a cost,
+check the cost, not the story.**
+
+**Next.** The board is now five items: L1 and L2 running (both at their controls, no banked frames),
+L3 (8-4 room 3's approach, corrected form) and L4 (8-4 room 2's exit pipe, subpixel key) un-run, L6
+folds into L2. Both un-run items are in 8-4, the only level where one frame is the record.
