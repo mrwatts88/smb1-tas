@@ -1218,3 +1218,41 @@ enemy-driven. Net: enemy-adjacent seams are where generate-and-test buys new cov
 
 **Next.** P2.2f — build a `W84Room2` case (MrWint ships only the two halves), WR-exact + battery, then
 dissolve the x-1981/x-2373 seams as one span. 8-4 is unquantized: one frame is the record.
+
+### 2026-08-24 — session 16, part 6: P2.2f opens — room 2's WR route needs an enemy
+
+**Did.** Built `W84Room2` (the room in one span: control row 15917 → the clip pipe at col 152 row 4,
+Small Mario, `WithRunningTimer`, `NoScrollPos`, 11-byte key), audited it against the WR, diagnosed
+where it stops, and started the enemy port.
+
+**Learned.**
+- **The case is exact on the WR for 89 steps** (all of XP/XSUB/XSPD/XFRAC/YP/YSPD/YFRAC), validating the
+  start state, terrain and geometry. Room 2 needs **no scroll condition**: its area-change command at
+  page 9 col 15 (x 2544) parses at SL ≥ 2241 and the WR is at SL 2316 — 75 px of margin.
+- **F134: it diverges at step 90 because the WR STOMPS A BUZZY BEETLE.** YSPD model +4 vs core −4, and
+  the beetle at x 2021 flips `Enemy_State` 0 → 4 on that exact frame. So room 2 cannot be searched
+  enemy-free — the WR's own route needs the stomp. This is the "enemies are required, not a filter"
+  case, and it is H42's mechanism caught in the act: MrWint's seam at x 2373 sits immediately after
+  that beetle pair.
+- **`$0e` is a jumping Green Paratroopa, not a "lift"** as MrWint's comment claims. Traced from the dump
+  (rows 16008–16088): constant x-speed −8 leftward with a repeating parabolic arc 184 → 141 → 185,
+  period ≈ 56 frames.
+- **Plant/pipe geometry**, derived from the dump as col = (x−8)/16, row = (rest_y−32)/16 and then found
+  to be literally the module's own spawn line (`occupy(t, CLASS_PLANT, pc*16+8, pr*16+32)`); confirmed
+  by room 3's x-3400 plant landing on (212, 5) = `W84Room3`'s declared pipe. Room 2 = (115,9), (122,8),
+  (132,9).
+- **Port step 1 shipped: the enemy engine is parameterised on area data.** `Frame` now carries
+  `edata`/`pipes` instead of `w42enemies`' hard-coded constants (5 sites). 4-2 passes its own, so it is
+  bit-identical — both regressions pass (the `--lift 0` gate, and the enemy-aware core replay of
+  `warp87_path.bin` at 87/87 frames, 0 mismatches). 8-4's data added as `W84_ENEMY_DATA` /
+  `W84_ROOM2_PIPES` / `W84_ROOM3_PIPES`.
+
+**Three derivation traps burned here (all recorded in the experiment file).** The x subpixel is `$0400`,
+not `$0705` (that is the *speed* fraction); the model's `y_pos` low byte is **not** the core's `$0433`;
+and `v_force` is an encoded enum, so the core's raw `$0709` = 0 is not a legal model value. The method
+that caught all three: run the identical comparison against the known-good `W84Room3` — if it "fails"
+too, the comparison is wrong, not the new case.
+
+**Next.** Finish the port: (1) a jumping-paratroopa class, (2) a `w84_enemies` hook wiring `W84Room2`,
+(3) difftest the WR's 267 frames to 0 including the step-90 stomp, (4) the d266 search with
+`--beam-buckets`. Full plan in `docs/experiments/P2.2f-84-room2-seam.md`.
