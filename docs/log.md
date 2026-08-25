@@ -1928,3 +1928,52 @@ over/underflow, non-indexed writes, and `VRAM_Buffer` overflow (indexed by `VRAM
 which `GetPlayerColors` +7, `WriteBlockMetatile` +10 and `OutputNumbers` +3 all advance and only
 `ColorRotation` bounds). That is E10's second pass — pure reading, same shape as the one that
 produced F252-F257.
+
+## 2026-08-25 — Session 20 (Mac, cont.): E10 passes 2 and 3 — H50 and the whole ACE line close together
+**Did.** User: keep going on the write classes; and, on `CastleObject` being the only `$31` writer,
+"how do we make the things that allow us into the guard?" Both got answered.
+
+**Pass 2 — the zero page, a class no audit had ever read.** `Enemy_ID` is `$16` and `Enemy_Flag` is
+`$0f`: H50's target is in the **zero page**, and `tools/oob_audit.py` *excludes zero-page bases by
+construction* because every prior audit aimed at page-6/7 targets, for which the zero-page wrap
+makes them unreachable. Added zero-page target support to the tool. 320 stores can reach
+`Enemy_ID`; 299 need an index >= 7 that nothing takes. The decisive move was enumerating the other
+side — all 16 stores into `Enemy_ID` and the value each writes: **`CastleObject` is the only
+instruction in the ROM that writes `$31`**, the two frenzy cells are the only variable-valued
+writers, and the remaining thirteen are compile-time constants. F261.
+
+**The user's castle question, across all 34 areas.** The guard isn't the obstacle — it only
+suppresses the *page-0* castles, so the real question is whether a non-page-0 castle can render
+twice. Decoded every area: each ground level is `[page-0 castle, end castle]` or `[end castle]`,
+and **no area in the game has two non-page-0 castles**. The only level-data re-parse mechanism,
+`ExecGameLoopback`, is driven by `LoopCmd` objects that exist only in 4-4/7-4/8-4 — no castle
+object, no flagpole. Entering at a non-zero `HalfwayPage`/`EntrancePage` does make `CurrentPageLoc`
+non-zero, but then `CheckRear` skips the page-0 castle as behind the renderer. F263.
+
+**Pass 3 — the last two classes, and the closure.** `VRAM_Buffer` overflow: largest displacement in
+the ROM is **+27**, so with an 8-bit index the ceiling is `$041B`/`$0444` — page 4, 647 bytes short
+of `$06CB`, however far the offset runs. Stack: `$0100+S`, 8-bit S, page 1. **Neither class can
+reach the target at all.** Then the complete writer set of the frenzy cells: 30 indexed stores
+(all needing indices of 42/29/13 against loop bounds of 11/13/5, plus the block-buffer family
+already closed by F252/F253) and 13 absolute stores whose values are `$00`, `$12`, `$15`, `$16`,
+`{$14,$17,$18}`, and `InitEnemyFrenzy`'s `lda Enemy_ID,x` — which is only ever dispatched for IDs
+`$12/$14/$15/$16/$17`, so it copies one of those to itself (`$31` maps to `NoInitCode`).
+**`$06CB` in {$00,$12,$14,$15,$16,$17}, `$06CD` in {$00,$14,$17,$18}.** F262.
+
+**So H50 is unreachable, and H43 closes with it by the same enumeration.** F207/F208 saw the
+out-of-table jump *fire* when `$06CB` was poked to `$c4` — but `$c4` is not writable, and neither
+is anything `>= $37`. **The arbitrary jump exists and can never be armed.** open-threads #8 and #4'
+both close.
+
+**Learned.** The thing that unlocked pass 2 was noticing the target's *page*, not its name: two
+sessions had been hunting a write into "the frenzy cells" while H50's actual requirement was a
+zero-page byte, and the tool everyone was using filtered zero-page bases out by design. Worth
+generalising: **when a hypothesis names a cell, check which page it is in before reusing an audit
+that was built for a different page.** And the enumeration beat the search twice today — census the
+writers of the target rather than bound the indices of 299 stores.
+
+**Next.** Residuals are named in F262 and are all narrow: the `MetatileBuffer` start-row overrun
+(ROM-fixed, inferred from the game not crashing rather than decoded per object), a misaligned
+`AreaDataOffset` (nothing misaligns it), and power-on state (H20). Otherwise the state surface is
+now as closed as the movement surface, which is exactly the condition `open-threads.md` calls a
+defensible stop — that is a call for the user, not for me.

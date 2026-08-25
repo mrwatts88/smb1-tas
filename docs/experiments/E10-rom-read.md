@@ -356,3 +356,96 @@ F215. What is left is the two write classes still unread: **stack over/underflow
 **`VRAM_Buffer` overflow** (writes indexed by `VRAM_Buffer1_Offset`, advanced +7 by
 `GetPlayerColors`, +10 by `WriteBlockMetatile` and +3 by `OutputNumbers`, with only
 `ColorRotation` bounding itself at `cpx #$31`). That is pass 3.
+
+
+---
+
+## 8. Pass 3 — the last two write classes, and the complete writer set of the frenzy cells
+
+Pass 2 reduced H50 (and with it H43) to one question: **can anything write a non-zero byte into
+`$06CB` or `$06CD`?** This pass answers it by enumeration rather than by search.
+
+### 8.1 The two "unaudited classes" cannot reach page 6 at all
+
+- **`VRAM_Buffer` overflow.** Every indexed store into the buffers is `VRAM_Buffer1+d,x/y` or
+  `VRAM_Buffer2+d,x/y`; the largest displacement in the ROM is **+27**
+  (`sta VRAM_Buffer1+27,y`, `PrintWarpZoneNumbers`). With an 8-bit index the maximum effective
+  address is `$0301 + 27 + 255 = $041B` for buffer 1 and `$0341 + 4 + 255 = $0444` for buffer 2.
+  **Page 4 is the ceiling** — 647 bytes short of `$06CB`. However far
+  `VRAM_Buffer1_Offset` runs, this class cannot touch the frenzy cells. (It *can* corrupt
+  `$0400`–`$0444` = `SprObject_X_MoveForce` / `Enemy_X_MoveForce` / `YPlatformTopYPos`, which is
+  worth remembering for other purposes, but not for this one.)
+- **Stack over/underflow.** `pha`/`php`/`jsr` write `$0100 + S` with an 8-bit S that wraps inside
+  page 1. **Page 1 is the ceiling.** Same conclusion.
+
+So the two classes P3.1 §4 left uncovered — the two things H43 was still resting on after F252 —
+are both structurally incapable of reaching the target.
+
+### 8.2 The complete writer set of `$06CB` / `$06CD`
+
+**Indexed stores that can reach `$06CB`** (`tools/oob_audit.py --target '$06cb'`, 30 rows):
+- `MetatileBuffer,x/y` (`$06A1`/`$06A2`) — needs index **42**, but every renderer loop is bounded
+  by `cpy #$0b` / `cpx #$0d` / `cpx #$0b` (11 or 13). Residual noted below.
+- `HammerEnemyOffset,y` (`$06AE`) — needs **29**; hammer slot counter.
+- `Misc_Collision_Flag,x` (`$06BE`) — needs **13**; `ldx ObjectOffset` ≤ 5.
+- the `(zp),y` block-buffer family — closed by F252 (no reachable geometry) and F253 (the one
+  unguarded writer stores `$00`).
+
+**Absolute stores** — all 13, with the value each writes:
+
+| value | sites |
+|---|---|
+| `#$00` | 3615, 7879, 8613, 8862, 9977, 10153, 10454; 10147 (`KillAllEnemies`, A = 0 from `EraseEnemyObject`); 11147 (`HurtBowser`, A = 0 from `InitVStf`) |
+| `#Spiny` = `$12` | 9981 |
+| `#BowserFlame` = `$15` | 10260 |
+| `#Fireworks` = `$16` | 10528 |
+| `Enemy_ID,x` | 8832 (`InitEnemyFrenzy`) — **but** it is dispatched from `InitEnemyRoutines[Enemy_ID]`, whose `InitEnemyFrenzy` entries are only `$12`, `$14`, `$15`, `$16`, `$17`. It copies one of those to itself. `$31` maps to `NoInitCode`, so the star flag never passes through it. |
+| `FrenzyIDData-8,x` = `$14`/`$17`/`$18` | `ExitAFrenzy` (3615's path), x fixed at 8/9/10 by the jump-table entry that reached it |
+
+**So the writable value set is `$06CB` ∈ {$00, $12, $14, $15, $16, $17} and
+`$06CD` ∈ {$00, $14, $17, $18}.** `$31` is in neither, and neither is any out-of-table value.
+
+### 8.3 What that closes
+
+**H50 is unreachable.** The mechanism is measured and real (857 frames at N = 2, 1,329 with the
+music, F258/F259), the injector set is exactly {`CastleObject`, `$06CB`, `$06CD`} (F261),
+`CastleObject` fires once per non-page-0 castle and **no area in the game has two** (§8.4), and
+the two frenzy cells cannot be given a non-zero value they were not designed to hold.
+
+**H43 / the ACE line closes with it, and by the same enumeration.** F207/F208 confirmed the
+out-of-table jump *fires* when `$06CB` is poked to `$c4`. But `$c4` is not in the writable set —
+and neither is anything else `≥ $37`. **The arbitrary jump exists and can never be armed.**
+
+### 8.4 The castle question, answered across all 34 areas
+
+Raised by the user: if `CastleObject` is the only `$31` writer, can we get past its guard? The
+guard (`lda CurrentPageLoc / beq ExitCastle`) is not the obstacle — it only suppresses the *page-0*
+castles. The obstacle is the level data. Decoding **every** area with `tools/area_data.py`:
+
+- every ground area is either `[page-0 castle, end castle]` or `[end castle]` alone
+  (1-1 = `L_GroundArea6` is the only one with just the end castle);
+- **no area in the game has two castles at a non-zero page**;
+- the only mechanism that re-parses level data is `ExecGameLoopback`, driven by `LoopCmd` objects,
+  and those exist **only** in `L_CastleArea2` / `L_CastleArea5` / `L_CastleArea6` (4-4, 7-4, 8-4)
+  — which contain no `CastleObject` at all and have no flagpole.
+
+Also checked and dead: entering a level at a non-zero `HalfwayPage`/`EntrancePage` makes
+`CurrentPageLoc` non-zero at load, but the page-0 castle is then *behind* the renderer and
+`ProcessAreaData`'s `CheckRear` (`AreaObjectPageLoc < CurrentPageLoc → SetBehind`) skips it
+without decoding.
+
+### 8.5 Residuals — what this does NOT prove
+
+1. **The `MetatileBuffer` renderer loops are bounded by their start row, not by an explicit test.**
+   `ChkCFloor: cpx #$0b / bne CRendLoop` increments x, so a start row above `$0b` wraps the whole
+   way round — 255 iterations writing `MetatileBuffer,x` across pages 6 and 7. The disassembly
+   comments this at `CastleObject`: *"if starting row is above $0a, game will crash!!!"*. The start
+   row comes from `GetLrgObjAttrib` on ROM level data, and no level triggers it (the game does not
+   crash), but I have verified that by inference from the game's behaviour rather than by decoding
+   every object's sub-row. Even if one did, the values written are `CastleMetatiles` ($45–$4b, $00)
+   and terrain metatiles — still not `$31`.
+2. **A misaligned `AreaDataOffset`** would make `RunAObj` dispatch out of its 47-entry table (§6),
+   which is arbitrary code and could write anything. Nothing in the ROM misaligns it
+   (`IncAreaObjOffset` only ever adds 2), but that is the one door that would reopen everything.
+3. Emulator-level or power-on state outside the game's own model (H20) is not addressed here;
+   `$06CB` is cleared by `InitializeMemory` at every area load.

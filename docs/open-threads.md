@@ -59,7 +59,10 @@ is fighting over, and more than a third of it is at one place in 8-2.
    feet and both side probes close the same way, so **no player-driven block-buffer access can
    leave the buffer.** With F203 (address ceiling) and F215 (values) the block-buffer mechanism is
    closed on both axes; F210 and F216 are corrected. What is left of H43 is #4' below.
-4'. **E10 continued — the write classes nobody has read.** E10's first pass (2026-08-25,
+4'. **DONE 2026-08-25 (F262) — all three classes read, all three closed.** `VRAM_Buffer` overflow
+   tops out at $0444 (largest displacement in the ROM is +27, 8-bit index) and the stack at $01FF;
+   neither can reach page 6. The non-indexed writes to the frenzy cells are all constants. See #8.
+   Original text: **E10 continued — the write classes nobody has read.** E10's first pass (2026-08-25,
    `docs/experiments/E10-rom-read.md`) covered the NMI/timer core, all four mode trees,
    `ScreenRoutines`, the area parser, player physics and **all** of `PlayerBGCollision`, the block
    and enemy dispatch paths, `RunStarFlagObj`, `RunGameTimer`, and every `sta ($06),y` site with
@@ -109,7 +112,12 @@ is fighting over, and more than a third of it is at one place in 8-2.
 
 ## Tier 3 — real, but blocked on a primitive we do not have
 
-8. **H7 / H8 / H43 — cart-swap-free ACE.** The arbitrary jump is *confirmed firing* (F207/F208/F209):
+8. **CLOSED 2026-08-25 (F262) — H7 / H8 / H43, cart-swap-free ACE.** The jump fires but cannot be
+   armed: `$06CB`'s writable value set is {$00,$12,$14,$15,$16,$17} and `$06CD`'s is
+   {$00,$14,$17,$18}, by complete enumeration of every store that can reach either cell; the two
+   classes this item was waiting on (#4') are page-bounded away from page 6 (`VRAM_Buffer` ceiling
+   $0444, stack ceiling $01FF). Residuals named in F262. Original text follows.
+   **H7 / H8 / H43 — cart-swap-free ACE.** The arbitrary jump is *confirmed firing* (F207/F208/F209):
    `$06CB` reaches `Enemy_ID`, out-of-table indices dispatch, the destination is a deterministic
    function of the byte, and it reaches area-loading code. No value found yet ends the game early.
    ~~Blocked on #4.~~ **Its writer is now gone (F252/F253): the block-buffer mechanism cannot reach

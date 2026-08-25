@@ -200,6 +200,9 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
+- (none — E10 passes 1-3 all complete, see Done)
+
+## Superseded in-progress note
 - **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started
   2026-08-25 s20). *Claimed here first specifically to avoid the H50 duplication that happened
   earlier today — if the Linux box wants it, say so and I will drop it.*
@@ -832,6 +835,17 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s20 (Mac) — **E10 passes 2 and 3: H50 and the ACE line CLOSE TOGETHER** (F261/F262/F263,
+  `docs/experiments/E10-rom-read.md` §7-§8). Pass 2 read the **zero page** — the class every prior audit
+  excluded by construction, and the one H50's target actually lives in (`Enemy_ID` = $16): the `Enemy_ID`
+  injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}, everything else writes a constant (F261).
+  The user's castle question answered across **all 34 areas**: no area has two non-page-0 castles, and the
+  only level-data re-parse (`LoopCmd`) exists only in 4-4/7-4/8-4, which have no castle object and no
+  flagpole (F263). Pass 3: `VRAM_Buffer` overflow tops out at **$0444** and the stack at **$01FF** — neither
+  can reach page 6 — and the complete writer enumeration gives `$06CB` in {$00,$12,$14,$15,$16,$17},
+  `$06CD` in {$00,$14,$17,$18}. **`$31` is in neither, and neither is any value >= $37, so the confirmed
+  out-of-table jump (F207/F208) can never be armed.** H50's measured 857/1,329 frames and the whole
+  H7/H8/H43 chain are closed together; open-threads #4' and #8 close. Residuals named in F262.
 - 2026-08-25 s20 (Mac) — **H50 MEASURED AND CONFIRMED: 1,329 frames** (`docs/experiments/H50-star-flag.md`,
   F258/F259/F260; the other session measured the same 857 independently as F258 with
   `tools/starflag_probe.py`). New tool `tools/starflag_poke.py` adds the N sweep and the music half; `build/harness --poke` cap raised 8 -> 64. A second
