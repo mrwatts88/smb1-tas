@@ -27,3 +27,14 @@ run() {  # run TAG ROOTSTEP HORIZON SEED
 run r200 200 470 404
 run r380 380 290 505
 run r460 460 210 606
+
+# --- session 18, the focused variant -------------------------------------------------
+# The mint's RATE is fixed at 1 px per frozen frame (F227), but WHERE it is paid is free, and
+# paying it immediately before the pipe removes the re-acceleration entirely -- that is the only
+# version of the key that fits the 22-frame budget.  This run roots at chain step 500 (core 7082,
+# x ~1220, already past the last jump), horizon 160, promise weighted almost entirely on the
+# screen-lead (--prog-off 24) with a 1-px rel cell, i.e. "buy rel in the last 50 frames or not
+# at all".  Baseline core 7218; a framerule needs <= 7205.
+#   ./build/explore ... --root 7082 --horizon 160 --goal-ram 0x750=0x2f,0x752=1 \
+#     --require-ram 0x750=0x2f --baseline 7218 --prog-x 1348 --prog-off 24 --prog-fw 3 \
+#     --watch-x 1341,1363 --cells 130000 --rollout 4,40 --enemycell 0 --relcell 1 --seed 909
