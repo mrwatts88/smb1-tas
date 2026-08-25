@@ -261,6 +261,10 @@ explicitly *without* conceding the question.
   *cheapest* mint on the top route. That measurement is P2.3c-9 Part B and it is the whole decision.
 
 ## Loose ends (small, unassigned)
+- **Kept artifact:** `runs/P2.2a-prime/keep/apex_candidates_4333.bin` — the 4,333 room-3 apex states (step 162)
+  from the wide diversity beam. 416 KB. This is the candidate set F133's negative rests on; keep it until H25 is
+  settled proof-grade, so a later exhaustive approach can be diffed against it rather than re-derived. The 15 GB
+  of surrounding layers were deleted (re-derivable via `runs/P2.2a-prime/approach2_launch.sh`).
 - **Cosmetic but misleading: the beam/offset log line prints `[warp needs 132]` on EVERY case.** That number
   is 4-2's wrong-warp threshold and means nothing for `W84Room3`/`W11Room1E` — an 8-4 log now reads
   `max offset 74 [warp needs 132]`, which a fresh session could easily misread. Make the suffix case-specific
