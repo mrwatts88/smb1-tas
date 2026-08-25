@@ -5,15 +5,25 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 18 CLOSED — the finder is built; 8-4, the route topology and the 1-2->world-8 prize are closed; F224-F240; next unit is **E9a, the wall-face census**)
+**Updated:** 2026-08-25 (session 19 — **E9a DONE**: the wall-face census is empty at both hitboxes (F243), but the value map it needed found **8-2's 114-frame site** (F245/H48). Next unit is **E9b part 1**, and it is blocked only on memory.)
 
 ## Where we are
-- ## >>> NEXT UNIT: **E9a — the wall-face census, static half.** It is the first row of "Next up".
-  It needs **no new code, no emulator and no compute** — the disassembly, `tools/area_data.py`,
-  `tools/blockmap_from_dump.py` over `data/wr/fceux_wr.ram`, and a text file. It is the highest-value
-  hour on the board because it is the only remaining class that yields **distance** rather than
-  fractions of frames, and the primitive it rests on is proven to run at the full speed cap (F239).
-  Do it before starting anything else. Then read the SESSION 18 CLOSE block under "In progress".
+- ## >>> NEXT UNIT: **E9b part 1 — 8-2's columns 201-212 (H48).** The launcher is written and
+  committed: **`./runs/E9b/launch.sh`**, read `runs/E9b/README.md` first. It is **blocked only on
+  RAM** — four `build/explore` archives were running when E9a closed and the box had 1 GB available
+  of 15 GB (swap 5/7). **Wait for `pgrep -x explore` to be empty, then launch it.** While waiting,
+  the fallback probe needs no memory at all: splice a jump into the WR inputs at dump row 12289 and
+  replay on the core (`tools/e3_replay.py`) to test H48 directly.
+- ## >>> WHY: **E9a is done and it moved the board (`docs/experiments/P4E-census.md`).** The census
+  itself is **empty** — 708 wall faces across all 14 controllable route areas, **zero admit a static
+  walk-through at either hitbox** (F243); H46's static half is closed and H33 is refuted as stated
+  (F241/F242 — coins can never open a face, which is *why* F93 costs 31 frames). But the value filter
+  built to prioritise it priced every off-cap stretch of the WR against the movement bound and found
+  that **the route's entire geometric loss is 290 frames, and 114 of them sit at one place nobody had
+  priced: 8-2's cols 201-212**, where HappyLee wall-jumps a two-column shaft (183 frames for 173 px
+  against a bound of 69). It is **not** a clip site — it is a jump-arc site, and the direct jump over
+  the wall misses by **1-2 px** (F245/H48). 8-1, 8-3, 4-1 and 1-1 contribute **no** priced geometric
+  loss at all, which closes geometry as a lever on those four.
 - **READ `docs/strategy-review.md` FIRST (2026-08-25).** It is the official way forward: the
   bottleneck is the state space not the bound, proof is no longer a deliverable, and the plan is
   Track E ("the finder") — an archive-based stochastic search on the real QuickNES core.
@@ -84,6 +94,12 @@ pre-cleanup narrative version of this file is archived at
   | `e7-sub16` | `runs/E7-w12/sub16.log` | 1-2's clip + turnaround, subpixel in the key | goal <= **3755** | reproduces 3764 |
   | `e7-sub32` | `runs/E7-w12/sub32.log` | same, rooted earlier | goal <= **3755** | reproduces 3764 |
   | `e8-climb` | `runs/E8-w82/climb.log` | 8-2's unexamined shaft climb | goal <= **12931** | reproduces 12953 |
+
+  **[SESSION 19] `e8-climb` CANNOT ANSWER ITS OWN QUESTION — do not wait on it.** F245 shows 8-2's
+  site is a **1-2 pixel** question and that run keys cells at `--xcell 6 --ycell 12 --spdcell 8` with
+  **no subpixel dimension**, i.e. below its resolution (the same defect the Mac session found for
+  1-2). It was left running only because there was no RAM to replace it. Its replacement is written:
+  **`runs/E9b/launch.sh`** (rooted at 12157, before the approach jump, `--subcell 16/32`).
 
   **Anything below those thresholds is a record; anything below the control number is a banked frame.**
   Either way: replay it (`tools/e3_replay.py FILE --around N`), **check the destination not the goal
@@ -651,11 +667,19 @@ SMB1 any% is optimal, which is itself PLAN §7's tier-1 result.
 **PRIORITY, END OF SESSION 18. Read `docs/strategy-review.md` first — it is the official plan — then
 the SESSION 18 CLOSE block in "In progress" above.**
 
-Order: **E9a (the wall-face census, static half) is the next unit.** It needs no new code and no
-emulator, it is the only remaining class that yields *distance* rather than fractions of frames, and
-the primitive it rests on is proven to run at the full speed cap (F239). Then **E9b** (one ~30-line
-addition to `explore`, then per-face testing at both hitboxes), then **E10** (the unaudited half of the
-ROM — pure reading), then **E11 / E7** (1-2's eight frames).
+Order (**rewritten end of session 19 by E9a's result**): **E9b-1 (8-2's cols 201-212) is the next
+unit** — 114 frames, the largest geometric loss on the route, blocked only on RAM. Then **E9b-2**
+(1-2's clip at full speed, 33 f), then **E10** (the unaudited half of the ROM — pure reading), then
+**E11 / E7** (1-2's eight frames).
+
+**What E9a changed.** The census came back **empty** (F243), so *per-face testing at both hitboxes*
+— E9b as originally written — is retired: there are no admitting faces to test. What replaces it is
+the **priced** shortlist in `docs/experiments/P4E-census.md` §6, because the value filter E9a had to
+build turned out to be the more useful half. Two consequences bind everything below: **(1) 8-1, 8-3,
+4-1 and 1-1 have no priced geometric loss at all**, so no clip, arc or route idea can pay in those
+four; **(2)** the live collision primitive is **vertical, not lateral** (F244) — a sink frame has no
+side collision whatsoever — so any future clip hunt is about `Y & $0F`, `Player_MovingDir` and the
+arc, which is exactly why the searches need `--subcell`.
 
 **What this order replaces and why.** The 2026-08-24 "8-4 campaign" is finished: 8-4 is closed on
 movement, route and structure (F231/F232). "Search a level nobody has searched" is retired for
@@ -671,8 +695,8 @@ and monotone with it** — three proxy goals produced three fake records this se
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| **E9a** | **THE WALL-FACE CENSUS, STATIC HALF (H46). START HERE — it needs no new code and no emulator.** SMB1 has a collision-entry primitive that walks Mario through solid terrain **at the full speed cap** — `DoPlayerSideCheck` returns after the *first* side point that touches a metatile, so once the x+2 point is inside a run the x+13 point is never tested (F80/H33). **F239 proves it live: the WR itself walks through solid row 10 in 4-2 from col 33 to col 49 with `Player_X_Speed` pinned at 40.** Nobody has ever enumerated which *other* faces on the route admit it, and it is the only class that yields **distance** rather than fractions of frames. **Step 1 (mechanical):** build the missing block maps — `data/blockmaps/` has only 4-2; `tools/blockmap_from_dump.py` reconstructs a level's metatiles from a playthrough dump and `data/wr/fceux_wr.ram` covers every route level. **Step 2 (pure data):** for each area, list every solid face together with any adjacent *non-solid-but-non-empty* entry tile — coin `$c2`, hidden block `$5f`/`$60`, climbable, pipe-top `$1c`/`$6b` — or a bump-creatable gap (H33's list), keeping faces Mario passes within reach of. Output a shortlist of candidate faces with x, row, entry tile and what walking through would skip. **This turns "hundreds of faces" into a handful before any emulator time is spent.** | A/B | M | — | A candidate table in `docs/experiments/P4E-census.md`: every solid face on the route classified, with the shortlist that goes to E9b |
-| **E9b** | **THE CENSUS, DYNAMIC HALF — root directly at each face.** Why this never happened before: it is a **rooting problem, not a clip problem.** Every tool here searches from a fixed root over a long horizon, so testing a face at x 1200 means *searching your way there* first, and that search fails for unrelated reasons (F117: every 4-2 ladder slams pipe A's face; H37 sat blocked on exactly this until F228 refuted it from the data instead). **The enabler is already proven: F50** — in QuickNES's 12,792-byte savestate the 2 KiB of system RAM sits at offset 216, and patching RAM into a template state reproduces the true continuation exactly for 600 frames. **The one piece of work: add `--root-state FILE` to `build/explore`** (~30 lines: read a savestate, `retro_unserialize` it instead of replaying the movie to `--root`). Then per shortlisted face, sweep the small local box — x subpixel, y over the standing/jumping/falling band, x-speed, `Player_MovingDir` — with a short local-exhaustive search whose alphabet includes L+R (H12). **Run every face at BOTH hitboxes**: `DoPlayerSideCheck` takes its block-buffer adder from a size-indexed offset, so which faces admit a walk-through is hitbox-dependent, and F238 shows the WR is small Mario on 18,264 of 18,268 frames — **big-Mario side-point geometry is untested route-wide** (folds in H18 nearly free). Verdict per face: admits-walk-through / admits-foot-entry (F93) / refuses. | A/B | M–L | E9a | Per-face verdicts at both hitboxes. A positive is core-replayed and priced against the level's deficit; an all-refuses census closes H46 and is a stronger statement about SMB1 clips than anything on the board |
+| **E9b-1** | **8-2's cols 201-212 — the largest geometric loss on the route (114 f, F245/H48). START HERE.** The launcher is written: **`./runs/E9b/launch.sh`** (read `runs/E9b/README.md`). **Blocked only on RAM** — wait for `pgrep -x explore` to be empty. The site: a one-column pillar (col 203, top row 6, `Y` 96), a two-column bottomless shaft (204-205), a two-column wall (206-207, rows 3-12, top `Y` 48). The WR falls into the shaft and **wall-jumps** up it — 183 frames for 173 px against a 69-frame bound. Its faces **refuse** (col 205 is empty top to bottom) and F244's sink needs a foot at x >= 3284 while the side probe impedes from x = 3283 unless `Y <= 55`, by which height Mario is already over the wall — **so it is a jump-arc problem, not a clip problem**. H48: the direct jump from the pillar needs 41 px of rise before x = 3283, the WR's own arc gives 42 px in 25 px of travel, so it must be issued at x <= 3259 and the first issuable frame after landing at x 3258 is x ~ 3260 — **it misses by 1-2 px**. Land 3-10 px earlier and it clears with 10-25 px of margin; the cost is a flatter approach jump that must still clear the col-199/201 staircase (2 px of margin at the WR's). **No-memory fallback while the box is full:** splice a jump into the WR inputs at dump 12289 and replay on the core. | A | M | — | Either a core-replayed path with `StarFlagTaskControl == 5` at core <= 12952 (banked) or <= 12931 (a record), or a swept statement that no pillar landing at x <= 3252 with speed >= 39 exists |
+| **E9b-2** | **1-2's clip at full speed (33 f, shortlist item 3).** The one place the route already enters terrain, and F244 says the entry is a **sink** — feet in a non-empty cell with `Y & $0F >= 5` and `Player_MovingDir` LEFT skips `DoPlayerSideCheck` entirely. Test whether a sink exists that **keeps** `Player_X_Speed` (F239: the ejection clip zeroes it and therefore mints scroll offset; a walk-through mints nothing and costs nothing, worth ~13 frames of overshoot against a deficit of 8). Run it at **both hitboxes** — F238 says big-Mario geometry is untested route-wide, and F241 gives him a two-row left probe. `e7-sub16`/`e7-sub32` are already on the small-Mario half. | A/B | M | — | A core-replayed 1-2 line reaching the warp earlier than core 3763, or a per-state verdict that every sink at that face costs the speed |
 | **E10** | **The second ROM audit pass — the half `oob-audit.md` never covered.** P3.1 audited *indexed stores*; P3.3 added stack, non-indexed writes and the `VRAM_Buffer` overflow (F218–F221, corrected by F234). **Never audited at all:** every `JumpEngine` call site's index provenance beyond the enemy tables (18 sites are listed in `oob-audit.md` §3 but only the enemy ones were chased); every writer of every timer in `$0780–$07A3` and the frame timers; the sprite/OAM paths (`$0200–$02FF`, `Sprite_Data` indexed writes, the sprite shuffler); the sound engine's RAM footprint; the two-player / demo / attract-mode code paths, which run the same physics with different state. Pure reading, no tooling, no compute. **Target to measure everything against (F235/`warp-model.md` §5.4 addendum): the prize is not an arbitrary write — it is ONE more `inc $06D6`, or running enemy routine `$34` once more while `ScrollLock != 0`, anywhere in 1-2 before a warp pipe.** That is `WarpZoneControl` 2 = row `{8,7,6}` = world 8 direct from 1-2 = ~3,957 frames. | B | M | — | An audit table per class in `docs/oob-audit.md`, each entry either bounded with a code-level argument or flagged as a live write primitive measured against the `inc $06D6` target |
 | E11 | **Bank 1-2's known frame.** The 1-2 loss map names one isolated available frame at step 487 (x 1183, mid-jump over the col-80..82 pit at x-speed 38 instead of 40) and it has never been probed. `runs/E7-w12/body.log` is rooted at core 2900 specifically to reach it. If that run does not bank it, probe it directly. Sub-threshold, but 8 → 7 makes the clip lever's job easier (banked-frames table above). | A | S | — | Either a verified path reaching the 1-2 warp earlier than core 3763, recorded as a fact and subtracted in the banked-frames table, or a statement that the frame is not real |
 | P2.3c-9 | **F131 — model the wrong-warp ENTRY FRAME, then ladder the top-route warp cost.** Part A (was 'small', is not): the warp needs the entry frame's latched `Player_X_Scroll` to be 0 (F129), but that frame is one the search does not simulate — the model's goal fires when Mario *reaches* the entry x (the WR's own goal step has d = 2), so a goal-side `SL + 48*d <= 1216` test **rejects the WR's own warp** (F131, verified). The fix is case-level: make the goal fire on the entry frame under Down (or carry one extra simulated step), not a refusal tweak. The sound necessary condition `screen_left16 >= 1217` is what ships today, so **the search still emits candidates that do not warp** — the core-replay destination check (runbook §4.3) is the gate. **Part B — the exact shape of the search (do NOT run a whole-level pass; F132 proved that fails).** Root on the known 553 chain at one of the G-line cumulative points — the G-line is 149+184+82+34+35+25+44, so the roots are prefixes **415 / 449 / 484 / 509** (= 138 / 104 / 69 / 44 frames from the pipe). Horizon = (553 − prefix) + slack, laddered **downward** until dry: from 509 that is d87 (the F127 result) → d84 → d80 → d76 → d72; if the ladder bottoms out above 22 frames of key cost, step the root back to 484 and repeat, because a cheaper mint may need a different *arrival* state at the wall and a fixed root pre-commits it (the seam problem one level up — F123's ops lesson was already "root ≥ step 200"). Short horizon (tens of layers) is what lets the bucketed beam be wide enough to matter, and it is the same shape as P2.3c-11a. Every goal core-replayed + destination-checked. | A | M–L | — | Part A: the reference-path audit still marks the WR's warp GOAL **and** a d>0 entry is refused; beam-off gate byte-identical. Part B: a measured minimum top-route key cost vs the 22 the 575 line allows, with the root stepped back until the number stops improving |
@@ -720,6 +744,15 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s19 — **E9a — THE WALL-FACE CENSUS, and it is EMPTY (F241-F245).** Block maps rebuilt for
+  every route area (`tools/route_blockmaps.py`; 4-2's columns 0-97 byte-identical to the committed map).
+  **708 faces, 703 with an empty left neighbour, 5 coins that F242 kills, zero static walk-throughs at
+  either hitbox**; all nine hidden blocks isolated; big Mario's two-row left probe *reduces* rather than
+  resolves. H46 static half closed, **H33 refuted as stated**. The mechanic is now exact (F241: blocking
+  is "non-empty", not `CheckForSolidMTiles`) and the live primitive is **vertical** (F244: a sink frame
+  has no side collision at all). The value filter found the real prize: **290 frames of geometric loss on
+  the whole route, 114 of them at 8-2 cols 201-212** (F245 → H48 → E9b-1).
+  `docs/experiments/P4E-census.md`, `runs/E9a/`.
 - 2026-08-24 s16 — **P2.2a′ — 8-4 room 3 reduced to ONE question; strong negative, not proof (F133).**
   (a) **No mint in room 3** (census: max offset 112) ⇒ `SL >= 3345` forces `x >= 3457`, the case's own threshold.
   (b) **The return floor is 33 across the WHOLE space** — `build_overshoot_bound`: 30,720 end classes, return costs

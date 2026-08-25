@@ -1,0 +1,110 @@
+off-cap runs of WR control frames (cap = |x_spd| in {40,24}); 'wall' = blocking cell at the side probe row within 2 columns ahead
+
+## w11  1-1 main: 76 off-cap of 610 control frames (12%), 8 runs
+  rows 1049-1070 ( 22 f)  x 2616->2632 (col 163-164)  y 120-144  spd  +0->+23 min  +0  proberows [7, 8]  sidecoll 20f
+  rows 197-217 ( 21 f)  x   40->  55 (col   2-  3)  y 152-176  spd  +0->+23 min  +0  proberows [9, 10]  sidecoll 19f
+  rows 1072-1081 ( 10 f)  x 2635->2653 (col 164-165)  y 144-156  spd +26->+38 min +26  proberows [8, 9]  sidecoll 10f
+  rows 220-228 (  9 f)  x   59->  75 (col   3-  4)  y 150-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+  rows 1283-1288 (  6 f)  x 3157->3159 (col 197-197)  y 165-176  spd  +0-> -1 min  -1  proberows [9, 10]  sidecoll 6f
+      blocking ahead: (r10,c198,0x61 BLOCK)
+  rows 560-564 (  5 f)  x  905-> 914 (col  56- 57)  y 112-112  spd +39->+32 min +32  proberows [6]  sidecoll 5f
+
+## w11b  1-1 bonus room: 71 off-cap of 111 control frames (64%), 3 runs
+  rows 656-702 ( 47 f)  x   23->  52 (col   1-  3)  y  48-176  spd  +0->+23 min  -4  proberows [2, 3, 4, 5, 6, 7, 8, 9, 10]  sidecoll 47f
+      blocking ahead: (r8,c4,0x52 BLOCK) (r8,c5,0x52 BLOCK) (r9,c4,0x52 BLOCK) (r9,c5,0x52 BLOCK) (r10,c4,0x52 BLOCK) (r10,c5,0x52 BLOCK)
+  rows 753-766 ( 14 f)  x  168-> 194 (col  10- 12)  y 121-173  spd +39->+29 min +29  proberows [7, 8, 9, 10]  sidecoll 14f
+      blocking ahead: (r9,c13,0x1c BLOCK) (r9,c14,0x1d BLOCK) (r10,c13,0x1f SIDEPIPE) (r10,c14,0x20 BLOCK)
+  rows 709-718 ( 10 f)  x   62->  80 (col   3-  5)  y  98-128  spd +25->+39 min +25  proberows [5, 6, 7]  sidecoll 10f
+
+## w12  1-2 main: 170 off-cap of 1280 control frames (13%), 6 runs
+  rows 3572-3628 ( 57 f)  x 2676->2737 (col 167-171)  y  54- 64  spd  +0->+39 min  +0  proberows [2, 3]  sidecoll 57f
+      blocking ahead: (r2,c168,0x14 BLOCK) (r2,c169,0x15 BLOCK) (r2,c170,0x52 BLOCK) (r3,c168,0x14 BLOCK) (r3,c169,0x15 BLOCK) (r3,c170,0x52 BLOCK) (r3,c171,0x52 BLOCK) (r3,c172,0x52 BLOCK) (r3,c173,0x52 BLOCK)
+  rows 3708-3746 ( 39 f)  x 2913->2944 (col 182-184)  y  91-128  spd +22->-39 min -39  proberows [5, 6, 7]  sidecoll 39f
+  rows 2487-2524 ( 38 f)  x   40->  66 (col   2-  4)  y  48-176  spd  +0->+23 min  +0  proberows [2, 3, 4, 5, 6, 7, 8, 9, 10]  sidecoll 38f
+  rows 2964-2981 ( 18 f)  x 1160->1200 (col  72- 75)  y 109-171  spd +38->+38 min +38  proberows [6, 7, 8, 9, 10]  sidecoll 18f
+      blocking ahead: (r7,c76,0x52 BLOCK) (r7,c77,0x52 BLOCK)
+  rows 2526-2535 ( 10 f)  x   69->  87 (col   4-  5)  y 140-176  spd +26->+39 min +25  proberows [8, 9, 10]  sidecoll 10f
+  rows 3550-3557 (  8 f)  x 2622->2639 (col 163-164)  y 102-128  spd +39->+39 min +39  proberows [5, 6, 7]  sidecoll 8f
+      blocking ahead: (r6,c166,0x1c BLOCK) (r6,c167,0x1d BLOCK) (r7,c166,0x1f SIDEPIPE)
+
+## w41  4-1: 38 off-cap of 1436 control frames (3%), 5 runs
+  rows 3982-4002 ( 21 f)  x   40->  55 (col   2-  3)  y 152-176  spd  +0->+23 min  +0  proberows [9, 10]  sidecoll 19f
+  rows 4005-4013 (  9 f)  x   59->  75 (col   3-  4)  y 144-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+  rows 5419-5424 (  6 f)  x 3589->3591 (col 224-224)  y 166-176  spd  +0-> -1 min  -1  proberows [9, 10]  sidecoll 6f
+      blocking ahead: (r10,c225,0x61 BLOCK)
+
+## w42m  4-2 main: 129 off-cap of 588 control frames (22%), 9 runs
+  rows 6786-6843 ( 58 f)  x  468-> 532 (col  29- 33)  y 151-176  spd  +0->+39 min  +0  proberows [8, 9, 10]  sidecoll 58f
+      blocking ahead: (r8,c30,0x52 BLOCK) (r8,c31,0x52 BLOCK) (r8,c32,0x52 BLOCK) (r9,c30,0x52 BLOCK) (r9,c31,0x52 BLOCK) (r9,c32,0x52 BLOCK) (r10,c30,0x52 BLOCK) (r10,c31,0x52 BLOCK) (r10,c32,0x52 BLOCK) (r10,c33,0x52 BLOCK)
+  rows 6585-6621 ( 37 f)  x   40->  65 (col   2-  4)  y  48-176  spd  +0->+22 min  +0  proberows [2, 3, 4, 5, 6, 7, 8, 9, 10]  sidecoll 37f
+  rows 6624-6632 (  9 f)  x   69->  85 (col   4-  5)  y 144-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+  rows 6751-6758 (  8 f)  x  383-> 400 (col  23- 25)  y 171-176  spd +39->+39 min +39  proberows [10]  sidecoll 8f
+  rows 6766-6770 (  5 f)  x  419-> 429 (col  26- 26)  y 171-176  spd +38->+38 min +38  proberows [10]  sidecoll 5f
+
+## w42w  4-2 warp zone ($2F): 68 off-cap of 450 control frames (15%), 4 runs
+  rows 7636-7664 ( 29 f)  x  947-> 958 (col  59- 59)  y  32- 96  spd +22->-23 min -23  proberows [1, 2, 3, 4, 5]  sidecoll 29f
+      blocking ahead: (r1,c62,0x61 BLOCK) (r2,c62,0x61 BLOCK) (r3,c62,0x61 BLOCK) (r4,c62,0x61 BLOCK) (r5,c62,0x61 BLOCK)
+  rows 7248-7268 ( 21 f)  x   24->  39 (col   1-  2)  y 152-176  spd  +0->+23 min  +0  proberows [9, 10]  sidecoll 19f
+  rows 7271-7279 (  9 f)  x   43->  59 (col   2-  3)  y 144-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+  rows 7673-7681 (  9 f)  x  918-> 933 (col  57- 58)  y  98-128  spd -26->-38 min -38  proberows [5, 6, 7]  sidecoll 9f
+
+## w81  8-1: 81 off-cap of 2406 control frames (3%), 9 runs
+  rows 10219-10246 ( 28 f)  x 5708->5773 (col 356-360)  y 112-144  spd +39->+38 min +38  proberows [6, 7, 8]  sidecoll 28f
+      blocking ahead: (r7,c362,0x61 BLOCK) (r8,c362,0x61 BLOCK)
+  rows 7934-7954 ( 21 f)  x   40->  55 (col   2-  3)  y 152-176  spd  +0->+23 min  +0  proberows [9, 10]  sidecoll 19f
+  rows 7957-7965 (  9 f)  x   59->  75 (col   3-  4)  y 144-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+  rows 9859-9864 (  6 f)  x 4809->4820 (col 300-301)  y 171-176  spd +39->+39 min +36  proberows [10]  sidecoll 6f
+      blocking ahead: (r10,c303,0x61 BLOCK)
+  rows 10339-10344 (  6 f)  x 6005->6007 (col 375-375)  y 167-176  spd  +0-> -1 min  -1  proberows [9, 10]  sidecoll 6f
+      blocking ahead: (r10,c376,0x61 BLOCK)
+  rows 9845-9849 (  5 f)  x 4775->4784 (col 298-299)  y 176-176  spd +39->+39 min +36  proberows [10]  sidecoll 5f
+
+## w82  8-2: 213 off-cap of 1466 control frames (15%), 10 runs
+  rows 12408-12458 ( 51 f)  x 3299->3401 (col 206-212)  y  12-117  spd +25->+39 min +25  proberows [0, 1, 2, 3, 4, 5, 6]  sidecoll 51f
+  rows 12290-12332 ( 43 f)  x 3261->3272 (col 203-204)  y  96-192  spd +23->+23 min -20  proberows [5, 6, 7, 8, 9, 10, 11]  sidecoll 43f
+      blocking ahead: (r5,c206,0x61 BLOCK) (r6,c206,0x61 BLOCK) (r6,c207,0x61 BLOCK) (r7,c206,0x61 BLOCK) (r7,c207,0x61 BLOCK) (r8,c206,0x61 BLOCK) (r8,c207,0x61 BLOCK) (r9,c206,0x61 BLOCK) (r9,c207,0x61 BLOCK) (r10,c206,0x61 BLOCK)
+  rows 12384-12406 ( 23 f)  x 3282->3296 (col 205-206)  y  48- 80  spd  +0->+22 min  -4  proberows [2, 3, 4]  sidecoll 23f
+      blocking ahead: (r3,c206,0x61 BLOCK) (r3,c207,0x61 BLOCK) (r4,c206,0x61 BLOCK) (r4,c207,0x61 BLOCK)
+  rows 10980-11000 ( 21 f)  x   40->  55 (col   2-  3)  y 152-176  spd  +0->+23 min  +0  proberows [9, 10]  sidecoll 19f
+  rows 11960-11979 ( 20 f)  x 2447->2486 (col 152-155)  y 116-176  spd +38->+38 min +31  proberows [6, 7, 8, 9, 10]  sidecoll 20f
+      blocking ahead: (r7,c156,0x10 BLOCK) (r7,c157,0x11 BLOCK) (r8,c156,0x14 BLOCK) (r8,c157,0x15 BLOCK) (r9,c156,0x14 BLOCK) (r10,c156,0x14 BLOCK)
+  rows 12362-12377 ( 16 f)  x 3261->3273 (col 203-204)  y  73-112  spd  +0->+23 min  +0  proberows [4, 5, 6]  sidecoll 16f
+      blocking ahead: (r4,c206,0x61 BLOCK) (r4,c207,0x61 BLOCK) (r5,c206,0x61 BLOCK) (r6,c206,0x61 BLOCK)
+  rows 12340-12354 ( 15 f)  x 3272->3283 (col 204-205)  y 116-160  spd  +0->-23 min -23  proberows [6, 7, 8, 9]  sidecoll 15f
+      blocking ahead: (r6,c206,0x61 BLOCK) (r6,c207,0x61 BLOCK) (r7,c206,0x61 BLOCK) (r7,c207,0x61 BLOCK) (r8,c206,0x61 BLOCK) (r8,c207,0x61 BLOCK) (r9,c206,0x61 BLOCK) (r9,c207,0x61 BLOCK)
+  rows 12276-12288 ( 13 f)  x 3228->3258 (col 201-203)  y  85- 96  spd +39->+39 min +39  proberows [4, 5]  sidecoll 13f
+      blocking ahead: (r5,c206,0x61 BLOCK)
+  rows 11003-11011 (  9 f)  x   59->  75 (col   3-  4)  y 150-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+
+## w83  8-3: 35 off-cap of 1334 control frames (3%), 4 runs
+  rows 13123-13143 ( 21 f)  x   40->  55 (col   2-  3)  y 152-176  spd  +0->+23 min  +0  proberows [9, 10]  sidecoll 19f
+  rows 13146-13154 (  9 f)  x   59->  75 (col   3-  4)  y 144-176  spd +26->+38 min +26  proberows [8, 9, 10]  sidecoll 9f
+
+## w84r1  8-4 room 1: 30 off-cap of 524 control frames (6%), 2 runs
+  rows 15224-15244 ( 21 f)  x   40->  55 (col   2-  3)  y  56- 80  spd  +0->+23 min  +0  proberows [3, 4]  sidecoll 19f
+  rows 15255-15263 (  9 f)  x   71->  87 (col   4-  5)  y  80-112  spd +26->+38 min +26  proberows [4, 5, 6]  sidecoll 9f
+
+## w84r2  8-4 room 2 (water): 55 off-cap of 267 control frames (21%), 4 runs
+  rows 16158-16180 ( 23 f)  x 2405->2429 (col 150-151)  y  64-100  spd +38->+23 min  +0  proberows [3, 4, 5]  sidecoll 23f
+      blocking ahead: (r4,c152,0x10 BLOCK) (r4,c153,0x11 BLOCK) (r5,c152,0x14 BLOCK) (r5,c153,0x15 BLOCK)
+  rows 15918-15938 ( 21 f)  x 1848->1863 (col 115-116)  y 120-144  spd  +0->+23 min  +0  proberows [7, 8]  sidecoll 19f
+  rows 15941-15949 (  9 f)  x 1867->1883 (col 116-117)  y 144-153  spd +26->+38 min +26  proberows [8, 9]  sidecoll 9f
+
+## w84r3  8-4 room 3: 79 off-cap of 195 control frames (41%), 5 runs
+  rows 16501-16531 ( 31 f)  x 3444->3457 (col 215-216)  y  91-128  spd +23->-23 min -23  proberows [5, 6, 7]  sidecoll 31f
+  rows 16355-16376 ( 22 f)  x 3128->3144 (col 195-196)  y 120-144  spd  +0->+23 min  +0  proberows [7, 8]  sidecoll 20f
+      blocking ahead: (r8,c198,0x62 BLOCK) (r8,c199,0x62 BLOCK)
+  rows 16378-16386 (  9 f)  x 3147->3163 (col 196-197)  y 112-144  spd +26->+38 min +26  proberows [6, 7, 8]  sidecoll 9f
+      blocking ahead: (r8,c198,0x62 BLOCK) (r8,c199,0x62 BLOCK)
+  rows 16533-16541 (  9 f)  x 3427->3443 (col 214-215)  y  96-128  spd -26->-38 min -38  proberows [5, 6, 7]  sidecoll 9f
+  rows 16492-16499 (  8 f)  x 3428->3442 (col 214-215)  y  91-119  spd +39->+26 min +26  proberows [5, 6]  sidecoll 8f
+
+## w84r4  8-4 room 4: 29 off-cap of 696 control frames (4%), 1 runs
+  rows 16720-16748 ( 29 f)  x   56->  74 (col   3-  4)  y 135-144  spd  +0->+23 min  +0  proberows [7, 8]  sidecoll 6f
+      blocking ahead: (r8,c6,0x62 BLOCK) (r8,c7,0x62 BLOCK)
+
+## w84r5  8-4 room 5 (Bowser): 30 off-cap of 279 control frames (11%), 2 runs
+  rows 17590-17610 ( 21 f)  x 4152->4167 (col 259-260)  y 120-144  spd  +0->+23 min  +0  proberows [7, 8]  sidecoll 19f
+  rows 17613-17621 (  9 f)  x 4171->4187 (col 260-261)  y 144-153  spd +26->+38 min +26  proberows [8, 9]  sidecoll 9f
+
+TOTAL off-cap control frames on the route: 1104

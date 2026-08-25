@@ -1,0 +1,15 @@
+# w12  1-2 main  L_UndergroundArea1
+# columns 0..199 (200 read) from data/wr/fceux_wr.ram [(2444, 3814)]
+o.....oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo.......................ooooooo##ooooooooooooooooo...oooooooooo
+o.....................................................oo..oooooo..oooo......oooo........................................................................................##ooooooo.............oooooooooo
+o.....................................................oo..oooooo..oooo......oooo........................................................................................##ooooooo.............oooooooooo
+o........................................cccc.......oo........oo...o....oo..........cccccc..............................................................................##ooooooo.............oooooooooo
+o...................................................oo........oo...o....oo..............................................................................................##ooooooo.............oooooooooo
+o......................................o.oooo.o.....oo........oo...o....oo..........oooooo..............................................................................##ooooooo.............oooooooooo
+o............................o.........oco..oco.....oo....ccccoo...oco..oo..........oooooo.......................................................oooooo...............####ooooooo.............oooooooooo
+o.........ooooo........o.o.............ooo..ooo.....oooo..oooooo...ooo..oo..oooo.............................##.........................oo............................####ooooooo.............oooooooooo
+o....................o.o.o.o...o......................oo...............................................##....##...........oo...........ooo......................ooooooooooooooooo.##..##..##..oooooooooo
+o..................o.o.o.o.o...o.o....................oo...............................................##....##....##.....oo..........oooo......................ooooooooooooooooo.##..##..##..oooooooooo
+o................o.o.o.o.o.o...o.o.....................................................................##....##....##.....oo.........ooooo......................ooooooooooooooooo.##..##..##..oooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...ooooooooooooooooooooooooooooooooooooo..oo..oooooooooooo.......oooooooo.......oooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...ooooooooooooooooooooooooooooooooooooo..oo..oooooooooooo.......oooooooo.......oooooooooooooooooooooooooooooooooooooooo

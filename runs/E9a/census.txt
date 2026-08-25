@@ -1,0 +1,33 @@
+area    faces  refuse  hidden  coin  climb  on-route
+w11        34      34       0     0      0         7
+w11b       15      15       0     0      0         3
+w12       126     122       0     4      0         5
+w41        51      51       0     0      0         7
+w42m       41      40       0     1      0         4
+w42w       39      39       0     0      0         4
+w81       135     135       0     0      0        11
+w82       106     106       0     0      0        11
+w83        53      53       0     0      0         6
+w84r1      20      20       0     0      0         3
+w84r2      19      19       0     0      0         4
+w84r3      20      20       0     0      0         4
+w84r4      26      26       0     0      0         5
+w84r5      23      23       0     0      0         3
+
+=== every face whose left neighbour is not empty ===
+  w12    row  6 cols  41- 41 left=0xc2 (COIN) -> COIN-DEAD      width  1 floor=1 on_route=0
+  w12    row  6 cols  46- 46 left=0xc2 (COIN) -> COIN-DEAD      width  1 floor=1 on_route=0
+  w12    row  6 cols  62- 63 left=0xc2 (COIN) -> COIN-DEAD      width  2 floor=1 on_route=0
+  w12    row  6 cols  69- 69 left=0xc2 (COIN) -> COIN-DEAD      width  1 floor=1 on_route=0
+  w42m   row 10 cols  30- 47 left=0xc2 (COIN) -> COIN-DEAD      width 18 floor=1 on_route=1
+
+=== hidden blocks ($5f/$60) on the route, with their neighbourhood ===
+  w11    row  6 col  64 (x 1024-1039) value 0x60  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=None on_route=0
+  w41    row  3 col  92 (x 1472-1487) value 0x60  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(4, 5) on_route=0
+  w42m   row  5 col  64 (x 1024-1039) value 0x5f  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(4, 5) on_route=1
+  w42m   row  6 col  63 (x 1008-1023) value 0x5f  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(4, 5) on_route=0
+  w42m   row  6 col  65 (x 1040-1055) value 0x5f  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(5, 6) on_route=1
+  w42m   row  7 col  66 (x 1056-1071) value 0x5f  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(6, 8) on_route=1
+  w81    row  6 col  80 (x 1280-1295) value 0x60  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(5, 6) on_route=1
+  w81    row  7 col 158 (x 2528-2543) value 0x5f  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(8, 9) on_route=0
+  w84r2  row  7 col 150 (x 2400-2415) value 0x5f  left=0x00 right=0x00 below=0x00  right-blocks=0 wr-side-rows-here=(5, 6) on_route=0

@@ -1,0 +1,25 @@
+  loss area            rows    f             x    dx    y band  note
+   114 w82     12276-12458   183   3228-3401     173   12-192   geometry: cols 201-212
+    40 w11b      656-718      63     23-80        57   48-176   LEVEL-START RAMP (forced, F225)
+    38 w84r3   16492-16541    50   3427-3457      30   91-128   geometry: cols 214-216
+    33 w42m     6751-6843     93    383-532      149  140-176   geometry: cols 23-33
+    33 w12      3550-3628     79   2622-2737     115   54-128   geometry: cols 163-171
+    30 w12      2487-2535     49     40-87        47   48-176   LEVEL-START RAMP (forced, F225)
+    30 w42w     7636-7681     46    918-958       40   32-128   geometry: cols 57-59
+    30 w42m     6585-6632     48     40-85        45   48-176   LEVEL-START RAMP (forced, F225)
+    27 w12      3708-3746     39   2913-2944      31   91-128   geometry: cols 182-184
+    22 w84r4   16720-16748    29     56-74        18  135-144   LEVEL-START RAMP (forced, F225)
+    21 w84r1   15224-15263    40     40-87        47   56-112   LEVEL-START RAMP (forced, F225)
+    18 w11      1049-1081     33   2616-2653      37  120-156   LEVEL-START RAMP (forced, F225)
+    18 w84r5   17590-17621    32   4152-4187      35  120-153   LEVEL-START RAMP (forced, F225)
+    18 w84r3   16355-16386    32   3128-3163      35  112-144   LEVEL-START RAMP (forced, F225)
+    18 w84r2   15918-15949    32   1848-1883      35  120-153   LEVEL-START RAMP (forced, F225)
+    18 w83     13123-13154    32     40-75        35  144-176   LEVEL-START RAMP (forced, F225)
+    18 w82     10980-11011    32     40-75        35  150-176   LEVEL-START RAMP (forced, F225)
+    18 w81      7934-7965     32     40-75        35  144-176   LEVEL-START RAMP (forced, F225)
+    18 w42w     7248-7279     32     24-59        35  144-176   LEVEL-START RAMP (forced, F225)
+    18 w41      3982-4013     32     40-75        35  144-176   LEVEL-START RAMP (forced, F225)
+    18 w11       197-228      32     40-75        35  150-176   LEVEL-START RAMP (forced, F225)
+    15 w84r2   16158-16184    27   2405-2435      30   64-100   geometry: cols 150-152
+
+total priced loss 613 frames; of that 324 in forced level-start ramps and 290 in geometry

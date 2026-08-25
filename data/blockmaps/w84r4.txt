@@ -1,0 +1,15 @@
+# w84r4  8-4 room 4  L_CastleArea?
+# columns 0..79 (80 read) from data/wr/fceux_wr.ram [(16598, 17467)]
+oo....oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oo....oooooooooooo.....................ooo.........................ooooooooooooo
+oo....oooooooooooo.....................ooo.........................ooooooooooooo
+oo.........ooooooo.....................ooo.........................ooooooooooooo
+oo...................................................................ooooooooooo
+oo..................................................................oooooooooooo
+oo..................................................................oooooooooooo
+oo.........ooooooo.................................................ooooooooooooo
+oo....oooooooooooo.....................ooo.........................ooooooooooooo
+oo.##.oooooooooooo.....................ooo.........................ooooooooooooo
+oo.##.oooooooooooo.....................ooo.........................ooooooooooooo
+ooo##ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+ooo##ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo

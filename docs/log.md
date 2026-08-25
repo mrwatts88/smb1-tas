@@ -1702,3 +1702,57 @@ enumerated, the only class that yields *distance* rather than fractions of frame
 unaudited half of the ROM**; **(3) 1-2's eight frames**, where the lever is identified. Falsification:
 if the census comes back empty at both hitboxes and the audit is clean, SMB1 any% is optimal and that
 is itself a publishable result (PLAN §7 tier 1).
+
+## 2026-08-25 — session 19: E9a, the wall-face census (empty), and the 114 frames it found instead
+
+**Did.** E9a end to end, exactly as STATUS specified it: no emulator, no compute, one afternoon of
+disassembly plus `data/wr/fceux_wr.ram`. Four new tools (`tools/route_blockmaps.py`,
+`wall_face_census.py`, `route_loss_map.py`, `route_obstacle_cost.py`), block maps for all fourteen
+controllable route areas (`data/blockmaps/`), the write-up in `docs/experiments/P4E-census.md`, and
+F241-F245 + H48. The four `build/explore` archives from session 18 were left running untouched;
+none has beaten its control (see STATUS "Running jobs").
+
+**Learned — the census is empty, and the mechanic was being described wrongly.** 708 wall faces
+across the route, **zero** admit a static walk-through at either hitbox (F243). The reason took
+re-reading `DoPlayerSideCheck` line by line: *blocking is "non-empty", not `CheckForSolidMTiles`*
+(F241) — that routine is a head-bump classifier, and the 4-2 bricks the WR famously walks through
+are `$52`, which it calls *not* solid. The loop exits at the first probe that finds anything and
+`ImpedePlayerMove` reads the counter it exited on, so a **left** probe in any non-empty cell is a
+free pass. That makes the entry test simple and the answer negative: the left probe sits in the
+column before the face for a full **11 px**, so the tile there must be non-empty *and survive*, and
+**only `$5f`/`$60` do — all nine of which are isolated on this route.** A coin cannot: the right
+probe collects it eleven pixels before the left probe needs it (F242). That is the missing *why*
+behind F93's 31 frames, which the project has been recording as a measurement for five sessions
+without explaining.
+
+**Learned — the live primitive is vertical, not lateral** (F244). `ChkFootMTile` ends in a **`jmp`**
+to `ImpedePlayerMove`, so a frame whose feet are inside a non-empty cell with `Y & $0F >= 5` returns
+without ever running the side check; with `Player_MovingDir` LEFT and speed >= 1 it does nothing at
+all. The way into a wall is to sink into its top, not to walk into its face. Two more total-skip
+conditions fell out of the same read: `Y >= $cf` skips all of `PlayerBGCollision`, and `Y < $08`
+makes the side check leave before any probe.
+
+**Learned — the part that actually moved the board.** The census needed a value filter (a
+walk-through only pays where the route is off the cap, since SMB1's airborne x-cap equals its ground
+cap), so I priced every off-cap stretch of the WR against 2.5 px/frame. **The whole geometric loss
+of HappyLee's run is 290 frames** — 324 more are the sixteen forced post-card ramps — **and 114 of
+those 290 sit at one place nobody in this project had ever priced: 8-2's columns 201-212** (F245).
+A one-column pillar, a two-column bottomless shaft, a two-column wall from row 3 to row 12: he falls
+into the shaft and **wall-jumps** up it, 183 frames for 173 px against a 69-frame bound. Its faces
+refuse and F244's sink cannot reach it, so it is a **jump-arc** problem — and on his own measured
+full-speed arc the direct jump from the pillar misses by **one to two pixels** (H48). Also worth
+saying plainly: **8-1, 8-3, 4-1 and 1-1 have no priced geometric loss at all**, which independently
+confirms F225 and closes geometry as a lever on four of the eight levels.
+
+**The method note, since it keeps repeating.** Session 18's lesson was "reading the ROM beats
+searching it". This session's is narrower and sharper: **the filter you build to rank a hypothesis
+can be worth more than the hypothesis.** E9a's own answer is a clean negative; the ranking machinery
+it required found the biggest unexamined number on the board. And the running `e8-climb` archive has
+been searching that exact region for two hours with a cell key (`--xcell 6 --ycell 12`, no subpixel)
+that is **provably below the resolution of the question** — the same defect the Mac session caught in
+1-2. Check that a search *can represent* the thing you are asking it for before you spend six hours.
+
+**Next.** E9b-1: `./runs/E9b/launch.sh` (written, committed, rooted at 12157 before the approach
+jump, `--subcell 16/32`). It is blocked only on RAM — 1 GB available of 15 with four archives
+running — so it waits for `pgrep -x explore` to empty. The zero-memory fallback is to splice a jump
+into the WR inputs at dump row 12289 and replay on the core, which tests H48 directly.
