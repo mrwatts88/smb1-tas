@@ -1306,3 +1306,66 @@ outcome histogram); sweep band B (`$0700–$07FF`) at every level entry; re-run 
 with `--no-death-exit` before claiming (the DEAD early-exit is a stated assumption, not a theorem);
 then the ranked cell list → P3.3 and the $06CF-tightness question.
 `docs/experiments/P3.2-ram-oracle.md`.
+
+### 2026-08-24 — session 17: P2.2f — the room-2 enemy port lands, and the pipe list was wrong
+
+**Did.** Finished the 8-4 room-2 enemy port (the four steps STATUS listed), validated it, then found and
+fixed the bound that makes the room searchable at all. A second session is working Track B (P3.2) in the
+same tree; pathspec-only commits, facts split F135+/F200+.
+
+**The port (F135).** The engine stays one module — `w42enemies` is now parameterised on the terrain
+(`Slots::step::<B>`) as well as the area, so 4-2 runs `BB42` and 8-4 runs `BB84`. New:
+- **`CLASS_PARA`, the `$0e` jumping Green Paratroopa**, derived from the disassembly: `InitJumpGPTroopa`
+  (dir 2, x speed `$f8`, and **no `InitVStf`** — its vertical state starts as the slot's stale memory),
+  `MoveJumpingEnemy` (downward force `$1c`, dispatched by **ID** so it applies in every state), and
+  `EnemyJump` for BG collision (re-launch at y speed `$fd` only when falling onto a solid). Class 8 does
+  not fit the 3-bit class field, so it is packed as low bits 000 + byte-0 bit 7 — a code the plant flag
+  cannot produce, so every 4-2 record keeps its exact bytes.
+- **A stomp rule 4-2 and 1-1 never needed.** `ChkForPlayerInjury` sends a *rising* player to `ChkInj`,
+  where an object with id >= `$07` is still stomped when `Player_Y + 12 < Enemy_Y`. That is how the WR
+  stomps the room-2 paratroopa while moving up at y speed -4, and a stomped paratroopa demotes to a
+  Green Koopa (`ChkForDemoteKoopa`), it does not become a shell.
+- **Plant stale memory**: a plant's down/up positions *are* the slot's `$0434`/`$0417`, so they have to
+  survive the erase — a paratroopa taking over an erased plant's slot reads the up position as its
+  `Enemy_YMF_Dummy`, and every later carry frame depends on it.
+
+**The difftest earned its keep (F136).** The first full battery came back 21/400 divergent, all the same
+shape (model stomps, core does not). The core's slots said why: a **fourth piranha plant at col 142** that
+the model did not have. `VerticalPipe` adds a plant to **every** vertical pipe outside 1-1 — the only
+refusal is all five enemy slots being busy — so the pipe list I had derived from the WR dump was a *lower
+bound*. The WR skips (142, 8) and **the clip pipe (152, 4) itself** only because its slots happened to be
+full at those moments. With the block-map-derived list the same 400 trials pass clean.
+
+**Validation.** WR 267/267 frames exact against the core (both enemy events, same pipe-entry frame);
+reference-path audit `GOAL` at step 267 with **0 bound violations**; 900 random trials / ~171k frames with
+**0 differences** (440 stomps, 27 kicks, 204 matching deaths). 4-2 unchanged: the `--lift 0` control gate
+is exact and the F127 chain replays 596/596 with 0 mismatches.
+
+**Two things the case needed on the way.** Enemies forced `W84Room2` onto `WithScrollPos` +
+`WithBlockStates` (the loader, the offscreen bits, the plant spawns and the timer phases all need them),
+key 11 -> 20 bytes; and its start column 136 exposed a latent bug in the *shared* compressed state —
+`parser_col` is a `u8` but only 7 bits were packed, so it round-tripped to 8 and the case panicked. 4-2
+and 1-1 both start at 24, so nothing had ever noticed. The top bit now goes in one of the two spare bits
+at the end of the block-state field, keeping every existing record byte-identical.
+
+**F137 — and this is the part that matters for the search.** The room's bound was the plain x table to
+x 2436, and the frontier reaches that **at floor level** ~15 frames before the goal; from there `h = 0`
+and there is no signal for the climb the entry actually needs. Measured at the WR's own deadline 267, a
+bucketed beam finds no goal at width 50 *and* at width 2000/300k-per-layer — it just races past the pipe.
+Fixed with a y-coupled `ygate` bound over the goal's own necessary condition `x >= 2436 && Player_Y <= 64`.
+Trap: `steps_xy` never returns 0 (its scan starts at k = 1), so used raw it prunes the WR's own goal —
+states already satisfying the condition need `h = 0` explicitly. Audits clean afterwards (0 bound
+violations on the WR; 1335 mutation-audit checks, 0 violations, min slack 0).
+
+The climb itself is worth knowing: Mario runs into the clip pipe's **left face**, and because his right
+foot point is inside col 152 at row 6 he lands on the pipe's *body* and stands wedged at Y 96, then jumps
+to the cap at Y 64 and walks the last 13 px from a standstill.
+
+**Ops.** `model_difftest.py` writes a 33 MB core RAM dump per trial into `/tmp`, which is a RAM-backed
+tmpfs here; a 400-trial `--keep` battery filled it and the shell could not `fork` for a minute (every
+external command exit 1/134). Recovery is `zmodload zsh/files` + builtin `rm`. Runbook §1 now says to set
+`TMPDIR` under `/home` and run batteries under a cgroup cap.
+
+**Next.** The d267 beam control (the pre-registered gate: **d266 means nothing until d267 finds a goal**).
+If width alone does not do it, the bucket key has no enemy axis — H40's beetle/plant/paratroopa phase and
+slot occupancy — which is the next lever.

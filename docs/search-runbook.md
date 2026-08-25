@@ -19,6 +19,14 @@ work loop; this file is what to do when you actually launch a search.
 - The 15 GB laptop runs **one** heavy capped job at a time (run 4 + a capped test = OOM kills
   in the journal, 2026-08-22). Layer files are ~5–25 GB each for the big runs: watch `df`.
 - Bigger than the two boxes → the cloud, per PROCESS (cap $300; `docs/experiments/P0.10-cloud-sizing.md`).
+- **The rule covers the difftests too, and `/tmp` is the trap** (P2.2f, 2026-08-24). `tools/model_difftest.py`
+  writes a **33 MB core RAM dump per trial** into `tempfile.mkdtemp()`, i.e. into `/tmp` — which is a 7.7 G
+  **RAM-backed tmpfs** on this box. A 400-trial battery with `--keep` filled it, and the shell then could not
+  `fork` at all: every external command returned empty with exit 1 or 134, including `free` and `ls`. Recovery
+  without forking is `zmodload zsh/files` (builtin `rm -rf`). So: run batteries as
+  `TMPDIR=<dir under /home> systemd-run --user --scope -p MemoryMax=6G -p MemorySwapMax=0 --quiet python3
+  tools/model_difftest.py …`, point `--keep` at `/home` too, and delete the directory afterwards. tmpfs pages
+  are charged to the cgroup, so the cap would have caught this.
 
 ## 2. Ladders and dedicated runs
 

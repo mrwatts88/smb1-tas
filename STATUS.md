@@ -65,6 +65,16 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
+- **[TRACK A, session 17] RUNNING — the P2.2f d267 beam CONTROL** (detached, `pgrep -x smb-opt`).
+  `bfscx W84Room2 data/wr/wr_inputs.bin 15917 0 267 --enemies 0 --beam 3000 --beam-buckets off,y,spd,sub
+  --beam-max 600000 --layer-dir runs/P2.2f/d267_layers --threads 5` under
+  `systemd-run --user --scope -p MemoryMax=7G -p MemorySwapMax=0`. Log `runs/P2.2f/d267_ygate_w3000.log`.
+  ~8.5 s/layer, ~480k records/layer ⇒ ≈ 40 min and ≈ 8-10 GB of layer files (145 G free at launch).
+  **How to read it:** `grep -E "goal reached|no goal|^total " runs/P2.2f/d267_ygate_w3000.log`.
+  A **goal at layer 267** = the machinery is validated and d266 is the next run (change 267 → 266).
+  **No goal** = still under-powered, and the next lever is an ENEMY axis in the bucket key (H40), NOT more
+  width — narrower runs at width 50 / 200 / 2000 already failed (F137). Either way **delete the layer dir**
+  unless a d266 run follows immediately.
 - **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
   Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
   ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
@@ -212,54 +222,47 @@ pre-cleanup narrative version of this file is archived at
   shows it was a transient `AreaPointer` during the reset), route-agnostic `world_ahead`, and **`novel_world`**
   for worlds the WR never visits at all (H44 — `world_ahead` scored those ZERO by construction, since there is
   no baseline frame to beat; a world the WR never enters may still lead somewhere better via an unknown warp).
-- **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
-  Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
-  page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
-  is the record (8-4 is unquantized, H24). Derivations done from the dump + disassembly:
-  • **Start state = MrWint's own `W84Part2Speedup` start** (`x_pos 0x73800`, page 7 X 0x38, standing, SL 0) —
-    identical in form to `W84Room3`'s verified `0xc3800`, so it is the room-2 control frame.
-  • **Pipe = (col 152, row 4)** from MrWint's `EnterVerticalPipe<U152, U4>`. Small-Mario entry window by the
-    same foot-adder rule the project validated for room 3: **x ∈ [0x98400, 0x98d00)**. (MrWint's `>= 0x985c0`
-    is a *Big*-Mario threshold — his route, not the WR's.)
-  • **No scroll condition needed.** Room 2's area-change command sits at page 9 col 15 = x 2544, so it parses
-    at SL ≥ 2544 − 303 = **2241** (F40 law); the WR is at SL **2316** at the clip — 75 px of margin, and
-    entering before it parses would need offset > 195, which is impossible. So unlike room 3 there is no
-    threshold to satisfy: `NoScrollPos`, smaller state.
-  • **Small Mario + `WithRunningTimer`** (MrWint's room-2 cases are `Big`/`NoRunningTimer` — his own route).
-  • **The span is NOT enemy-free** — two Buzzy Beetles at x 2048/2080 and two id-$0e at x 2224/2256 sit inside
-    it (that is exactly H42's point). Search enemy-free, then let the core adjudicate each candidate.
-  Acceptance: WR line exact (`--check-path 267` → GOAL at step 267, 0 bound violations), then a random battery,
-  then the d266 search. Any goal → core replay → runbook §4 pipeline.
-  **CHECKPOINT (session 16): the case is BUILT and is exact on the WR for 89 steps — then the WR stomps a
-  Buzzy Beetle (F134).** Divergence at step 90 (dump row 16007), YSPD model +4 vs core −4, with the beetle at
-  x 2021 flipping `Enemy_State` 0 → 4 on that frame. So **room 2 cannot be searched enemy-free** — the WR's own
-  route needs the stomp, and the 143 bound violations after step 90 are a consequence of that, not an unsound
-  bound. Two derivation traps burned here, both worth remembering: the x subpixel is **$0400** (`$0705` is the
-  *speed* fraction), and the model's `y_pos` low byte is **not** the core's `$0433` — compare via
-  `model_difftest`'s field set (XP/XSUB/XSPD/XFRAC/YP/YSPD/YFRAC), never by hand-assembling a 24.8 word.
-  Also: `v_force` is an encoded enum (`options.rs:362`), so the core's raw `$0709` = 0 is not a legal value —
-  `V_FORCE_AREA_INIT` is correct for a control frame (`W84Room3` shows the identical pattern).
-  **NEXT: the room-2 enemy port — and it is the CHEAP one.** Live objects are two Buzzy Beetles (id $02, plain
-  walkers, same shape as the goombas already in `w11enemies`) and three piranha plants (id $0d, class already in
-  `w42enemies`). **No cheep frenzy, no LFSR** — F126/F130's expensive part is not needed here. Plus **ONE new
-  class**: `$0e` is a **jumping Green Paratroopa**, not a lift as MrWint's comment claims — traced from the dump
-  (rows 16008-16088), constant x-speed -8 leftward with a repeating parabolic arc 184→141→185, period ~56 frames.
-  Two of them (x 2224, 2256) sit inside room 2's span. Plant pipes for room 2 = **(115,9), (122,8), (132,9)**
-  (col = (x-8)/16, row = (rest_y-32)/16 — mapping confirmed exact by room 3's x-3400 plant landing on (212,5),
-  the case's own pipe). Port → difftest to 0 over the WR's 267 → then the d266 search with `--beam-buckets`.
-  Full derivation + raw `E_CastleArea6` bytes + the implementation plan: `docs/experiments/P2.2f-84-room2-seam.md`.
-  **PORT PROGRESS (session 16, committed):** the enemy engine is now **parameterised on area data** —
-  `Frame` carries `edata: &'static [u8]` and `pipes: &'static [(u8,u8)]` instead of `w42enemies`' hard-coded
-  `ENEMY_DATA`/`PIPES` (5 call sites). 4-2 passes its own, so behaviour is **bit-identical**; both regressions
-  pass — the `--lift 0` control gate (6/16/34/70/134/673/3472/16472/69489/257001) and the enemy-aware core
-  replay of `warp87_path.bin` (**87/87 frames, 0 mismatches**, same pipe entry). 8-4's data is in the module as
-  `W84_ENEMY_DATA` (58 bytes, `E_CastleArea6`), `W84_ROOM2_PIPES` = (115,9),(122,8),(132,9) and
-  `W84_ROOM3_PIPES` = (195,9),(204,6),(212,5),(228,6).
-  **REMAINING for the port (the actual next step):** (1) a **jumping-paratroopa class** (`$0e`: constant x-speed
-  −8 leftward + a ~56-frame parabolic arc; check during the difftest whether the phase is frame-indexed or
-  player-coupled); (2) a `w84_enemies` hook in `main.rs` wiring `W84Room2` to `W84_ENEMY_DATA`/`W84_ROOM2_PIPES`;
-  (3) **difftest the WR's 267 frames to 0 diffs including the beetle stomp at step 90**; (4) then the d266 search
-  with `--beam-buckets` (code-derived key per H40: beetle x/state, plant phase, paratroopa phase, slot occupancy).
+- **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 s16; port DONE s17).**
+  Span: the room in ONE piece — control (WR dump row **15918**, fceux RAM index 15917, page 7, x 1848) →
+  the clip pipe entry at **(col 152, row 4)**, x 2436. WR = **267** frames, 8-4 is unquantized (H24), so a
+  goal at **≤ 266 IS THE RECORD**. Case `W84Room2` in `third_party/smb-opt/src/case/w84.rs`; full write-up
+  `docs/experiments/P2.2f-84-room2-seam.md` (Part 2 = this session).
+  **DONE this session — the enemy port is finished and validated (F135/F136):**
+  • `w42enemies` is now the shared engine, parameterised on area (`edata`/`pipes`) AND terrain
+    (`Slots::step::<B>`; `BB42` for 4-2, `BB84` for 8-4). New `CLASS_PARA` = the `$0e` jumping Green
+    Paratroopa (`InitJumpGPTroopa` with NO `InitVStf`, `MoveJumpingEnemy` force `$1c` dispatched by ID,
+    `EnemyJump` BG collision, `ChkForDemoteKoopa` on a stomp). Class 8 packs as low-bits-000 + byte-0 bit 7,
+    so every 4-2 record keeps its bytes.
+  • **New stomp rule**: `ChkForPlayerInjury` stomps an id ≥ `$07` object even while Mario RISES, when
+    `Player_Y + 12 < Enemy_Y`. The WR's paratroopa stomp needs it; no 4-2/1-1 enemy has id ≥ $07.
+  • **F136 — the pipe list was wrong.** `VerticalPipe` gives EVERY vertical pipe outside 1-1 a plant (only
+    `FindEmptyEnemySlot` refuses), so the dump-derived list was a lower bound. Room 2 = (115,9) (122,8)
+    (132,9) **(142,8) (152,4 — the clip pipe itself)**. `W84_ROOM3_PIPES`' old (228,6) is not in BB84 and
+    must be re-derived before room 3's enemies are wired.
+  • **Validation**: WR **267/267 frames exact** vs the core incl. both enemy events, same pipe-entry frame;
+    `--check-path 267` = GOAL at step 267, **0 bound violations**; **900 random trials / ~171k frames, 0
+    differences** (`runs/P2.2f/batt_seed{7b,11,3}.log`). 4-2 regressions both pass: the `--lift 0` control
+    gate exact (6/16/34/70/134/673/3472/16472/69489/257001) and the F127 chain 596/596, 0 mismatches.
+  • Case changes the port forced: `WithScrollPos` + `WithBlockBounceTimer` + `W84Room2Blocks` (key 11 → 20
+    bytes; PARSER_COL0 136, IP0 1, FC0 120, GT0 24, CELLS = the one hidden block (150,7)); a non-empty
+    start ext (`w84_room2_ext0()`, 3 plants + 2 beetles + loader at eoff 18/page 8) so `ext0` plumbing now
+    carries a full `Ext`; and a **latent shared bug fixed** — `BlockStateData::parser_col` is a u8 but only
+    7 bits were packed, so 136 round-tripped to 8 (4-2/1-1 both start at 24, so nothing had noticed). The
+    top bit moved into a spare bit at the END of the field: every existing record stays byte-identical.
+  **THE SEARCH IS THE REMAINING STEP, and its bound had to be rebuilt first (F137).** The x-only table is
+  satisfied **at floor level ~15 frames before the goal**, so h = 0 across the whole climb and a bucketed
+  beam finds no goal even at the WR's own deadline 267 (width 50: no goal; width 2000 / ~300k per layer:
+  no goal, frontier races past to x 2471). Added a y-coupled `YGate` bound over the goal's own NECESSARY
+  condition `x >= 2436 && Player_Y <= 64` (`W84R2_PIPE_Y`), joined with the x table. Trap recorded:
+  `YGate::steps_xy` scans from k = 1 so it never returns 0 and prunes the WR's own goal — states already
+  satisfying the condition are given h = 0 explicitly. Audits clean: 0 bound violations on the WR line,
+  and `ygate_audit --mutate` = **1335 checks, 0 violations, min slack 0**.
+  **PRE-REGISTERED READING (do not skip): the d266 run is meaningless until the d267 CONTROL FINDS A GOAL.**
+  A beam that cannot reproduce the WR's own 267 says nothing about 266. Width 200 with the new bound went
+  extinct at layer 264, 7 px short (max x 2429) — too narrow at the end, not a verdict.
+  **NEXT: (1) read the running d267 control (Running jobs); (2) if it still finds no goal, the bucket key
+  has no ENEMY axis — H40 asks for beetle x/state, plant phase, paratroopa phase and slot occupancy, so add
+  an ext-derived axis to `--beam-buckets`; (3) only then d266, and core-replay any goal (runbook §4).**
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
