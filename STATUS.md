@@ -65,7 +65,23 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A, session 17] No Track A job running.** The P2.2f cross-seam shot **finished: no goal within
+- **[TRACK A, session 17/18] RUNNING — the 1-2 WALL-CLIP rung, the decisive one for that level.**
+  `bfscx W12Warp data/wr/wr_inputs.bin 2486 1080 79 --enemies 0 --goal-x 2784 --goal-y 64 --check-path 80
+  --threads 5 --layer-dir runs/P2.3e/clip_layers` under `systemd-run --user --scope -p MemoryMax=6G
+  -p MemorySwapMax=0`. Log `runs/P2.3e/clip_d79.log`. Root bound 48, deadline 79 (**the WR pays 80**), so
+  slack 31 — but the deadline bound bites hard from layer ~19 (pruning exceeds 85% of generated) and the
+  frontier plateaus around 2.7M/layer, ~400 MB/layer. Expect ~25 GB and ~30 min total.
+  **Why it matters:** F143 showed 1-2's bound tracks the WR exactly for ~1000 frames (speed cap) and loses
+  31 frames in ONE place, the wall clip at steps 1080-1120. Everything after step 1113 is already proved
+  optimal (F142 + F143). **So this rung is the last place 1-2's missing 5-8 frames could be.**
+  **How to read it:** `grep -E "goal reached|no goal|no live|^total " runs/P2.3e/clip_d79.log`.
+  **DRY** ⇒ the clip stretch is optimal ⇒ **1-2 is closed from step 1080 to the end**, and the level's hope
+  narrows to its first 1080 frames (which are at the speed cap throughout — i.e. essentially closed too).
+  **GOAL** ⇒ census the arrival state FIRST (runbook §3.2): it only counts if it arrives at the x-speed cap
+  standing, like the WR's does — F143's near-miss reached the same gate 9 frames early with ~0 speed and
+  paid every frame back. Then reconstruct → chain → `replay_check --enemies 0` → continue to the pipe.
+  Delete `runs/P2.3e/clip_layers` either way.
+- **[TRACK A, session 17] No other Track A job running.** The P2.2f cross-seam shot **finished: no goal within
   196 steps** (697 s, frontier extinct at layer 190) and is **uninformative by its own diagnostic** — the
   same run reports the WR's path leaving the frontier at layer 41 (F138). Layers deleted. `pgrep -x smb-opt`
   empty; 145G free. Log kept: `runs/P2.2f/seam70_d196.log`.
