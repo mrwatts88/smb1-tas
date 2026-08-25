@@ -396,3 +396,31 @@ Validated end-to-end this session on the WR's own seeded goal, so it is known to
 4. **Then splice and re-verify in two emulators** — `tools/splice_fm2.py`, `tools/fm2_to_bk2.py`,
    `tools/fceux_run.sh`, `tools/bizhawk_run.sh`. PROCESS: nothing is a result until it syncs in
    both.
+
+---
+
+## E8 — 8-2's ending, and the third proxy-goal trap of the session
+
+8-2 is the last unexamined pocket on the route: 213 off-cap control frames (F225), ~105 of them a
+single shaft climb at x 3261–3313 (dump rows 12275–12457) where Mario alternates hops to gain height
+(Y 444 → 368 → 304) before running off the high platform and accelerating all the way down to the
+flagpole. MrWint solved no 8-2 segment and this project has never touched it.
+
+**First attempt, goal `GES == 5`: reported −51 frames, and was +126.** `tools/e3_replay.py` on the
+candidate against the WR:
+
+| | grab / `GES` 5 | `StarFlagTaskControl` 2 | 8-3 loads |
+|---|---|---|---|
+| candidate | slide from core 12400, `GES` 5 at **12421** | 12512 (**+91**) | **13079** |
+| WR | `GES` 5 at 12472 | 12473 (**+1**) | **12953** |
+
+The candidate grabs the pole *high* and takes a normal slide; the WR's flag glitch skips the slide
+entirely. **The flag glitch is worth ~126 frames**, and "reached the end-of-level routine earlier"
+is not the same as "ended the level earlier". Fixed goal: **`StarFlagTaskControl == 5`, which is the
+area change itself** (F27), WR baseline core **12952**. It is framerule-quantized, so the only
+outcomes are 12952 and 12931 — **12931 is the record** (F237).
+
+That is the third time this session a proxy goal produced a fake result (F230 in 8-4, F131 before
+it). The pattern is worth stating as a rule: **the goal must be the quantity the record is measured
+in.** For a flag level that is `StarFlagTaskControl == 5`; for a pipe level, the pipe entry that
+actually sets the next `WorldNumber`; for 8-4, the last input.
