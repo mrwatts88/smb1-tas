@@ -116,6 +116,18 @@ pre-cleanup narrative version of this file is archived at
   (col = (x-8)/16, row = (rest_y-32)/16 — mapping confirmed exact by room 3's x-3400 plant landing on (212,5),
   the case's own pipe). Port → difftest to 0 over the WR's 267 → then the d266 search with `--beam-buckets`.
   Full derivation + raw `E_CastleArea6` bytes + the implementation plan: `docs/experiments/P2.2f-84-room2-seam.md`.
+  **PORT PROGRESS (session 16, committed):** the enemy engine is now **parameterised on area data** —
+  `Frame` carries `edata: &'static [u8]` and `pipes: &'static [(u8,u8)]` instead of `w42enemies`' hard-coded
+  `ENEMY_DATA`/`PIPES` (5 call sites). 4-2 passes its own, so behaviour is **bit-identical**; both regressions
+  pass — the `--lift 0` control gate (6/16/34/70/134/673/3472/16472/69489/257001) and the enemy-aware core
+  replay of `warp87_path.bin` (**87/87 frames, 0 mismatches**, same pipe entry). 8-4's data is in the module as
+  `W84_ENEMY_DATA` (58 bytes, `E_CastleArea6`), `W84_ROOM2_PIPES` = (115,9),(122,8),(132,9) and
+  `W84_ROOM3_PIPES` = (195,9),(204,6),(212,5),(228,6).
+  **REMAINING for the port (the actual next step):** (1) a **jumping-paratroopa class** (`$0e`: constant x-speed
+  −8 leftward + a ~56-frame parabolic arc; check during the difftest whether the phase is frame-indexed or
+  player-coupled); (2) a `w84_enemies` hook in `main.rs` wiring `W84Room2` to `W84_ENEMY_DATA`/`W84_ROOM2_PIPES`;
+  (3) **difftest the WR's 267 frames to 0 diffs including the beetle stomp at step 90**; (4) then the d266 search
+  with `--beam-buckets` (code-derived key per H40: beetle x/state, plant phase, paratroopa phase, slot occupancy).
 - **P2.2a — H25, the 8-4 turnaround-room stop (started 2026-08-24 session 14 evening; the
   campaign opener per the new decisions.md priority).** Step 1: dump forensics — the (14,4)
   area-change command parses at SL ≥ 3345 (row 16516 in the WR); measure the WR's max SL margin
