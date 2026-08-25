@@ -27,10 +27,10 @@ index 4612768..1037b92 100644
 +[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
 +]);
 diff --git a/src/blockbuffer/world4.rs b/src/blockbuffer/world4.rs
-index ac14ddd..ba5a544 100644
+index ac14ddd..5c022d7 100644
 --- a/src/blockbuffer/world4.rs
 +++ b/src/blockbuffer/world4.rs
-@@ -11,3 +11,37 @@ blockbuf!(BB44, 12*16, [[0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,
+@@ -11,3 +11,60 @@ blockbuf!(BB44, 12*16, [[0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,
                          [0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x14,0x15,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ],
                          [0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62],
                          [0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,0x62,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,0x62,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62,0x62]]);
@@ -67,6 +67,29 @@ index ac14ddd..ba5a544 100644
 +[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0x14,0x15,0,0,0x14,0x15,0,0,0x14,0x15,0,0,0x61,0x61,0,0,0,0,0,0,0,0],
 +[0x54,0x54,0x54,0x54,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
 +[0x54,0x54,0x54,0x54,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54]
++]);
++
++/// P2.3e: **4-1's block map**, 232 columns, reconstructed from the WR dump. MrWint's tree has no 4-1 case and
++/// no 4-1 block buffer at all — of the ten segments F66 covers, none is in this level, so nothing here has
++/// ever been searched by anyone. Extracted with
++/// `tools/blockmap_from_dump.py data/wr/fceux_wr.ram 3816 5424 --rust BB41`: the window must start at the
++/// **area-load row 3816**, not the GES-7 control frame 3980 — the reconstruction can only read a column the
++/// first time it is valid with no parser task running, and by 3980 the parser has long since passed columns
++/// 0..15, which then come out as zeros (the bug that made Mario fall through the floor in 1-2).
++blockbuf!(BB41, 240, [
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x24,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc0,0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x60,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc0,0xc0,0xc0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc2,0,0,0xc2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc0,0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc0,0xc0,0xc0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x12,0x13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x10,0x11,0,0,0,0,0,0,0,0,0,0,0,0,0xc0,0xc0,0xc1,0x51,0x51,0xc0,0xc0,0xc0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0,0,0,0x58,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x12,0x13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x12,0x13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0x25,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
++[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x14,0x15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0x61,0,0,0,0,0,0,0,0,0x61,0,0,0,0,0,0,0x52,0,0,0,0,0,0,0],
++[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54],
++[0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0,0,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54,0x54]
 +]);
 diff --git a/src/case/mod.rs b/src/case/mod.rs
 index b60525c..88713eb 100644
@@ -2388,7 +2411,7 @@ index 4de780d..9d8fcf7 100644
    pub fn get_steps_until_y_pos_between(&self, s: &State, min_y_pos: i32, max_y_pos: i32) -> Dist {
      if s.y_pos < min_y_pos { self.get_steps_until_y_pos_at_least(s, min_y_pos) }
 diff --git a/src/main.rs b/src/main.rs
-index 350d469..1674323 100644
+index 350d469..9fdadb0 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -11,6 +11,7 @@ extern crate time;
@@ -2399,7 +2422,7 @@ index 350d469..1674323 100644
  
  mod blockbuffer;
  mod case;
-@@ -20,8 +21,361 @@ mod ida;
+@@ -20,8 +21,363 @@ mod ida;
  mod options;
  mod state;
  mod store;
@@ -2477,6 +2500,7 @@ index 350d469..1674323 100644
 +    let mut beam_buckets: Vec<u8> = Vec::new(); // P2.3c-8 (H39): diversity beam — keep N per PHYSICAL bucket, not N overall
 +    let mut beam_max: Option<usize> = None; // P2.3c-8: optional global cap on a bucketed layer
 +    let mut goal_offset: Option<i32> = None; // P2.3c-6: --goal-offset N — goal = scroll offset >= N (measure the mint cost)
++    let mut goal_sl: Option<i32> = None;     // P2.3e: --goal-sl N — the goal transition ALSO needs ScreenLeft16 >= N
 +    let mut i = 7;
 +    while i < args.len() {
 +      if args[i] == "--out" { out = Some(args[i + 1].clone()); i += 2; }
@@ -2498,18 +2522,19 @@ index 350d469..1674323 100644
 +      else if args[i] == "--beam-buckets" { beam_buckets = parse_beam_buckets(&args[i + 1]); i += 2; } // P2.3c-8: comma list of off,y,spd,sub,vf
 +      else if args[i] == "--beam-max" { beam_max = Some(args[i + 1].parse().unwrap()); i += 2; } // P2.3c-8: cap a bucketed layer
 +      else if args[i] == "--goal-offset" { goal_offset = Some(args[i + 1].parse().unwrap()); i += 2; } // P2.3c-6: goal = scroll offset >= N
++      else if args[i] == "--goal-sl" { goal_sl = Some(args[i + 1].parse().unwrap()); i += 2; } // P2.3e: goal also needs absolute ScreenLeft >= N
 +      else { panic!("unknown option {}", args[i]); }
 +    }
 +    let hook: Option<Hook> = if enemies { Some(w42_enemies as Hook) } else if lift { Some(w42_lift as Hook) } else { None };
 +    let drift = enemies && !no_drift && goal_x.is_none() && goal_offset.is_none(); // P2.3c-5: the drift bound joins the case bound under the F40 refusal
 +    match args[2].as_str() {
-+      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
-+      "W11Room1E" => bfscx_run::<case::w11::W11Room1E, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w11_enemies as Hook) } else { None }, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
-+      "W84Room2" => bfscx_run::<case::w84::W84Room2, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w84_enemies as Hook) } else { None }, w84_room2_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
-+      "W12Warp" => bfscx_run::<case::w12::W12Warp, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w12_enemies as Hook) } else { None }, w12_warp_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
-+      "W84Room3" => bfscx_run::<case::w84::W84Room3, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
-+      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
-+      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset),
++      "W42Main" => bfscx_run::<case::w42::W42Main, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, hook, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), drift, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W11Room1E" => bfscx_run::<case::w11::W11Room1E, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w11_enemies as Hook) } else { None }, w42ext0(aptn0), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W84Room2" => bfscx_run::<case::w84::W84Room2, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w84_enemies as Hook) } else { None }, w84_room2_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W12Warp" => bfscx_run::<case::w12::W12Warp, [u8; 20]>(&data, first, prefix, max_steps, out, check_path, threads, if enemies { Some(w12_enemies as Hook) } else { None }, w12_warp_ext0(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W84Room3" => bfscx_run::<case::w84::W84Room3, [u8; 12]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W42Warp" => bfscx_run::<case::w42::W42Warp, [u8; 14]>(&data, first, prefix, max_steps, out, check_path, threads, if stage { Some(w42_warp_stage as Hook) } else { None }, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
++      "W11VertPipeEntry" => bfscx_run::<case::w11::W11VertPipeEntry, [u8; 10]>(&data, first, prefix, max_steps, out, check_path, threads, None, Ext::zero(), layer_dir, resume, acc_mb, stop_step, (goal_x, goal_y), false, beam, beam_offset, &beam_buckets, beam_max, log_offset, goal_offset, goal_sl),
 +      other => panic!("unknown case {}", other),
 +    }
 +    return;
@@ -2761,7 +2786,7 @@ index 350d469..1674323 100644
    // calc_prng();
    case::w84::W84Part4Speedup::run();
    // case::w21::W21ScreenScrollBlock3PipeClip::run();
-@@ -46,4 +400,1568 @@ fn calc_prng() {
+@@ -46,4 +402,1576 @@ fn calc_prng() {
    print!("Cycle: ");
    for b in result { print!("{:02x}", b) }
    println!();
@@ -3448,13 +3473,21 @@ index 350d469..1674323 100644
 +  false
 +}
 +/// P2.3c-2c: goal test / bound with the optional position-goal override (see bfscx_run).
-+fn xy_goal<G: heuristics::SearchGoal>(g: &G, ns: &State, res: &emu::EmuResult, gx: Option<i32>, gy: Option<i32>, goff: Option<i32>) -> bool {
++/// P2.3e (F144/F145): `gsl` is a MINIMUM ABSOLUTE SCREEN LEFT on the goal transition. Where a warp zone arms
++/// on the scroll rather than on Mario — 1-2's `ScrollLockObject_Warp` at ScreenLeft 2816 — reaching a position
++/// gate early is worthless if the scroll came along late, because the scroll is a property of where Mario has
++/// BEEN. Putting the scroll IN the goal makes the search optimise it instead of reporting it afterwards.
++/// It only ever removes goal states, so a dry under it stays a sound negative for the conjunction.
++fn xy_goal<G: heuristics::SearchGoal>(g: &G, ns: &State, res: &emu::EmuResult, gx: Option<i32>, gy: Option<i32>, goff: Option<i32>, gsl: Option<i32>) -> bool {
++  if let Some(sl) = gsl { if screen_left16(ns) < sl { return false; } }
 +  // P2.3c-6: --goal-offset N — goal = scroll offset (x - ScreenLeft16) >= N after a Success step; measures the min
 +  // frames to MINT N px of offset (the wrong-warp key), decoupled from position (minting keeps Mario at the wall).
 +  if let Some(n) = goff { return *res == emu::EmuResult::Success && ((ns.x_pos >> 8) - screen_left16(ns)) >= n; }
 +  match gx { Some(gx) => *res == emu::EmuResult::Success && ns.x_pos >= gx && gy.map_or(true, |gy| ns.y_pos <= gy), None => g.is_goal_state(ns, res) }
 +}
 +fn xy_h<G: heuristics::SearchGoal>(g: &G, st: &State, e: u16, step: usize, gx: Option<i32>, gy: Option<i32>, goff: Option<i32>) -> Option<usize> {
++  // NOTE: `--goal-sl` deliberately does not tighten the bound. It only narrows the goal, so the existing
++  // x/xy bound stays admissible for the conjunction; a scroll-aware bound would be a separate piece of work.
 +  // --goal-offset bound: minting adds at most ~2 px/frame (a side collision zeroes speed, so a freeze window re-accels
 +  // from 0; collision-push is +1/frame), so frames to gain (N - rel) px >= (N - rel + 1)/2. Sound lower bound.
 +  if let Some(n) = goff { let rel = (st.x_pos >> 8) - screen_left16(st); return Some(::std::cmp::max(0, (n - rel + 1) / 2) as usize); }
@@ -3465,7 +3498,7 @@ index 350d469..1674323 100644
 +    _ => g.distance_to_goal_heuristic_ext(&mut c, e, step as state::Dist).map(|d| d as usize),
 +  }
 +}
-+fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: Ext, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>), drift: bool, beam: Option<usize>, beam_offset: bool, beam_buckets: &[u8], beam_max: Option<usize>, log_offset: bool, goal_offset: Option<i32>)
++fn bfscx_run<C: case::SmbSearchCase + 'static, A: state::StateArray + Send + 'static>(data: &[u8], first: usize, prefix: usize, max_steps: usize, out: Option<String>, check_path: usize, threads: usize, hook: Option<Hook>, ext0: Ext, layer_dir: Option<String>, resume: Option<usize>, acc_mb: usize, stop_step: usize, goal_xy: (Option<i32>, Option<i32>), drift: bool, beam: Option<usize>, beam_offset: bool, beam_buckets: &[u8], beam_max: Option<usize>, log_offset: bool, goal_offset: Option<i32>, goal_sl: Option<i32>)
 +    where C::SearchGoal: Send + Sync {
 +  // P2.3c-2c: `--goal-x PX [--goal-y PY]` replaces the case's goal by "x_pos >= PX (and Player_Y <= PY) after a Success step" and its
 +  // bound by the case's x-only table to PX (SearchGoal::steps_until_x_at_least) — segment searches whose results chain into a reference path.
@@ -3513,7 +3546,7 @@ index 350d469..1674323 100644
 +      let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(rs.clone(), input);
 +      // P2.3c-9: the reference-path audit is the project's positive control (F124), so it must apply the SAME
 +      // goal refusal the search does — otherwise a refusal that rejects the WR's own warp passes unnoticed.
-+      let g = xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset)
++      let g = xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset, goal_sl)
 +        && !(goal_x.is_none() && goal_offset.is_none() && goal_refused(hook, &rs, &ns));
 +      if let Some(h) = hook { if res == EmuResult::Success { let ev = h(&rs, &mut ns, &mut re); if ev != LiftEvent::Nothing { println!("reference path: step {} object event {:?} ext {:x}", k + 1, ev, re); } } }
 +      let hv = hval(&goal, &ns, &re, k + 1);
@@ -3592,7 +3625,7 @@ index 350d469..1674323 100644
 +            let ps = key.decompress();
 +            for &ib in &inputs {
 +              let (mut ns, res) = <C as case::SmbSearchCase>::Emu::run_step(ps.clone(), emu::Input::from_bits_truncate(ib));
-+              if xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset) { if goal_x.is_none() && goal_offset.is_none() && goal_refused(hook, &ps, &ns) { dead += 1; continue; } goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
++              if xy_goal(&*goal, &ns, &res, goal_x, goal_y, goal_offset, goal_sl) { if goal_x.is_none() && goal_offset.is_none() && goal_refused(hook, &ps, &ns) { dead += 1; continue; } goals += 1; if first_goal.as_ref().map_or(true, |f| (ns.x_spd, ns.x_pos) > (f.2.x_spd, f.2.x_pos)) { first_goal = Some((rec, ib, ns.clone())); } continue; }
 +              match res {
 +                EmuResult::Success => {
 +                  let mut ne = pe;
