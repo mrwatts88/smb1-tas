@@ -8,7 +8,7 @@ its date and fact number.
 
 ---
 
-## THE LIVE BOARD — five items, and that is all of it
+## THE LIVE BOARD — six items, and that is all of it
 
 | # | thread | needs | has | state |
 |---|---|---|---|---|
@@ -17,6 +17,7 @@ its date and fact number.
 | **L3** | **8-4 room 3's approach** (H25) — one frame, in the only unquantized level. Two searches went dry but **both goaled on the WR's own apex**, which H39's seam corollary says deletes the answer by construction. The corrected version searches the 162-frame approach with generic buckets and emits a *set* of apex states. | 1 | 38 | **un-run** |
 | **L4** | **8-4 room 2's exit pipe** — 15 frames of measured geometric loss at cols 150–152 (F245). An arc problem, never searched with a subpixel cell key. (Its sibling, 4-2's warp-zone drop, is 30 frames but 4-2 needs 13 and is measured closed on both routes.) | 1 | 15 | **un-run** |
 | ~~L5~~ | **CLOSED 2026-08-25 (F264) — H2, lag frames.** The overrunning routine is `InitializeArea`/`InitializeMemory`, not `InitScreen`: a 1,868-byte RAM clear at 18 cycles/byte = ~33,370 cycles + ~2,000 prologue against an NTSC frame's 29,780 = **119 %**, so exactly one NMI is lost per load and never two. Overrun ~5,600 cycles; the only parameter can save 1,368. Irreducible, and nothing about it is ours. (Route has **17** load lag frames, five inside 8-4.) | 1 | **0** | **closed** |
+| **L7** | **The novelty sweep has never been run on 8-4 — the one unquantized level.** `build/explore --anomaly` (the 17-class sweep, `runs/E6-vram/`) was run on **1-1, 1-2, 4-1, 4-2, 8-2 and 8-3**, each rooted at its level start; **8-4 was never swept, in any of its five sub-areas.** Two gaps, not one: (a) the level where a single frame *is* the record has had no corner-search at all, and (b) no sweep has ever carried an **object-slot lens** — an `Enemy_ID` slot holding a value the parser should never put there — which is precisely the class F258 measured at 857 frames. Note what this is *not* competing with: L1/L2's five running archives are **goal-directed optimizers over the joypad**, and by construction cannot surface a structural anomaly (all of session 19's real finds came from reading, not from 809 M simulated frames). Cheap: same binary, same launcher shape as `runs/E6-vram/launch.sh`, one root per sub-area. | 1 | ? | **un-run** |
 | **L6** | **Big Mario, route-wide** (H18/F238) — his left probe covers two rows, so he free-passes a face more easily, but he is strictly fatter and the static census says he adds nothing (F243). | — | — | fold into L2; **not its own campaign** |
 
 **Where the frames can actually come from.** A level only pays if it saves its **whole** framerule
