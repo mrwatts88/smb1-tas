@@ -129,6 +129,27 @@ pre-cleanup narrative version of this file is archived at
   no CPU); **(b) H43(b)** — hunt a writer reaching odd-page column 11 above Y $20 (`HandleEToBGCollision`,
   `ErACM`, `PutMTileB`); **(c)** a **temporal** sweep of $06CB/$06CD across many frames per level, which is
   the test band A could not perform; **(d)** band B (`$0700-$07FF`) at every level entry.
+  **CHECKPOINT 3 (session 17) — H43(a) ENUMERATED, and the trigger is identified (F207). The chain is
+  complete at code level and the jump is empirically confirmed firing.**
+  The enumeration answered the question that decided it: the OOB-capable block-buffer writers place
+  `$26` (vine — and the vine is *explicitly* guarded `cpy #$d0 / bcs ExitVH`, so it can never write OOB
+  at all: stronger than H30), `$23`, `$00` (x3, inert), and — the one that matters — **`Block_Metatile`**,
+  whose reachable values include **`$c4`** (empty block), **`$58`/`$5d`** (coin bricks) and, for small Mario,
+  the bumped metatile itself. As `Enemy_ID`s those are **196 / 88 / 93**, all far past the 55-entry table.
+  **The trigger is `PlayerHeadCollision`**: bumping a block latches the *wrapped* address
+  (`lda $02 / sta Block_Orig_YPos,x`, `lda $06 / sta Block_BBuf_Low,x`) into the block object, and
+  `BlockObjMT_Updater` writes `Block_Metatile` there on a later frame. Odd-page **column 11** + y `$F0`
+  = **$06CB** exactly.
+  **Empirical support:** of the live rows at $06CB, **137/146 (8-4) and 125/128 (1-2) have value >= $37** —
+  the out-of-table indices are the ones that do anything. `$c4`/`$58` die in ~165 frames after visiting a
+  non-baseline `AreaPointer`; `$5d` diverges for the ENTIRE remaining movie (15,922 frames at 1-2).
+  **NOT yet an exploit** — the sweep *poked* the cell rather than reaching it via a bump; no jump
+  destination has been computed; no route position with a bump at Y+adder < $20 on odd-page col 11 exists yet.
+  **NEXT, in order: (1)** compute where index `$c4` actually lands (locate the init table in the ROM, read the
+  27-28-bytes-past pointer) — decides steerable-vs-crash; **(2)** search for a route position allowing a head
+  bump above the status bar at odd-page column 11 (this is a geometry/physics question — exactly what the
+  Track A search engine does, so it is the first place the two tracks would MERGE); **(3)** a temporal sweep
+  of $06CB/$06CD across many frames; **(4)** band B.
 - **P2.2f — H42: dissolve MrWint's 8-4 room-2 seams (declared 2026-08-24 session 16).**
   Step 1 (now): build a `W84Room2` case spanning the room in ONE piece — control (WR dump row **15918**,
   page 7, x 1848) → the clip pipe entry (row **16185**, x 2436). WR = **267** frames, so a goal at **≤ 266**
