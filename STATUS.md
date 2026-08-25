@@ -35,7 +35,25 @@ pre-cleanup narrative version of this file is archived at
   castles 4-1/8-1/8-2/8-3 all carry. **NEXT UNIT AFTER E9b: poke it.** `build/harness --poke`
   already exists (F251) — set `Enemy_ID+k = $31` and `Enemy_Flag+k = 1` for a spare slot a few
   frames before 1-1's grab and read the next area-load frame. ~20 minutes to settle a 1,300-frame
-  claim. Also from E10: **H3 closed** (F255 — `TimerControl` does shift the ITC grid, but every
+  claim. **>>> DONE, SAME SESSION — IT WORKS: 1,329 FRAMES, MEASURED (F258).**
+  `tools/starflag_poke.py --n 2 --no-music` (new tool; each level runs its own WR control in the
+  same invocation). Next-area-load moves 1941->1629, 6039->5750, 10810->10600, 12953->12675,
+  15054->14814 = **312+289+210+278+240 = 1,329 frames**; **857** at N=2 without touching the music,
+  and N>2 buys nothing because the win music becomes the floor. The framerule bypass is observed
+  directly (1-1: `DelayToAreaEnd` advances with `EnemyIntervalTimer[0]` still reading **4**), the
+  countdown halves to the frame, and with `ScrollLock` ($0723) cleared so `EndOfLevelMusic` never
+  queues, `StarFlagTaskControl` goes **3 -> 5 in ONE frame**. Health-checked past the exit: 1-2
+  loads, runs its intro, hands off normally, timer reloads to 400, lives intact. **The bigger half
+  of the result: the framerule is GONE in every level where this fires** — open-threads' "a level
+  only pays if it saves its whole deficit" stops applying, which revives the 78 frames of per-level
+  deficit and every banked sub-threshold frame. **REACHABILITY IS NOW THE WHOLE GAME (F259):** both
+  halves need one non-zero write ($31 into a spare `Enemy_ID`+`Enemy_Flag`, and `$0723` = 0);
+  the frenzy cells are unreachable after F252 and no flag level has a `ScrollLockObject`. So H50 is
+  **the payoff attached to H43's missing primitive** — the ACE line went from "a confirmed jump with
+  no known payoff" (F208) to "one byte, 1,329 frames". **NEXT UNIT: E10 pass 2 — the three write
+  classes P3.1 §4 never audited** (stack over/underflow, non-indexed writes, and `VRAM_Buffer`
+  overflow indexed by `VRAM_Buffer1_Offset`, which only `ColorRotation` bounds). Pure reading.
+  `docs/experiments/H50-star-flag.md`. Also from E10: **H3 closed** (F255 — `TimerControl` does shift the ITC grid, but every
   reachable freeze loses; injury is +13 at best), and the **non-gameplay budget is 4,770 frames,
   26.7 % of the movie** against 290 frames of movement loss (F256/F257).
 - ## >>> NEXT UNIT: **finish E9b-1 — the 8-2 flag-glitch window (H48/F247).** Two archives are
@@ -793,6 +811,15 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s20 (Mac) — **H50 MEASURED AND CONFIRMED: 1,329 frames** (`docs/experiments/H50-star-flag.md`,
+  F258/F259). New tool `tools/starflag_poke.py`; `build/harness --poke` cap raised 8 -> 64. A second
+  `Enemy_ID` = $31 halves the end-of-level countdown and makes `DelayToAreaEnd` stop honouring the
+  framerule timer (observed: 1-1 advances with `EnemyIntervalTimer[0]` = 4); adding a `ScrollLock`
+  clear so the win music never queues takes the area-end wait to **0** (`SFTC` 3 -> 5 in one frame).
+  857 frames at N=2, **1,329** with the music dropped, over the five flag levels; N>2 buys nothing.
+  Run stays healthy past the early exit. **The framerule is gone in those levels**, so the per-level
+  deficits and banked frames revive. Not reachable: both halves need a non-zero write and neither has
+  a writer (F259) — H50 is the payoff attached to H43's missing primitive.
 - 2026-08-25 s20 (Mac) — **E10 first pass: the ROM read end to end** (`docs/experiments/E10-rom-read.md`).
   **H43(b) REFUTED at code level (F252)** — `PlayerBGCollision`'s entry guards (`Player_Y_HighPos` = 1,
   `Player_Y_Position` < $CF, lines 11919-11926) make every Y window in F210/F216 unreachable; the head row

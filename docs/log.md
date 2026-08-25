@@ -1886,3 +1886,44 @@ check what guards the caller** — `grep -n '<label>' ` on the label first, then
 exists (F251), so `Enemy_ID+k = $31` / `Enemy_Flag+k = 1` before 1-1's grab and read the next
 area-load frame settles a ~1,300-frame claim in about twenty minutes. Then E10's second pass — the
 `VRAM_Buffer` overflow class is now the only thing H43 still rests on.
+
+## 2026-08-25 — Session 20 (Mac, cont.): H50 measured — 1,329 frames, and the framerule is gone
+**Did.** User: stop discussing, run it. So I ran it. `build/harness --poke` existed but the Mac's
+binary predated it — rebuilt (`clang -O2 ... harness.c`), then raised the poke cap 8 → 64 so N > 2
+fits, then wrote `tools/starflag_poke.py`, which does a control pass with the unmodified WR inputs
+and a poked pass in the same invocation so the control is part of the measurement rather than a
+memory.
+
+**It works, first try.** 1-1, poking `Enemy_ID+1 = $31` / `Enemy_Flag+1 = 1` (plus the star flag's
+coordinates) eight frames after the real flag spawns: countdown **371 → 185** (halved to the
+frame), and `DelayToAreaEnd` advances at core 1676 with `EnemyIntervalTimer[0]` **still reading 4**
+— the framerule wait, bypassed, observed directly. Next area load 1941 → 1677, **264 frames**.
+
+Across all five flag levels at N=2: **857 frames**. Then the shape of the remainder showed up: 8-1
+only gained 78 and its wait *grew* (109 → 132), and N=3/4/5 changed the countdown but not the exit
+frame at all. The new floor is `DelayToAreaEnd`'s second condition, `EventMusicBuffer == 0` — the
+win music, whose length is fixed. `PlayerEndLevel` queues it only if `ScrollLock` is still set when
+Mario passes Y ≥ $ae, so `--no-music` clears `$0723` one frame earlier: **`StarFlagTaskControl` then
+goes 3 → 5 in a single frame, task 4 skipped entirely**, and the five levels give
+312+289+210+278+240 = **1,329 frames**. F258.
+
+Health-checked past the early exit rather than assuming: 1-2 loads at 1629, runs its intro, hands
+off to the main area at 2125 through the normal `ScreenRoutineTask` 6 → 8 sub-area path, control at
+2150, timer reloads to 400, lives unchanged, no reset.
+
+**Learned.** Two things beyond the number. (1) **The framerule disappears in every level where this
+fires** — with the wait at 0 the exit is `grab + 126 + ⌈T/2⌉ + 1 + 32`, all frame-granular, so
+open-threads' budget table ("a level only pays if it saves its whole deficit") stops applying and
+the 78 frames of per-level deficit plus every banked sub-threshold frame come back to life. That is
+worth more than the 1,329. (2) **Reachability is now the entire question and it is sharper than
+before** (F259): both halves need one non-zero write — $31 into a spare `Enemy_ID`, and `$0723` = 0
+— and neither has a writer (the frenzy cells are unreachable after F252; no flag level contains a
+`ScrollLockObject`). So H50 is not a separate lead, it is **the payoff attached to H43's missing
+primitive**: the ACE line went from "a confirmed jump with no known payoff" (F208) to "one known
+byte into one known cell is worth 1,329 frames".
+
+**Next.** The three write classes P3.1 §4 never audited are now the whole game: stack
+over/underflow, non-indexed writes, and `VRAM_Buffer` overflow (indexed by `VRAM_Buffer1_Offset`,
+which `GetPlayerColors` +7, `WriteBlockMetatile` +10 and `OutputNumbers` +3 all advance and only
+`ColorRotation` bounds). That is E10's second pass — pure reading, same shape as the one that
+produced F252-F257.

@@ -9,6 +9,11 @@
 A level only pays if it saves its **whole** framerule deficit — except 8-4, which is unquantized and
 pays per frame. From `tools/slack_table.py`:
 
+> **Caveat added 2026-08-25 (F258):** this table holds only while the end-of-level wait does. H50,
+> measured on the core, removes it — a second star-flag object makes every flag level unquantized
+> like 8-4, so the "must save" column collapses to 1 and every banked sub-threshold frame revives.
+> It needs a write we do not have (F259), but price movement work against **both** columns.
+
 | level | must save | movement loss available (F245) | note |
 |---|---|---|---|
 | **8-4** | **any 1 frame** | 38 (room 3) + 15 (room 2 pipe) | the only 1:1 level |
@@ -65,7 +70,19 @@ is fighting over, and more than a third of it is at one place in 8-2.
    two-player/demo paths, and the `JumpEngine` sites outside the enemy and area-object tables.
    Same shape: pure reading, no compute.
 
-4''. **H50 — a second `Enemy_ID` = $31 deletes the framerule (F254).** `RunStarFlagObj` runs once
+4''. **H50 — MEASURED: 1,329 frames and the framerule is gone (F258/F259, `H50-star-flag.md`).**
+   Done the same day it was raised. `tools/starflag_poke.py --n 2 --no-music`, each level against
+   its own WR control: next-area-load moves 1941→1629, 6039→5750, 10810→10600, 12953→12675,
+   15054→14814 = **312+289+210+278+240 = 1,329 frames**; at N=2 without touching the music it is
+   **857**, and N>2 buys nothing because the win music becomes the floor. The bypass is observed
+   directly (1-1: `DelayToAreaEnd` advances with `EnemyIntervalTimer[0]` still reading 4), and with
+   `ScrollLock` cleared so the music never queues, `StarFlagTaskControl` goes **3 → 5 in one
+   frame**. The run stays healthy past the exit. **Reachability is now the only question (F259):**
+   both halves need a non-zero write ($31 into a spare `Enemy_ID`+`Enemy_Flag`, and `$0723` = 0),
+   the frenzy cells that would do the first are unreachable after F252, and no flag level contains
+   a `ScrollLockObject`. **So H50 is the payoff attached to #8's missing primitive, not a separate
+   lead — and it changes #8 from "a jump with no known payoff" to "one byte, 1,329 frames".**
+   Original text: **a second `Enemy_ID` = $31 deletes the framerule (F254).** `RunStarFlagObj` runs once
    per frame *per enemy slot* holding $31, and its task 4 blocks on a **per-slot**
    `EnemyIntervalTimer` — so a second star-flag object reads its own untouched 0 and ends the area
    in one frame instead of (v+1)+105, while task 2 divides the timer countdown. Priced at N=2:
