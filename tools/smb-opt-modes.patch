@@ -2164,10 +2164,10 @@ index c9bbf89..4b83b01 100644
      let len = max_dists.len();
 diff --git a/src/heuristics/ygate.rs b/src/heuristics/ygate.rs
 new file mode 100644
-index 0000000..9fe6485
+index 0000000..122596d
 --- /dev/null
 +++ b/src/heuristics/ygate.rs
-@@ -0,0 +1,301 @@
+@@ -0,0 +1,340 @@
 +//! P2.3c-2c — a sound y-coupled lower bound ("y gate") for position goals `x_pos >= gx && Player_Y <= gy`.
 +//!
 +//! Relaxation (a superset of the model's vertical behaviour, x handled only through MrWint's x table):
@@ -2449,6 +2449,41 @@ index 0000000..9fe6485
 +    }
 +    (kd, kde, tr)
 +  }
++  /// F153 debug: why `steps_xy` returned what it did — every surface's y-arrival, x-charge and T.
++  fn explain<F: Fn(usize) -> i32>(&self, s: &State, h: &XPosHeuristic, gx: i32, kd: Dist, kde: Dist, tr: Dist, dx: i32, gain: &F) {
++    println!("YGATE x {}.{:02x} Y {} xspd {} yspd {} {:?} | gx {} dx {} | kd {} kde {} tr {}",
++             s.x_pos >> 8, s.x_pos & 0xff, px(s.y_pos), s.x_spd >> 8, s.y_spd >> 8, s.player_state,
++             gx >> 8, dx >> 8, kd, kde, tr);
++    for k in 1..14 { println!("   gain({}) = {} px  (need {} px)", k, gain(k) >> 8, dx >> 8); }
++    let y = px(s.y_pos);
++    let n = self.surf.len();
++    let n_above = self.surf.iter().position(|sf| sf.y >= y).unwrap_or(n);
++    let mut k1 = vec![Y_NEVER; n];
++    let mut land = vec![Y_NEVER; n];
++    if s.player_state == PlayerState::STANDING {
++      for &(v0, gj, gd) in &self.jumps {
++        let mut a = Air { y: (y + 0x100) << 8, v: v0, g: gj, gd };
++        a.y += a.v as i32; a.v += gj as i16;
++        self.hold_terms(a, n_above, 1, &mut k1);
++      }
++      let a = Air { y: s.y_pos, v: 0, g: self.fall_g, gd: self.fall_g };
++      let i_from = self.surf.iter().position(|sf| sf.y > y).unwrap_or(n);
++      self.descent_terms(a, i_from, 0, &mut land);
++    } else {
++      let a = Air { y: s.y_pos, v: s.y_spd, g: s.v_force, gd: s.v_force_down };
++      self.hold_terms(a, n_above, 0, &mut k1);
++      self.descent_terms(a, n_above, 0, &mut land);
++    }
++    for i in 0..n {
++      let t = self.t_surf[i];
++      let jy = dmin(k1[i], land[i]);
++      if jy == Y_NEVER || t == Y_NEVER { continue; }
++      let jx = self.x_part(s, h, &self.surf[i]);
++      println!("   surf Y{}{} T={} k1={} land={} jx={} -> {}", self.surf[i].y,
++               if self.surf[i].embedded { "(emb)" } else { "" }, t, k1[i], land[i], jx,
++               if jx == Y_NEVER { Y_NEVER } else { dmax(jy, jx) + t });
++    }
++  }
 +  /// The joint bound: first k >= 1 with x-feasible(k) (x table) and y-feasible(k); Y_NEVER if none.
 +  pub fn steps_xy(&self, s: &State, h: &XPosHeuristic, gx: i32) -> Dist {
 +    let dx = gx - s.x_pos;
@@ -2456,6 +2491,10 @@ index 0000000..9fe6485
 +    let (maxd, mxd) = tables;
 +    let gain = |k: usize| -> i32 { let len = maxd.len(); if k == 0 { 0 } else if len == 0 { mxd * k as i32 } else if len >= k { maxd[k - 1] } else { maxd[len - 1] + mxd * (k - len) as i32 } };
 +    let (kd, kde, tr) = self.terms(s, h);
++    // F153 debug: SMBOPT_YGATE_EXPLAIN=<x_pos px> prints the full per-surface breakdown for matching states.
++    if let Ok(v) = ::std::env::var("SMBOPT_YGATE_EXPLAIN") {
++      if v.parse::<i32>().map(|xp| (s.x_pos >> 8) == xp).unwrap_or(false) { self.explain(s, h, gx, kd, kde, tr, dx, &gain); }
++    }
 +    let ystart = dmin(kd, tr);
 +    if ystart == Y_NEVER { return Y_NEVER; }
 +    let mut k = if ystart == 0 { 1 } else { ystart as usize };
