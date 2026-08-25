@@ -530,8 +530,16 @@ optimum) → transitions/wrong-warp scroll (the 4-2 specialty) → Bowser/RNG. O
 | P3.5 | NES Minus World re-examination with oracle + audit (WorldNumber = 36 OOB reads). | B | M | P3.1, P3.2 | Ledger entry with proof artifact |
 | P4.1 | Assemble, verify in two emulators, draft submission text. | ship | M | a result | User-reviewed before anything is submitted |
 
-Wrap-up items (fold into whichever unit touches them first): **RE-RUN F139's 8-4 ROOM-2 RUNGS ON THE FIXED
-ENGINE** — the screen-edge bounding-box clamp (F141) was missing when `prefix 240 d26` and `prefix 220 d46`
+Wrap-up items (fold into whichever unit touches them first): **AUDIT EVERY `IgnoreCoins` CASE FOR F147's BUG
+CLASS.** Collecting a coin fills `VRAM_Buffer1`, a busy buffer stalls the area parser for a frame, and the
+parser gates BOTH plant spawns and the enemy loader (`aptn_pre & 7 != 7`) — so `IgnoreCoins` on a map that
+has reachable coins silently desynchronises every enemy spawn. Checked so far: **1-2 was broken** (fixed,
+F147); **8-4 room 2 is clean** (no `$c2` cell in its span); **1-1's `BB11` has zero `$c2` cells**, so
+`W11Room1E`'s `IgnoreCoins` cannot bite through metatile coins — but its `CELLS` include question blocks
+whose *bump* also awards a coin, and whether that fills the buffer has not been checked, so **F124 is not
+yet cleared**. Note the trap: 1-2's **150-trial battery passed with the bug in it**, because the battery
+compares Mario's fields and a mis-timed plant only reaches Mario in rare configurations — only the core
+replay of a searched path found it. **RE-RUN F139's 8-4 ROOM-2 d46 RUNG ON THE BBOX-FIXED ENGINE** — the screen-edge bounding-box clamp (F141) was missing when `prefix 240 d26` and `prefix 220 d46`
 were run, and that bug is live in 8-4 as well as 1-2, so those two dries were produced by an engine that
 could spuriously collide enemies near a screen edge. The WR-line difftest and the 401-trial battery both
 pass on the fixed engine, so the model is right *now*; what is untested is whether the two dry verdicts
