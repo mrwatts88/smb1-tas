@@ -763,6 +763,15 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s19 — **H49 raised and refuted in one sitting (F249/F250/F251) — the transition-screen thread.**
+  Measured: 8-4 spends **384 frames** in `PlayerEntrance` mode 2 (4 x 96, rising 1 px/frame out of a pipe),
+  and the branch deciding it is `VerticalPipeEntry`'s two tests on `WarpZoneControl` and `AreaType`.
+  `build/harness --poke 0x6d6=1@15770` (new flag) collapses the entrance **96 -> 1 frame with the
+  destination unchanged** — and then loses 137 to the world/lives card, because mode 0 is the only
+  mode that can show it and `DisplayIntermediate` shows it unconditionally on castle levels. **Net 42
+  frames worse.** Residual, now an E10 target: the water-room transition has a non-castle destination,
+  so `$06D6` + `$0769` there is ~96 frames. Also found en route: `$06CB = $34` runs `WarpZoneObject`
+  and IS inside F203's OOB ceiling, unlike `$06D6` (F250) — that re-pricing stands regardless.
 - 2026-08-25 s19 — **E9a positive control + the 8-2 probe + the Mac port (F246/F247/F248).** The
   census classifier **reproduces 1-2's publicly-known clip frame for frame** (impede at speed 40,
   MovingDir flip, +1 px/frame drift, left probe crossing at 3586, re-acceleration) and finds the WR

@@ -1795,3 +1795,35 @@ with 18 GB free. E9b-1 is running there now, which is what unblocked it — the 
 available with four archives going. Gotchas recorded: no `git pull` over BatchMode SSH (keychain), and
 no cgroups on macOS, so the never-uncapped rule is met by `explore`'s fixed-capacity archive plus an
 RSS watchdog.
+
+**Then the user's transition-screen question, raised and closed inside an hour.** He asked what about
+the screens where Mario walks into a pipe, and warned me — correctly, and about a mistake I had just
+made — not to judge an idea by whether it fits the WR's route: *"if we find some crazy jump, that's
+live as it gets regardless of where it is."* I had read "the WR's inputs die after the poke" as "dead",
+when what it actually meant was "Mario is somewhere else now".
+
+The measurement: **8-4 spends 384 frames on entrance animation** — each of its four sub-area loads
+parks Mario in `PlayerEntrance` for exactly 96 frames sliding him up out of a pipe 1 px/frame from
+Y 240 to Y 145, control at load+122 against load+43 for every mode-0/1 entrance on the route (F249).
+The branch is three instructions in `VerticalPipeEntry`, and `WarpZoneControl != 0` overrides it. And
+the byte that sets `WarpZoneControl` is enemy routine `$34`, fed by `$06CB` — **which is inside
+F203's proven `$06CF` OOB ceiling, unlike `$06D6` itself** (F250). We had been aiming at the byte we
+cannot reach while a byte we can reach did something worth 79 frames a firing.
+
+Then I stopped deriving and measured it: added `--poke ADDR=VAL@FRAME` to `build/harness` and poked
+`$06D6` 22 frames into the 48-frame descent. **It works exactly as predicted — `PlayerEntrance` runs
+1 frame instead of 96 and the pipe destination is unchanged** — and it is still **42 frames worse**,
+because `AltEntranceControl` = 0 is the only mode that can show the world/lives card and
+`DisplayIntermediate` shows it *unconditionally* on castle levels, bypassing `DisableIntermediate`
+(the ROM calls that branch "possibly residual"). 137 against 96. **H49 refuted, F251.**
+
+Two things survive. The re-pricing of the OOB target (`$06CB`, inside the window) stands on its own.
+And there is one exact residual: 8-4's water-room transition has a non-castle *destination*, so
+`DisplayIntermediate` there does consult `DisableIntermediate` — `$06D6` plus `$0769` during that one
+descent is ~96 frames. Both bytes are out of proven reach, so it is an E10 target, not a testable
+hypothesis.
+
+**Worth keeping as method.** This is the second time today that building the measurement rather than
+trusting the derivation changed the answer — the 8-2 arc estimate said "misses by 1-2 px" and the
+replay said "clears by 2", and here the code read said "+79 frames" and the poke said "−42". Derive to
+find the question; measure to answer it. `--poke` now exists precisely so the next one is cheap.
