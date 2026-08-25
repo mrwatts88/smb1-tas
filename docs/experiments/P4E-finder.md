@@ -132,3 +132,84 @@ It comes from structure: less distance (a clip or a route), fewer transitions, o
 That is the same conclusion the 4-2 top route reached from the other direction, and it makes the
 never-executed VRAM-offset measurement (F221's residual) the highest-payoff item left on Track B —
 because a `WarpZoneControl` write in 1-2 removes 4-1 and 4-2 entirely (3,957 frames).
+
+---
+
+## E-W42 — the 4-2 wrong warp, taken to the code
+
+The finder's second target. 4-2 is where the evidence points: it is the one place on the route
+with a *distance* win already in hand (the top route's 553 vs the WR's 588, F118), and the whole
+question is the price of the warp key. STATUS's "4-2 hope" thread says that price has never been
+measured. Before measuring it I read the mechanism out of the disassembly, and it is now closed
+at code level.
+
+### The condition, exactly (F227)
+`tools/area_data.py L_UndergroundArea2 E_UndergroundArea2` gives 4-2's own data:
+
+- The **area-change commands** (row-$0E, which overwrite `AreaPointer` as the parser passes them):
+  **page 2 col 1 → `$2F` entrance page 0** (the world-8 warp zone), **page 5 col 15 → `$42`
+  entrance page 8**, page 11 col 14 → `$25`.
+- The **only two enterable pipes** in the area are `page 5 col 4` (x 1344–1375 — the wrong-warp
+  pipe the WR uses) and `page 13 col 6`. Everything else is a *decoration* pipe.
+
+So the wrong warp is a race: enter the col-84 pipe **before the parser reaches page 5 col 15**.
+Measured on the core, the flip happens the frame `ScreenLeft` reaches **1217**. Both traces agree
+to the pixel:
+
+| | x at pipe | ScreenLeft | rel = x − SL | AreaPointer |
+|---|---|---|---|---|
+| WR | 1348 | **1216** | **132** | `$2f` — warps right |
+| top-route 553 chain | 1349 | 1237 | 112 | `$42` — warps wrong |
+
+### Why 132 is hard: the complete list of ways to freeze the scroll (F227)
+`ScrollHandler` (smbdis 5378–5401) is short and exhaustive. The screen does not scroll at all when
+**(a)** `ScrollLock != 0`, **(b)** `Player_Pos_ForScroll < $50` (rel < 80), **(c)**
+`SideCollisionTimer != 0`, or **(d)** `Player_X_Scroll + Platform_X_Scroll == 0`. Otherwise it
+scrolls by Mario's movement **minus one** while rel < `$70` (112), and by the **full** amount at
+rel ≥ 112.
+
+That last clause is the whole difficulty: **at rel ≥ 112 the screen tracks Mario exactly, so rel
+can never grow past 112 without one of (a)–(d).** And in 4-2's main area:
+
+- **(a) is unavailable before the pipe** — the area's two `ScrollLockObject`s are at page 12 col 4
+  and page 14 col 6, i.e. columns 196 and 230, far past the col-84 pipe.
+- **(b) caps out at 112 by construction** (below 80 the screen is frozen, in [80,112) rel gains
+  exactly 1/frame, at 112 it stops).
+- **(d) needs `Platform_X_Scroll`, which is written only by `PositionPlayerOnHPlat`** (smbdis
+  10946) — Mario standing on a *horizontally* moving platform. 4-2's only platforms are ids
+  `$26`/`$27`, the vertical `MoveLiftPlatforms` elevators, so `Platform_X_Scroll` is always 0.
+- **(c) is therefore the only mint, and it always costs the speed.** `SideCollisionTimer` has
+  exactly one writer in the ROM: `ImpedePlayerMove` (smbdis 12318–12334), which sets it to `$10`
+  = 16 frames **and on the same instruction path does `ldy #$00 / sty Player_X_Speed`.** There is
+  no path that sets the timer without zeroing the speed.
+
+**This is the proof artifact H38 asked for, and it is negative: no speed-preserving mint exists in
+4-2's main area.** The WR's own mint is visible in the dump doing exactly this — at core 6782 it
+is stopped at x 468 with `ScreenLeft` frozen at 357, and it is ejected +1 px per frame
+(`ImpedePlayerMove`'s `lda #$01`) for ~33 frames, buying rel 112 → 132.
+
+**What this does NOT close — and it is the live question.** The mint's *rate* is fixed at 1 px per
+frozen frame, so 20 px costs ≥ 20 frames of 1-px movement; but **where** it is paid is free, and
+the WR pays it at x 468 in the middle of a sprint, which also costs a full re-acceleration to the
+cap. Paying it **immediately before the pipe** would cost only the 20 slow frames minus the 8 the
+same 20 px would have taken at the cap (≈12 frames), plus a 1–2 frame L+R stop, and **no
+re-acceleration at all, because Mario needs no speed once he is on the pipe.** Against a 22-frame
+budget (553 + key ≤ 575) that is inside the line. Whether a wall-entry site exists close enough to
+the pipe is a geometry question — which is what the searches below measure.
+
+### F228 — H37 (pipe B floor-level entry) is refuted at the data level
+H37 asked whether 4-2's cols 78–79 pipe can be entered at floor level, which would be a new route.
+It cannot, for a reason that needs no search: that object is `page 4 col 14 row 4
+VerticalPipe(**decoration**) len 6`, and `VerticalPipe` (smbdis 3837–3879) draws its top from
+`VerticalPipeData` — **`$11,$10` when the second byte's d3 usage bit is set, `$13,$12` when it is
+not.** `HandlePipeEntry` requires right-foot `$11` and left-foot `$10`. A decoration pipe's top is
+`$13/$12` and can never be entered, however Mario arrives at it. The same argument disposes of
+every other non-d3 pipe in the area, which is why the WR's col-84 pipe is not merely the best
+choice but **the only enterable pipe before the `$42` command**.
+
+### The measurement (running)
+`runs/E3-w42/launch.sh` — four archives on the real core, rooted at chain steps 200 / 330 / 400 /
+440 of the 553-frame top-route path, horizons 470 / 340 / 270 / 230, goal = the `$2f` commit
+(`AreaPointer $2f` **and** `AltEntranceControl 1`), `--require-ram 0x750=0x2f` so any state whose
+destination has already flipped is never archived, promise aimed at x 1348. Baseline: the WR
+commits at core frame **7218**; a framerule needs **≤ 7205**.

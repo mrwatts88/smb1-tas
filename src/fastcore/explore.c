@@ -115,6 +115,19 @@ static retro_unserialize_t g_retro_unserialize; static retro_get_memory_data_t g
 static retro_serialize_size_t g_retro_serialize_size;
 static uint8_t *g_root_state; static size_t g_ssz; static uint8_t g_lives0;
 #define RAMP() ((uint8_t *)g_retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM))
+static long g_gaddr[8], g_gval[8]; static int g_ngoal=0;
+static long g_raddr[8], g_rval[8]; static int g_nreq=0;
+/* A state that already violates a required invariant can never satisfy the goal (the area
+ * parser only moves forward, so AreaPointer never flips back).  Do not archive it. */
+static inline int req_ok(const uint8_t *r){
+    for(int i=0;i<g_nreq;i++) if(r[g_raddr[i]]!=(uint8_t)g_rval[i]) return 0;
+    return 1;
+}
+static inline int goal_hit(const uint8_t *r){
+    if(!g_ngoal) return r[OPERMODE]==2 && r[WORLDNUM]>=7;
+    for(int i=0;i<g_ngoal;i++) if(r[g_gaddr[i]]!=(uint8_t)g_gval[i]) return 0;
+    return 1;
+}
 
 static double now(void){ struct timespec t; clock_gettime(CLOCK_MONOTONIC,&t); return t.tv_sec+t.tv_nsec*1e-9; }
 static uint64_t rngs = 88172645463325252ULL;
@@ -128,7 +141,7 @@ static long replay_victory(const uint8_t *path, long n, long root) {
     for (long i = 0; i < n; i++) {
         cur_pad = path[i]; g_retro_run(); r = RAMP();
         if (r[LIVES] < g_lives0 || r[OPERMODE] == 3) return -1;
-        if (r[OPERMODE] == 2 && r[WORLDNUM] >= 7) return root + i;
+        if (goal_hit(r)) return root + i;
     }
     return -1;
 }
@@ -167,6 +180,8 @@ int main(int argc, char **argv) {
     long root=-1, input_skip=2, ncells=150000, rlo=8, rhi=64, horizon=900, secs=300, report=15, coast=400;
     long xcell=4, ycell=8, scell=16, spdcell=8, ecell=16, seedwr=1, probex=-1, nullmax=200;
     double tournp=0.75;
+    long gaddr[8], gval[8]; int ngoal=0; long baseline=-1; const char *seedpaths[8]; int nseed=0;
+    long raddr[8], rval[8]; int nreq=0; long progx=-1, progoff=0, progfw=5;
     for (int i=4;i<argc;i++){
         if(!strcmp(argv[i],"--root")) root=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--input-skip")) input_skip=strtol(argv[++i],NULL,0);
@@ -186,6 +201,21 @@ int main(int argc, char **argv) {
         else if(!strcmp(argv[i],"--probe-x")) probex=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--null-max")) nullmax=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--tournp")) tournp=strtod(argv[++i],NULL);
+        else if(!strcmp(argv[i],"--baseline")) baseline=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--prog-x")) progx=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--prog-off")) progoff=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--prog-fw")) progfw=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--require-ram")){
+            char *sp=strdup(argv[++i]), *tok=strtok(sp,",");
+            while(tok && nreq<8){ char *eq=strchr(tok,'='); if(eq){ *eq=0;
+                raddr[nreq]=strtol(tok,NULL,0); rval[nreq]=strtol(eq+1,NULL,0); nreq++; }
+                tok=strtok(NULL,","); } }
+        else if(!strcmp(argv[i],"--seed-path")){ if(nseed<8) seedpaths[nseed++]=argv[++i]; else i++; }
+        else if(!strcmp(argv[i],"--goal-ram")){
+            char *sp=strdup(argv[++i]), *tok=strtok(sp,",");
+            while(tok && ngoal<8){ char *eq=strchr(tok,'='); if(eq){ *eq=0;
+                gaddr[ngoal]=strtol(tok,NULL,0); gval[ngoal]=strtol(eq+1,NULL,0); ngoal++; }
+                tok=strtok(NULL,","); } }
         else if(!strcmp(argv[i],"--rollout")){ char*s=argv[++i]; rlo=strtol(s,NULL,0); char*c=strchr(s,','); if(c) rhi=strtol(c+1,NULL,0); }
         else { fprintf(stderr,"unknown option %s\n",argv[i]); return 2; }
     }
@@ -218,6 +248,8 @@ int main(int argc, char **argv) {
     fseek(inf,0,SEEK_END); long nin=ftell(inf); fseek(inf,0,SEEK_SET);
     uint8_t *in=malloc(nin); if(fread(in,1,nin,inf)!=(size_t)nin){ perror("inputs"); return 1; } fclose(inf);
 
+    for(int i=0;i<ngoal;i++){ g_gaddr[i]=gaddr[i]; g_gval[i]=gval[i]; } g_ngoal=ngoal;
+    for(int i=0;i<nreq;i++){ g_raddr[i]=raddr[i]; g_rval[i]=rval[i]; } g_nreq=nreq;
     g_ssz = g_retro_serialize_size();
     uint8_t *ram = RAMP();
     for(long i=0;i<root;i++){ cur_pad=in[i+input_skip]; g_retro_run(); }
@@ -252,13 +284,16 @@ int main(int argc, char **argv) {
     long inserted=0, improved=0, rollouts=0, frames=0, goals=0, evict=0, deaths=0, probes=0;
     /* promise: how far ahead of a constant-max-speed schedule this cell is (2.5 px/frame),
      * minus a visit penalty so exploration spreads instead of collapsing onto one cell. */
-    #define PROMISE(c) ((long)tab[c].prog*2 - ((long)tab[c].frame-root)*5 - (long)tab[c].visits*3)
-    long best_last=1L<<30, best_prog=0;
+    #define PROMISE(c) ((long)tab[c].prog*2 - ((long)tab[c].frame-root)*progfw - (long)tab[c].visits*3)
+    long best_last=1L<<30, best_prog=0, best_frame=1L<<30, best_off=0;
 
     #define INSERT(F,PL) do { \
         uint64_t k_=KEYOF(ram); size_t p_=k_&(cap-1); \
         while(tab[p_].key && tab[p_].key!=k_) p_=(p_+1)&(cap-1); \
-        int32_t pg_=(int32_t)(ram[PPAGE]*256+ram[PX]); if(pg_>best_prog) best_prog=pg_; \
+        long ax_=(long)ram[PPAGE]*256+ram[PX]; if(ax_>best_prog) best_prog=ax_; \
+        long off_=ax_-((long)ram[SLPAGE]*256+ram[SLX]); if(off_>best_off) best_off=off_; \
+        int32_t pg_=(int32_t)((progx>=0 ? progx-labs(ax_-progx) : ax_) + progoff*off_); \
+        if(!req_ok(ram)) break; \
         if(!tab[p_].key){ \
             if(nlive>=ncells) evict++; \
             else { g_retro_serialize(arena+(size_t)nlive*g_ssz,g_ssz); \
@@ -272,7 +307,15 @@ int main(int argc, char **argv) {
         } } while(0)
 
     #define ONGOAL(F,PL) do { \
-        goals++; long cut=0; long li=trim_path(path,(PL),root,coast,wr_last,&cut,best_last==(1L<<30)?0:best_last); \
+        goals++; \
+        if(g_ngoal){ if((long)(F)<best_frame){ best_frame=(long)(F); \
+              char fn[512]; snprintf(fn,sizeof fn,"%s/goal_%ld.path",outdir,(long)(F)); \
+              FILE *o=fopen(fn,"wb"); \
+              if(o){ fprintf(o,"root %ld len %ld goal_frame %ld baseline %ld\n",root,(long)(PL),(long)(F),baseline); \
+                     fwrite(path,1,(size_t)(PL),o); fclose(o); } \
+              printf("  GOAL frame=%ld  (baseline %ld, %+ld)%s\n",(long)(F),baseline,(long)(F)-baseline, \
+                     (baseline>0&&(long)(F)<baseline)?"   *** AHEAD OF THE WR ***":""); fflush(stdout); } break; } \
+        long cut=0; long li=trim_path(path,(PL),root,coast,wr_last,&cut,best_last==(1L<<30)?0:best_last); \
         if(li<best_last){ best_last=li; \
             char fn[512]; snprintf(fn,sizeof fn,"%s/best_%ld.path",outdir,li); \
             FILE *o=fopen(fn,"wb"); \
@@ -293,11 +336,35 @@ int main(int argc, char **argv) {
         for(long i=0;i<horizon && root+i+input_skip < nin; i++){
             cur_pad=in[root+i+input_skip]; g_retro_run(); f++; path[plen++]=cur_pad; ram=RAMP();
             if(ram[LIVES]<g_lives0||ram[OPERMODE]==3) break;
-            if(ram[OPERMODE]==2 && ram[WORLDNUM]>=7){ ONGOAL(f,plen); break; }
+            if(goal_hit(ram)){ ONGOAL(f,plen); break; }
             INSERT(f,plen);
         }
         printf("seeded WR line: %ld cells, incumbent last_input=%ld\n",nlive,best_last);
         fflush(stdout);
+    }
+    for(int si=0; si<nseed; si++){
+        FILE *sf=fopen(seedpaths[si],"rb");
+        if(!sf){ perror(seedpaths[si]); continue; }
+        fseek(sf,0,SEEK_END); long sn=ftell(sf); fseek(sf,0,SEEK_SET);
+        uint8_t *sb=malloc(sn); if(fread(sb,1,sn,sf)!=(size_t)sn){ perror("seed"); return 1; } fclose(sf);
+        if(sn>0) sb[sn-1]|=0x20;                    /* a vertical pipe entry needs Down (F74) */
+        g_retro_unserialize(g_root_state,g_ssz); ram=RAMP();
+        long plen=0, f=root, before=nlive;
+        for(long i=0;i<sn && i<horizon;i++){
+            cur_pad=sb[i]; g_retro_run(); f++; path[plen++]=cur_pad; ram=RAMP();
+            if(ram[LIVES]<g_lives0||ram[OPERMODE]==3){ printf("  seed %s DIED at +%ld\n",seedpaths[si],i); break; }
+            if(goal_hit(ram)){ ONGOAL(f,plen); break; }
+            INSERT(f,plen);
+        }
+        /* keep going with blank input so the pipe animation completes and the goal can fire */
+        for(long i=0;i<200 && f<root+horizon;i++){
+            cur_pad=0; g_retro_run(); f++; path[plen++]=0; ram=RAMP();
+            if(ram[LIVES]<g_lives0||ram[OPERMODE]==3) break;
+            if(goal_hit(ram)){ ONGOAL(f,plen); break; }
+            INSERT(f,plen);
+        }
+        printf("  seeded %s: %ld frames, +%ld cells\n",seedpaths[si],sn,nlive-before); fflush(stdout);
+        free(sb);
     }
 
     double t0=now(), tnext=t0+report, tend=t0+secs;
@@ -325,7 +392,7 @@ int main(int argc, char **argv) {
             for(j=0;j<d;j++){
                 cur_pad=a; g_retro_run(); frames++; f++; path[plen++]=a; ram=RAMP();
                 if(ram[LIVES]<g_lives0||ram[OPERMODE]==3){ deaths++; L=0; break; }
-                if(ram[OPERMODE]==2 && ram[WORLDNUM]>=7){ ONGOAL(f,plen); L=0; break; }
+                if(goal_hit(ram)){ ONGOAL(f,plen); L=0; break; }
                 INSERT(f,plen);
                 /* THE OBJECTIVE, measured directly: if we stopped pressing buttons right here,
                  * would Mario still reach the axe?  The movie ends at its last input (F17), so a
@@ -340,7 +407,7 @@ int main(int argc, char **argv) {
                         for(long t_=0;t_<nullmax;t_++){
                             cur_pad=0; g_retro_run(); frames++; ram=RAMP();
                             if(ram[LIVES]<g_lives0||ram[OPERMODE]==3) break;
-                            if(ram[OPERMODE]==2&&ram[WORLDNUM]>=7){ win=f+t_+1; break; }
+                            if(goal_hit(ram)){ win=f+t_+1; break; }
                             if(ram[PXSPD]==0 && ram[PSTATE]==0) break;   /* stopped: never moves again */
                         }
                         g_retro_unserialize(probebuf,g_ssz); ram=RAMP();
@@ -361,15 +428,16 @@ int main(int argc, char **argv) {
         }
 
         if(now()>=tnext){
-            double el=now()-t0; char bl[32];
-            if(best_last==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",best_last);
+            double el=now()-t0; char bl[32]; long bb = g_ngoal?best_frame:best_last;
+            if(bb==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",bb);
             printf("[%6.0fs] cells=%ld rollouts=%ld frames=%.2fM (%.0fk fps) goals=%ld deaths=%ld "
-                   "best_last=%s maxx=%ld improved=%ld probes=%ld evict=%ld\n",
-                   el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,improved,probes,evict);
+                   "best=%s maxx=%ld maxoff=%ld improved=%ld probes=%ld evict=%ld\n",
+                   el,nlive,rollouts,frames/1e6,frames/el/1e3,goals,deaths,bl,best_prog,best_off,improved,probes,evict);
             fflush(stdout); tnext=now()+report;
         }
     }
-    char bl[32]; if(best_last==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",best_last);
+    char bl[32]; long bb2 = g_ngoal?best_frame:best_last;
+    if(bb2==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",bb2);
     printf("done: cells=%ld rollouts=%ld frames=%.2fM goals=%ld deaths=%ld best_last_input=%s (WR 17846) maxx=%ld\n",
            nlive,rollouts,frames/1e6,goals,deaths,bl,best_prog);
     g_retro_unload_game(); g_retro_deinit(); dlclose(h);
