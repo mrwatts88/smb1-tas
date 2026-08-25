@@ -178,31 +178,52 @@ static long trim_path(const uint8_t *path, long plen, long root, long coast, lon
  * non-zero frenzy buffer, a world/area/mode the level cannot legitimately produce, an
  * over-filled VRAM buffer (F218/F234).  Returns a bit mask; 0 = ordinary. */
 static const char *ANOM_NAME[] = {
-    "Mario ABOVE the world (Y_HighPos 0)", "GES the WR never uses here", "OperMode the WR never uses here",
-    "WorldNumber the WR never has here", "AreaPointer the WR never has here", "Enemy_ID > 0x36 (out of table)",
-    "EnemyFrenzyBuffer != 0", "VRAM_Buffer1_Offset > 80", "Player_State 3 (climbing) with no vine",
-    "PlayerSize/status changed" };
+    "Y above world", "GES", "OperMode", "WorldNumber", "AreaPointer", "Enemy_ID out of table",
+    "EnemyFrenzyBuffer", "VRAM_Buffer1_Offset", "Player_State", "PlayerSize",
+    "WarpZoneControl", "AltEntranceControl", "ScrollLock", "EnemyFrenzyQueue",
+    "SecondaryHardMode", "DuplicateObj_Offset", "position jump (clip/teleport)" };
+#define NANOM 17
 /* Self-calibrating: the allowed value sets are collected from the WR's OWN line through this same
  * region during --seed-wr, so "anomaly" means "a state the reference movie never produces here"
  * rather than a hand-guessed predicate.  Without --seed-wr only the absolute predicates fire. */
 static uint8_t ok_ges[256], ok_oper[256], ok_world[256], ok_area[256], ok_pstate[256], ok_size[256];
+static uint8_t ok_wzc[256], ok_alt[256], ok_lock[256];
 static int g_calibrating=1;   /* learn from the root + the WR line before judging anything */
 static inline void anom_learn(const uint8_t *r){
     ok_ges[r[0x0e]]=1; ok_oper[r[OPERMODE]]=1; ok_world[r[WORLDNUM]]=1;
     ok_area[r[AREAPTR]]=1; ok_pstate[r[PSTATE]&3]=1; ok_size[r[0x754]]=1;
+    ok_wzc[r[0x6d6]]=1; ok_alt[r[0x752]]=1; ok_lock[r[0x723]]=1;
 }
-static inline unsigned anom_mask(const uint8_t *r){
+/* Report each (class, VALUE) pair once, not each class once: otherwise the first mundane
+ * WorldNumber masks the one that matters.  vals[] carries the offending value per class. */
+static uint8_t anom_seen_val[NANOM][256];
+static long g_px=-1, g_py=-1;   /* previous frame's position, for the discontinuity test */
+static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
+    /* 16 classes; see ANOM_NAME */
     unsigned m=0;
-    if(r[0xb5]==0) m|=1u<<0;                       /* above the top of the world (F210's doorway) */
-    if(!ok_ges[r[0x0e]]) m|=1u<<1;
-    if(!ok_oper[r[OPERMODE]]) m|=1u<<2;
-    if(!ok_world[r[WORLDNUM]]) m|=1u<<3;
-    if(!ok_area[r[AREAPTR]]) m|=1u<<4;
-    for(int q=0;q<5;q++) if(r[ENID+q]>0x36) m|=1u<<5;
-    if(r[0x6cb]) m|=1u<<6;
-    if(r[0x300]>80) m|=1u<<7;
-    if(!ok_pstate[r[PSTATE]&3]) m|=1u<<8;
-    if(!ok_size[r[0x754]]) m|=1u<<9;
+    if(r[0x0e]==0) return 0;                       /* mid-load: the RAM is being reinitialised */
+    if(r[0xb5]==0 && r[PY]>=0xfa){ m|=1u<<0; vals[0]=r[PY]; }  /* F210's 2-px doorway window */
+    if(!ok_ges[r[0x0e]]){ m|=1u<<1; vals[1]=r[0x0e]; }
+    if(!ok_oper[r[OPERMODE]]){ m|=1u<<2; vals[2]=r[OPERMODE]; }
+    if(!ok_world[r[WORLDNUM]]){ m|=1u<<3; vals[3]=r[WORLDNUM]; }
+    if(!ok_area[r[AREAPTR]]){ m|=1u<<4; vals[4]=r[AREAPTR]; }
+    for(int q=0;q<5;q++) if(r[ENID+q]>0x36){ m|=1u<<5; vals[5]=r[ENID+q]; }
+    if(r[0x6cb]){ m|=1u<<6; vals[6]=r[0x6cb]; }
+    if(r[0x300]>80){ m|=1u<<7; vals[7]=r[0x300]; }
+    if(!ok_pstate[r[PSTATE]&3]){ m|=1u<<8; vals[8]=r[PSTATE]&3; }
+    if(!ok_size[r[0x754]]){ m|=1u<<9; vals[9]=r[0x754]; }
+    if(!ok_wzc[r[0x6d6]]){ m|=1u<<10; vals[10]=r[0x6d6]; }     /* the 3,957-frame cell */
+    if(!ok_alt[r[0x752]]){ m|=1u<<11; vals[11]=r[0x752]; }
+    if(!ok_lock[r[0x723]]){ m|=1u<<12; vals[12]=r[0x723]; }
+    if(r[0x6cd]){ m|=1u<<13; vals[13]=r[0x6cd]; }
+    if(r[0x6cc]){ m|=1u<<14; vals[14]=r[0x6cc]; }
+    if(r[0x6cf]){ m|=1u<<15; vals[15]=r[0x6cf]; }
+    /* Mario cannot move more than ~4 px horizontally or ~8 px vertically in one frame of normal
+     * play.  Anything larger is a clip, an ejection or a teleport -- the general glitch detector. */
+    { long cx=(long)r[PPAGE]*256+r[PX], cy=(long)r[PYHI]*256+r[PY];
+      if(g_px>=0 && (labs(cx-g_px)>5 || labs(cy-g_py)>9)){ m|=1u<<16;
+          long d=labs(cx-g_px)>5?labs(cx-g_px):labs(cy-g_py); vals[16]=(uint8_t)(d>255?255:d); }
+      g_px=cx; g_py=cy; }
     return m;
 }
 typedef struct { uint64_t key; int32_t frame; int32_t plen; int32_t sidx; int32_t visits; int32_t prog; } Cell;
@@ -370,17 +391,24 @@ int main(int argc, char **argv) {
                    best_max>=227?"   *** REACHES Block_BBuf_Low ***":(best_max>67?"   (above the WR's 67)":"")); \
             fflush(stdout); } \
         if(anomaly && g_calibrating){ anom_learn(ram); } \
-        else if(anomaly){ unsigned am_=anom_mask(ram); \
-            if(am_ & ~anom_seen){ unsigned nw_=am_ & ~anom_seen; anom_seen|=am_; anom_hits++; \
-                for(int b_=0;b_<10;b_++) if(nw_>>b_&1){ \
+        else if(anomaly){ uint8_t av_[NANOM]={0}; unsigned am_=anom_mask(ram,av_); \
+            if(am_){ unsigned nw_=0; \
+                for(int b_=0;b_<NANOM;b_++) if((am_>>b_&1) && !anom_seen_val[b_][av_[b_]]){ \
+                    anom_seen_val[b_][av_[b_]]=1; nw_|=1u<<b_; } \
+                anom_seen|=nw_; if(nw_) anom_hits++; \
+                for(int b_=0;b_<NANOM;b_++) if(nw_>>b_&1){ \
                     char fa[512]; snprintf(fa,sizeof fa,"%s/anom_%d_f%ld.path",outdir,b_,(long)(F)); \
                     FILE *oa=fopen(fa,"wb"); \
-                    if(oa){ fprintf(oa,"root %ld len %ld anomaly %d %s frame %ld x %ld y %ld\n", \
-                            root,(long)(PL),b_,ANOM_NAME[b_],(long)(F), \
+                    if(oa){ fprintf(oa,"root %ld len %ld anomaly %d %s value %u frame %ld x %ld y %ld\n", \
+                            root,(long)(PL),b_,ANOM_NAME[b_],av_[b_],(long)(F), \
                             (long)ram[PPAGE]*256+ram[PX],(long)ram[PYHI]*256+ram[PY]); \
                             fwrite(path,1,(size_t)(PL),oa); fclose(oa); } \
-                    printf("  *** ANOMALY [%s] at frame %ld x %ld y %ld -- %s\n",ANOM_NAME[b_], \
-                           (long)(F),(long)ram[PPAGE]*256+ram[PX],(long)ram[PYHI]*256+ram[PY],fa); } \
+                    printf("  *** ANOMALY %s = %u  frame %ld x %ld y %ld  %s%s\n",ANOM_NAME[b_],av_[b_], \
+                           (long)(F),(long)ram[PPAGE]*256+ram[PX],(long)ram[PYHI]*256+ram[PY],fa, \
+                           (b_==3 && av_[b_]==7) ? "   *** WORLD 8 REACHED ***" : \
+                           (b_==3 && av_[b_]==35) ? "   (the Minus World -- H6, refuted)" : \
+                           (b_==10) ? "   *** WARP ZONE CONTROL SET -- THE 3957-FRAME CELL ***" : \
+                           (b_==5||b_==6) ? "   *** OOB ENEMY PRIMITIVE ***" : ""); } \
                 fflush(stdout); } } \
         if(!req_ok(ram)) break; \
         if(!tab[p_].key){ \
@@ -431,7 +459,8 @@ int main(int argc, char **argv) {
             INSERT(f,plen);
         }
         g_calibrating=0;
-        if(anomaly){ int ng=0,no=0,nw=0,na=0,np=0;
+        { for(int b=0;b<NANOM;b++) for(int q=0;q<256;q++) anom_seen_val[b][q]=0; }
+    if(anomaly){ int ng=0,no=0,nw=0,na=0,np=0;
             for(int q=0;q<256;q++){ ng+=ok_ges[q]; no+=ok_oper[q]; nw+=ok_world[q]; na+=ok_area[q]; np+=ok_pstate[q]; }
             printf("anomaly calibration from the WR line: %d GES / %d OperMode / %d World / %d AreaPointer / %d PlayerState values are normal here\n",ng,no,nw,na,np); }
         printf("seeded WR line: %ld cells, incumbent last_input=%ld\n",nlive,best_last);
@@ -472,6 +501,7 @@ int main(int argc, char **argv) {
         if(!g_retro_unserialize(arena+(size_t)cl->sidx*g_ssz,g_ssz)){ fprintf(stderr,"unserialize failed\n"); return 1; }
         ram=RAMP();
         long plen=cl->plen; memcpy(path,parena+(size_t)cl->sidx*pslot,(size_t)plen);
+        g_px=-1; g_py=-1;
         long f=cl->frame;
 
         long L=rlo+(rhi>rlo?(long)rndn((uint32_t)(rhi-rlo+1)):0);

@@ -5,7 +5,7 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 18 — Track E: the finder is built and running on 4-2's wrong warp; F224-F228 recorded; three archive searches live)
+**Updated:** 2026-08-25 (session 18 — Track E: finder built; F224-F235 recorded; 8-4 and the route topology CLOSED; six P3.4 novelty sweeps running)
 
 ## Where we are
 - **READ `docs/strategy-review.md` FIRST (2026-08-25).** It is the official way forward: the
@@ -67,19 +67,21 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **[TRACK E, session 18] FIVE `build/explore` archives running** (each `systemd-run --user --scope -p MemoryMax=1800M/2500M`).
-  Check them all: `tail -n 3 runs/E3-w42/*.log runs/E3-w84/*.log`.
-  • **4-2 mint curve** — `runs/E3-w42/r460.log`, launcher `runs/E3-w42/launch.sh`. Verdict line is
-    `mint curve` (earliest frame at each screen-lead in the pipe window, `*` = `Player_X_Scroll == 0`);
-    `*** WARP-CAPABLE` names a dumped path in `runs/E3-w42/warpable_rel*_f*.path`. **Budget: a goal at
-    core <= 7156 is a framerule** (WR 7218; the mint-free 553 chain enters at 7134). Best so far ~7195.
-  • **8-4 rooms** — `runs/E3-w84/{room2,room3,water}.log`, launcher `runs/E3-w84/launch.sh`. Goals are
-    DESTINATION-checked (F230); baselines room2 16255 / room3 16620 / water 17490. **Any `GOAL frame`
-    below the baseline is a candidate record** (8-4 is unquantized) — replay it and confirm the
-    destination on the core before believing it. Room 1 was stopped: closed by F231.
-  • **8-4 Bowser room** — `runs/E3-w84/bowser.log` (no launcher; the command is in `docs/log.md`
-    session 18 and in this file's In-progress block). Objective is the **last input** (F17), incumbent
-    17846; the null-coast probe fires past x 4600. A `COAST GOAL` under 17846 is the record.
+- **[TRACK E, session 18] SIX `build/explore` novelty sweeps running** — `runs/E6-vram/{w11,w12,w41,w42,w82,w83}.log`,
+  launcher `runs/E6-vram/launch.sh` (read its header: it explains both jobs). Each is
+  `systemd-run --user --scope -p MemoryMax=1500M`, 6 h budget. Check: `grep -h 'ANOMALY\|MAX ' runs/E6-vram/*.log`.
+  **Two jobs in one run.** (a) `--max-addr 0x300` maximises `VRAM_Buffer1_Offset`: **227 reaches
+  `Block_BBuf_Low` and would redirect a block write to `$06D6 WarpZoneControl` — world 8 straight from
+  1-2, ~3,957 frames.** WR max is 67, and 44 during play (F234). (b) `--anomaly` is **P3.4, run for the
+  first time**: 17 self-calibrated classes (anything the WR's own line never produces here), including
+  `WorldNumber`, `WarpZoneControl`, out-of-table `Enemy_ID`, `EnemyFrenzyBuffer`, and a clip/teleport
+  detector. Every hit dumps a path; replay with `tools/e3_replay.py FILE --around N`.
+  **Read hits by VALUE, not by banner** — the WORLD 8 banner fires on `WorldNumber == 7`; 35 is the
+  Minus World (H6). Triage so far is in `docs/experiments/P4E-finder.md` §P3.4; nothing has beaten the
+  record and nothing has produced an unexplained primitive yet.
+  **Stopped and why:** the 8-4 room searches (closed by F231/F232), the 8-4 Bowser room (at its bound,
+  F223+F225), and the 4-2 mint curve (`runs/E3-w42/r460.log`, last curve line kept: a warp-capable
+  entry costs ~61 frames against a 22-frame budget). All three launchers are committed and re-runnable.
   Standing rule unchanged: **never start a search without a cgroup cap**.
 - **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
 - **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
