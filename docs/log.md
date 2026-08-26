@@ -2499,3 +2499,42 @@ wherever more than one site can satisfy it, because the improve-only incumbent t
 permanent silent blindness; and **prose is not a queue** — three separate pieces of real work this session
 were "documented" somewhere a human could find them and would never have been picked up by the documented
 decision procedure.
+
+## 2026-08-26 — project wound down
+
+**Machines released.** Linux: `pgrep -x explore` and `pgrep -x smb-opt` both empty, monitors stopped.
+Mac: killed two L7 watchdog shells, one E9b watchdog shell, and both `caffeinate` processes, then
+deleted `~/code/smb` entirely. Its other 23 projects are untouched, and no Docker container or image
+belonged to this project. Total cloud spend across the whole project: **$0**.
+
+**Disk: 117.2 GB reclaimed, and the narrowing mattered.** `runs/` was 117 GB of which the evidence was
+115 MB. The obvious command — delete `*.bin` — would have destroyed **1,522 non-layer `.bin` files**
+(2.2 GB of `chain_*.bin` reconstructed input chains, `apex_candidates_*.bin`, difftest inputs), which
+are artifacts, not intermediates. Checking the filenames first narrowed it to `layer_*.bin` /
+`layer_*.bin.xz` (679 files, 117.2 GB) plus `bfscx_layers/`. All 522 logs, 653 path files and every
+non-layer `.bin` survive. Repo went 121 GB → 3.5 GB; free space 147 GB → 211 GB.
+
+**The Mac's logs were pulled back before the delete.** F285/F286 cite `runs/L7-w84/*.log` "on both
+machines", and five of the ten sweep roots (`r1`, `r2`, `r4`, `r3s100`, `r5s100`) existed *only* on the
+Mac because `runs/` is gitignored. 80 logs and 84 path files are now at `runs/mac-archive/`. Deleting
+first would have silently destroyed half the evidence for the project's final result. Checked
+`explore.c` too — byte-identical sha256 on both machines, so no engine work was stranded there.
+
+**The engine work is extracted to its own repo:** `~/Documents/smb-opt-modes`, committed and clean.
+The 5,921-line patch against MrWint/smb-opt at pin `daa44287` (5 new source files, ~30 modified),
+plus `regen_patch.sh`, `Dockerfile.smbopt`, `mac_sync_engine.sh`, `mac_run.sh`, and a README covering
+what it adds, how to apply and build it, and the control gate. **Not yet pushed — `gh` is not
+installed on this box**, so the GitHub remote has to be created by hand; the one command to finish it
+is in STATUS.
+
+The patch was regenerated before extraction and came out **byte-identical**, which is the check that
+matters: `regen_patch.sh` refuses if the clone's HEAD has moved off the pin, because a commit in the
+clone makes `git diff` return empty and produces a patch that silently applies nothing.
+
+**Final word on the result, stated the way the project's own rules require.** No faster route was
+found. Every priced target was searched where it was priced and returned empty; the one thread whose
+payoff was not bounded by the loss map was swept across all five of 8-4's sub-areas on two independent
+seeds at ~3.25 billion frames, and those seeds converged bit-for-bit on the same anomaly inventory.
+**That is not a proof the record is unbeatable.** H47's class — an over-cap forward displacement
+mechanism worth up to ~50 frames — has exactly one known instance and it is clamped away. It is
+**un-enumerated, not refuted**, and STATUS says so at the top so nobody inherits a false closure.
