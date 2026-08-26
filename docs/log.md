@@ -2303,3 +2303,28 @@ them are `baseline+1`**, and E3-w42 found no goal at all. The bar never once dro
 caught ten minutes in. The correct pattern also predates the bug — E3-w84 pins page and X-in-page, E3-w42
 pins the destination — so L4 was the outlier (newest launcher, only site with multiple unqualified pipes),
 not evidence of a systemic defect. L2's dry (F273) and every other Track E negative stand.
+
+**Addendum 3 — the handoff was broken, and it would have stalled the project.** The user asked whether the
+E6 object-lens re-run was documented well enough that a fresh agent would actually run it. It was not.
+It existed only in prose paragraphs above the "Next up" table — but PROCESS §2 tells a fresh session to
+take *the first unblocked item in the table*, and **the table was stale at the top**: `E9b-1` was labelled
+"START HERE" while running on the Mac, `E10` was done (session 20), `E11` was answered by F273, and `E9b-2`
+was all but answered by the same fact. An agent following the process literally would have re-run finished
+work and never reached the object lens at all.
+
+Fixed by making the un-run work into **actual units with IDs, sizes and acceptance criteria** — `L8`
+(E6's six roots with the object lens), `L9` (read the L7 sweep out), `L10` (the remaining facing-direction
+readers) — placed at the top of the table, with the four stale rows struck through and annotated with what
+actually happened to each. The ordering prose above the table was rewritten to match and to say plainly
+that the session-19 order is stale.
+
+**L10 is deliberately first**, and the reason generalises: it is pure ROM reading, so it is the only unit
+that is *unblocked while the machines are full*, which is the project's normal state. Every other unit
+waits on RAM. A queue whose top item is always RAM-blocked silently converts a full box into an idle
+session — and reading is what has actually produced this project's finds (F268 came from reading, not from
+809 M simulated frames).
+
+**Lesson worth keeping: prose is not a queue.** Three separate things this session were "documented" in the
+sense that a human could find them, and would not have been picked up by the documented decision procedure:
+the E6 re-run, L7's read-out, and the fact that `r5` had been stopped at 25 %. Anything that must happen
+next belongs in the table with an ID, or it does not exist.
