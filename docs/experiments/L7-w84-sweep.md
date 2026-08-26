@@ -105,3 +105,63 @@ The sweep is a corner search, not a proof: a dry run says the rollout policy did
 anomalous state in 6 h from that root, nothing more. It also does not close gap (b) for the five
 levels E6 already swept — **re-running E6's six roots with the object lens is a follow-up**, same
 binary, same launcher shape, and cheap.
+
+---
+
+# L9 — the sweep read out (2026-08-26, session 22)
+
+**7 of 10 roots complete, ~2.48 billion simulated frames. No class-17 or class-18 anomaly anywhere.**
+
+## Per-root results
+
+| root | sub-area | seed | cells | rollouts | frames | goals | deaths | `anom` mask |
+|---|---|---|---|---|---|---|---|---|
+| `r1` (Mac) | room 1 | 81 | 80k | 16,967,724 | **440.74M** | 0 | 1,066,361 | `0x15002` |
+| `r2` (Mac) | room 2 | 82 | 80k | 16,594,073 | **434.59M** | 0 | 591,083 | `0x17042` |
+| `r4` (Mac) | **water** | 84 | 80k | 16,181,191 | **420.28M** | 0 | 299,792 | `0x04003` |
+| `r3s100` (Mac) | room 3 | 183 | 80k | 16,657,395 | **449.23M** | 0 | 1,015,634 | `0x17053` |
+| `r5s100` (Mac) | Bowser | 185 | 80k | 12,138,373 | **322.41M** | 184,198 | 581 | `0x1c043` |
+| `r3` (Linux) | room 3 | 83 | 80k | 9,714,660 | **263.67M** | 0 | 482,872 | `0x17053` |
+| `r5` (Linux) | Bowser | 85 | 60k | 5,486,591 | **146.25M** | 144,458 | 53 | `0x1c043` |
+
+Still running (Linux, launched by the armed hand-off at 01:33, end ~07:33): `r1s200` (seed 281),
+`r2s200` (282), `r4s200` (284) — second independent seeds for the three rooms that had only one.
+
+## The two priced classes did not fire
+
+**Not one root's mask has bit 17 or bit 18 set.** No mask exceeds `0x17053`, and bit 17 is `0x20000`.
+
+- **class 18** — `*** SECOND STAR FLAG ***`, a slot holding `$31` beyond the reference line. Priced at
+  **857 frames** (1,329 with the music, F259). **Zero hits.**
+- **class 17** — a novel `Enemy_ID` in a *live* slot, calibrated. **Zero hits.**
+
+## Every class that did fire, and why each is mundane
+
+Triaged rather than assumed — two were run down in the ROM and one was core-replayed:
+
+| class | what fired | verdict |
+|---|---|---|
+| `GES = 6` / `GES = 11` | GameEngineSubroutine 6 and 11 | **Deaths.** The GES jump table (smbdis 5478-5490) is index-ordered: 6 = `PlayerLoseLife`, 11 = `PlayerDeath`. The seven roots logged ~3.46M deaths between them, so these are the single most expected values on the board |
+| `GES = 3` | vertical pipe entry | Normal 8-4: every room transition is a pipe |
+| `position jump = 255`, `AreaPointer = 229` | the room-2 **loop-back pipe** | Already known and already priced — it is the same false positive that poisoned L4's goal (F274) |
+| `ScrollLock = 1` | scroll locked | Normal in 8-4's rooms |
+| `Y above world = 250..255` | Mario's Y high byte | The tall room 3 and the water room; also the death plunge |
+| `SecondaryHardMode = 1` | hard-mode flag | Normal past world 5 |
+| `EnemyFrenzyQueue / Buffer = 20, 21, 24` | `AreaFrenzy` spawns | **The game's own spawner, not a glitch.** `FrenzyIDData` (smbdis 3604) is `FlyCheepCheepFrenzy, BBill_CCheep_Frenzy, Stop_Frenzy`; core replay of `anom_13_f16434.path` shows three enemies of ID `$14` appearing at frame 16434 while Mario is mid-jump at x 3290, speed 40. Flagged "novel" only because the WR's own line does not have a frenzy active there |
+| `DuplicateObj_Offset = 3` | enemy-slot duplication | Bowser's rear half and the **fifth firebar part** (smbdis 8531, 9750, 10274). 8-4 is full of firebars |
+
+## H1 (the ending-input coast) is also negative from this root
+
+`r5` and `r5s100` both root at 17577 with a horizon reaching past the axe — the only roots whose horizon
+covers the ending, and therefore the only direct test of F223's untested *approach*. Both finished with
+`best_last_input=17846`, **exactly the WR's own last input**, across 468M frames. No earlier last input
+exists in the searched set.
+
+## Verdict
+
+**Dry across every completed sub-area of 8-4, at ~2.48 billion frames.** Stated at the width the evidence
+supports: this is a **statement about the rollout policy from these seven roots**, not a proof that no
+anomalous state exists in 8-4. What it does close is the specific, priced hypothesis the unit was built
+for — F266's blind spot (the object-slot lens that no earlier sweep carried) has now been applied to all
+five of 8-4's sub-areas, on two independent seeds for four of them, and **the star-flag class it was built
+to see never appeared.**
