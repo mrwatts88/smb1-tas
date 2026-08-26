@@ -2427,3 +2427,31 @@ And F145 re-prices Maru's 3 frames onto exactly this spot: they cannot be anywhe
 **Queued as L11 at the top of Next up.** It had been sitting in two facts for days without ever becoming
 a unit — the third instance this session of "prose is not a queue", and the most expensive one, because
 this is the only experiment left anywhere that changes the goal function rather than adding search.
+
+**Session 22, close of 1-2 — the user's push is what did it.** I had recorded the Maru370 figure with an
+S-fact hedge ("a claim to verify"), and the user pushed back: that number is a published, widely-cited
+result, not somebody's story. He was right, and the hedge was doing real damage — **believing the number
+is exactly what closes the level.**
+
+Followed through: 1-2 needs **8** frames to cross its framerule, and a partial saving in a quantized level
+pays **zero**. F145 (ours, verified) proves everything except the wall clip already optimal — intro free by
+construction, opening at MrWint's own optimum, ~1050 frames x-optimal, pit optimal, two later segments
+optimal. F144 (ours, verified) puts the clip's ceiling at **3** via an *exhaustive* rung — layer 77 against
+the WR's 80, so 3 is minimal from that root, not a lucky find. And Maru370's hand-made "perfect 1-2",
+with **no search tool at all**, lands on the same 3 and sits 5 from the framerule against HappyLee's 8.
+Two independent routes to the same ceiling. **3 < 8, so 1-2 cannot cross its framerule**, and the 3 banked
+frames are provably worthless because the very fact that bounds the level (F145) also proves nothing else
+in it can supply the other 5.
+
+So **L11 was queued and closed unstarted inside the same session** — an hour between the two. That is not
+churn: queueing it was right on what was known then (a named, never-run residue with outside evidence),
+and closing it was right once the arithmetic was actually done. The lesson is that the arithmetic was
+always available and nobody had done it; the level had been sitting at "dry, rollout-policy negative"
+when it could have been sitting at "shut by counting". **A closure by counting is worth more than a
+closure by searching**, and it costs a fraction as much.
+
+H22 moved `untested` -> **refuted** with F144+F145 as the proof artifact rather than a search record,
+which is exactly the kind of evidence PROCESS asks for. The route's per-level picture is now: 1-1 closed
+(F124), 4-1/8-1/8-3 zero available loss (F225), 4-2 measured closed both routes, 8-2 dry (F280),
+**1-2 closed by arithmetic (F283)** — and **8-4 is the only level left**, which is where both surviving
+threads (L4, L7) already live.
