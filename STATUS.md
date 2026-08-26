@@ -190,9 +190,17 @@ for 1-1/4-2 difftested to 0 diffs; a new 4-2 case; the `ygate` and `drift` heuri
 `--beam-buckets` diversity beam and its `cls` axis), how to apply and build it, and the control gate
 that must reproduce `6, 16, 34, 70, 134, 673, 3472, 16472, 69489, 257001`.
 
-**Published 2026-08-26: https://github.com/mrwatts88/smb-opt-modes** (private). Pushed and tracking
-`origin/main`. It is private to match `smb1-tas` and because it is a derivative of MrWint's work —
-flip it with `gh repo edit mrwatts88/smb-opt-modes --visibility public` if that is ever wanted.
+**Published 2026-08-26: https://github.com/mrwatts88/smb-opt-modes — PUBLIC** (user's call), pushed and
+tracking `origin/main`. **`smb1-tas` itself is now public too: https://github.com/mrwatts88/smb1-tas**
+
+**Third-party content in the public `smb1-tas` tree — noted so it is a decision, not an accident.**
+No ROM is committed (`roms/` is gitignored and verified empty in the index). But two committed files
+are other people's work: **`data/disasm/smbdis.asm`** (720 KB — doppelganger's SMB disassembly, i.e.
+disassembled Nintendo code; very widely mirrored publicly, but copyrighted) and
+**`data/wr/happylee-supermariobros,warped.fm2`** (390 KB — HappyLee's TAS movie, published on
+TASVideos). Everything else under `data/` is our own derived analysis (block maps, RAM/CSV traces).
+If either should come out, note that **deleting them from `HEAD` does not remove them from history** —
+that needs a history rewrite (`git filter-repo`) and a force-push.
 
 ### Where the result stands
 **No faster route was found.** The record stands at HappyLee's 17,868 frames. What this project can

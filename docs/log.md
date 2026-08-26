@@ -2547,3 +2547,10 @@ one-command change; the reverse is not really possible, so the reversible option
 
 That is the last item. Both repos are pushed and clean, both machines are idle, and the project is
 closed.
+
+**Both repos made public** (user's call, 2026-08-26): `smb1-tas` and `smb-opt-modes`. Checked the
+committed tree first — **no ROM is in the index** (`roms/` is gitignored and clean). Two committed
+files are third-party and are now public: `data/disasm/smbdis.asm` (doppelganger's SMB disassembly —
+widely mirrored, but disassembled Nintendo code) and `data/wr/happylee-supermariobros,warped.fm2`
+(HappyLee's TAS movie, published on TASVideos). Flagged rather than silently shipped, because removing
+them later needs a history rewrite, not just a delete.
