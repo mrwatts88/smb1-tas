@@ -849,6 +849,12 @@ speed-killing mint is the only mechanism 4-2 has.
 **Doctrine reminders that bind every unit below:** find, don't prove; banked sub-threshold frames
 count and go in the table above; and **a search goal must be the quantity the record is measured in
 and monotone with it** — three proxy goals produced three fake records this session (F230, F237).
+**AUDITED AND CLOSED, same session (F276): no record was ever lost to this.** Every `GOAL frame` line in every
+Track E log on both machines sits at `baseline+1`; the incumbent bar never once fell below a baseline, so every
+genuine record would have cleared it. L4's `w` root is the only run that ever set a below-baseline incumbent, and it
+was caught ten minutes in. E3-w84 already pinned page+X and E3-w42 pinned the destination — L4 was the outlier, not
+the norm. **L2's dry (F273) and every other Track E negative stand.** The rule below is now a standing check for
+*new* launchers, not an open worry about old results.
 **Session 22 adds the second-order version (F274), and it is the one that actually costs you runs:** because
 `ONGOAL` records only goals that *improve* on the incumbent, a single false hit does not merely add a bad
 candidate — it **raises the bar past every true one** and the run goes silently blind while still reporting
@@ -927,6 +933,10 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s22 — **F274 audited across the whole project: blast radius is one run, no record lost** (F276).
+  Swept every `GOAL frame` line in every Track E `explore` log on both machines — all sit at `baseline+1`, so no
+  incumbent ever fell below a baseline and nothing was ever suppressed. E3-w84 already pinned page+X, E3-w42 pinned
+  the destination; L4 was the outlier. L2's dry and every other Track E negative are unaffected.
 - 2026-08-25 s22 — **L3 / H25 DRY a third time, from a key that could have seen it** (F275,
   `docs/experiments/L3-w84r3-classkey.md` §6–7). Phase 1 kept **5,225** apex candidates at step 162
   (vs F133(d) 2,303 / F133(e) 4,333); phase 2's exhaustive continuation (`launch_phase2.sh`, 11.9 s) was

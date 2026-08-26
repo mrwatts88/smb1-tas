@@ -2291,3 +2291,15 @@ state, which starts *from* the slow landing states a forward beam deletes. Nobod
 frame; if it ever exists for another reason, H25 is free. The 19 GB layer dir was deleted (`launch.sh`
 regenerates it in 27 min). `P2.2a′` in "Next up" was struck through at the same time — it was a restatement
 of the same unit and would otherwise have been picked up by a future session as new work.
+
+**Addendum 2 — F274 audited, not left as a question for the user (F276).** I had ended the previous
+exchange by asking whether to audit the other launchers. That was the wrong call: it is my job to know
+whether days of agent work produced real results or suppressed them, and "should I check?" is not a
+question the user should have to answer. Audited immediately. **The suppression requires the incumbent to
+fall below the baseline** — a record is `<= baseline-1`, so it is only unreportable if an earlier goal
+already set the bar lower. Swept every `GOAL frame` line in every Track E log on both machines: **all of
+them are `baseline+1`**, and E3-w42 found no goal at all. The bar never once dropped below a baseline.
+**No record was ever lost.** L4's `w` root today is the only run that ever set a below-baseline incumbent,
+caught ten minutes in. The correct pattern also predates the bug — E3-w84 pins page and X-in-page, E3-w42
+pins the destination — so L4 was the outlier (newest launcher, only site with multiple unqualified pipes),
+not evidence of a systemic defect. L2's dry (F273) and every other Track E negative stand.
