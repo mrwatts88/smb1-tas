@@ -2377,3 +2377,53 @@ real core regardless.
 
 Caught because the follow-up was actually done instead of left as a note. The surviving rule is the
 practical one, for the right reason: grounded, a vertical pipe needs Down with no left/right held.
+
+**Session 22, later — 8-2 closed, the Mac fixed, and the 1-2 clip re-opened as L11.**
+
+**L1 / 8-2 is DRY (F280).** Both Mac archives ran the full 21,600 s and printed `done:` at `best=12953`
+against baseline 12952 — one frame *worse* than the WR, zero banked, across **~903M frames**, with
+`anom=0x00000` in both. `maxx` 3471/3463 against the 3283 threshold, so the frontier did reach past the
+wall; it never got there cheaper. That was the largest priced target left (114 frames). **Board down to
+two threads: L4 and L7.**
+
+**The Mac was doing two slots of provably useless work (F281).** When the waiter fired, `launch_mac.sh`
+silently ignored the `SKIP='r3 r5'` it was given — the Linux launcher has had ONLY/SKIP since it was
+written and the Mac one never did — so it launched all five roots, including r3/r5 at the same `--cells`
+**and the same seeds** as the pair already running here. Same binary (F248 byte-identity) + same params +
+same seed = byte-identical rollouts. Caught by reading the launcher, not the logs; the logs looked
+perfectly healthy. Killed the duplicates, added ONLY/SKIP plus a `SEEDADD` offset to the Mac launcher,
+and relaunched them as `r3s100`/`r5s100` at seeds 183/185 — independent coverage instead of a duplicate.
+**Second instance this session of two launchers for one job drifting apart** (the first was the CELLS
+60000/80000 split). Standing rule added: when a job moves machines, diff the launchers before trusting a
+number. Both failures were silent under-delivery, never an error.
+
+**Then the user's own question — the 1-2 pipe clip — turned out to have the best remaining answer on the
+board, and it was not queued.** Chasing the slowdown mechanism end to end: `ImpedePlayerMove` (12318) is
+the only routine that kills horizontal speed on terrain contact, both the side and bottom paths funnel
+into it, and it zeroes `Player_X_Speed` while leaving `Player_XSpeedAbsolute` and `Player_X_MoveForce`
+alone. `SideCollisionTimer` has exactly one reader (`ScrollHandler`, 5388) and gates **scrolling**, not
+acceleration. The escape hatch is F244's sink: feet into a solid cell with `Y & $0F < 5` takes `LandPlyr`
+instead, which zeroes only *vertical* speed and skips the side check for that frame.
+
+A promising-looking side finding died on inspection: the jump-arc class **and** the airborne speed cap are
+both selected from `Player_XSpeedAbsolute`, which freezes whenever Mario is airborne with no L/R held
+(`ImposeFriction` runs unconditionally on the ground but only `if Left_Right_Buttons` in the air), and
+`PlayerPhysicsSub` reads it *before* the frame's `ImposeFriction` can refresh it — so jump power is
+genuinely decoupled from actual speed. **But `smb-opt` already models this exactly** (`emu.rs` 307 /
+317 / 323 mirror the ROM), so every search that went dry already had it available. Not a new lever.
+
+**The real answer is F144/F145, and it inverts the premise.** The clip is not costing time — **it is
+already gaining 3 real, core-verified frames** (77 vs 80, 0 mismatches, and the arrival strictly dominates
+the WR's). **The scroll refunds them:** `ScrollLockObject_Warp` arms `WarpZoneControl = 4` on
+`ScreenLeft_X_Pos` reaching 2816, which is a function of where Mario has *been*. Arrive early and the
+scroll is left behind — at step 1217 we are at the WR's step-1220 x with more speed and height but
+`ScreenLeft` 2806 vs 2809, and the warp is then dry at 60. **In 1-2 a frame banked before the warp zone is
+a frame lent to the scroll.** The residue is named exactly in F145: 2,016,915 goal transitions reach the
+post-clip milestone at layer 77 and **only the auto-pick and its scroll-maximal parent were ever
+followed**. The experiment is a **goal-function change, not more search** — rank on `ScreenLeft` through
+the clip (`offset-census --sl` already exists) instead of gating on position and checking scroll after.
+And F145 re-prices Maru's 3 frames onto exactly this spot: they cannot be anywhere else in the level.
+
+**Queued as L11 at the top of Next up.** It had been sitting in two facts for days without ever becoming
+a unit — the third instance this session of "prose is not a queue", and the most expensive one, because
+this is the only experiment left anywhere that changes the goal function rather than adding search.
