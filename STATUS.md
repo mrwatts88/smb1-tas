@@ -153,69 +153,38 @@ pre-cleanup narrative version of this file is archived at
 
 ## Running jobs
 
-**Verified against the machines 2026-08-26 (session 22). Nine jobs live.**
+**NONE. `pgrep -x explore` is empty on both machines (2026-08-26 08:45); 147 G free, 8.7 G RAM free.**
+The project has no running compute for the first time since session 17, and **no live thread** — every
+priced target on the route has been searched and returned empty.
 
-### Linux (2) — L4 FINISHED AND DRY (F284); `r3`/`r5` still going
-| tag | what | log | a record needs | state |
-|---|---|---|---|---|
-| `l7-r3` | 8-4 room 3 novelty sweep, seed 83 | `runs/L7-w84/r3.log` | an ANOMALY class 17/18 | ends ~01:35, mask `0x17053` |
-| `l7-r5` | 8-4 Bowser room, seed 85 | `runs/L7-w84/r5.log` | class 17/18, or `best_*.path` `last_input < 17846` | ends ~01:35, `best=17846` = WR's own |
+### How the board closed (newest first — each with its fact and its artifact)
+| thread | site | verdict | scale |
+|---|---|---|---|
+| **L7 / L9** | 8-4, all five sub-areas, object-slot lens | **DRY (F285, F286)** — classes 17/18 never fired; the two priced classes the unit existed to see | **~3.25 B frames**, 10 roots, 2 seeds each |
+| **L4** | 8-4 room 2's exit pipe | **DRY (F284)** — 291 page-9 pipe entries, none earlier than the WR's 16182 | ~382 M frames |
+| **L1** | 8-2's flag-glitch window | **DRY (F280)** — both archives finished one frame *worse* than the WR | ~903 M frames |
+| **L2 → 1-2** | 1-2 | **CLOSED BY ARITHMETIC (F283)** — ceiling 3 vs a requirement of 8 | counting, not searching |
+| **L3 / H25** | 8-4 room 3's approach | **PARKED (F275)** — dry a third time from a key that could finally see it; only beam *width* was left | ~1.6 B frames over three rounds |
+| **L10** | the facing/moving-dir readers | **DONE (F277–F279)** — the vine stays the only reader that moves Mario | pure reading |
+| **L11** | 1-2's scroll refund | **CLOSED UNSTARTED (F283)** — would recover 3 frames that still cannot pay | — |
 
-**When these two end, the armed hand-off refills the box** (see below).
+### What that does and does not mean
+It does **not** mean the record is unbeatable, and nothing in these files should be read that way. It means
+every *priced* target — the 290 frames of geometric loss the loss map located (F245) — has now been searched
+where it was priced, and the one thread whose payoff was **not** bounded by the loss map (L7) has been swept
+across the only level where a single frame is the record, twice per root, with the lens it was missing.
+What is left is **H47's class**: an over-cap displacement mechanism nobody has enumerated, priced at up to
+127 px ≈ 50 frames of legal headroom (F270), for which exactly one instance is known and it is clamped away
+(F268/F269). That is a mechanism-discovery problem, not a search problem, and the project's own rule stands:
+**it is not refuted, it is un-enumerated.**
 
-### Mac (5) — native, ~2x faster, no cgroups (watchdog scoped to its own PIDs only)
-| tag | what | log | a record needs | state |
-|---|---|---|---|---|
-| `l7-r1` | 8-4 room 1, root 15210, seed 81 | `runs/L7-w84/r1.log` | class 17/18 | started 05:08Z, `--cells 80000` |
-| `l7-r2` | 8-4 room 2, root 15905, seed 82 | `runs/L7-w84/r2.log` | class 17/18 | started 05:08Z |
-| `l7-r4` | 8-4 **water room**, root 16707, seed 84 — never searched at all | `runs/L7-w84/r4.log` | class 17/18 | started 05:08Z |
-| `l7-r3s100` | room 3 again, **seed 183** | `runs/L7-w84/r3s100.log` | class 17/18 | independent coverage, not a duplicate (F281) |
-| `l7-r5s100` | Bowser again, **seed 185** | `runs/L7-w84/r5s100.log` | class 17/18 / H1 | independent coverage (F281) |
-
-**How to read the sweep (this is unit L9):** `grep ANOMALY runs/L7-w84/*.log`, then
-`tools/e3_replay.py runs/L7-w84/anom_<class>_f<frame>.path` per hit, then `tail -n 3 runs/L7-w84/*.log`
-for the `anom=0x<mask>` summary per root. **A live class-18 hit (`*** SECOND STAR FLAG ***`) is 857
-frames** (1,329 with the music, F259). Collect the Mac's logs first. **A dry is a statement about the
-rollout policy from that root, not a proof.** As of this stamp **zero class-17/18 hits** across every
-root on both machines.
-
-### Armed hand-off — the Linux box refills itself (s22, `runs/L7-w84/handoff_linux.sh`)
-A detached waiter (`pgrep -af handoff_linux`) polls every 120 s and, **the moment the Linux box empties**
-(L4's two roots and L7's `r3`/`r5` all end their 6 h around 01:15–01:35), relaunches
-`ONLY="r1 r2 r4" SEEDADD=200 CELLS=80000 MEMMAX=1500M ./runs/L7-w84/launch.sh` — i.e. it puts the whole
-machine back on **8-4, the only level left that can pay**. Log: `runs/L7-w84/handoff_linux.log`.
-**Why those three roots:** `r3`/`r5` already have two independent seeds each (83/183, 85/185) while
-`r1`/`r2`/`r4` have **one**, and `r4` (the water room) had never been searched at all before today. Seeds
-are offset (+200) so this is independent coverage, not a byte-identical duplicate (F281). Each job runs
-under `systemd-run --scope -p MemoryMax=1500M`, 3 × 1500M on a 15.7 GB box — safe unattended.
-**If the waiter is gone and the box is idle, just run that command by hand; it is idempotent per tag.**
-
-### Finished this session — read these, do not relaunch
-- **L4 — DRY (F284).** 8-4 room 2's exit pipe. Both roots ran their full 6 h: `a` 221.47M frames / 144
-  goals, `w` 160.42M frames / 147 goals — **~382M frames and 291 pipe entries, every one at the WR's own
-  16182.** `maxx=2572` vs the WR's entry x 2436, so the frontier went well past the pipe and never got
-  there earlier. The 15 priced frames at cols 150-152 are not reachable by an arc search from either root.
-  Trustworthy **only because of the mid-session goal fix** (F274): with the bare `GES==3` the incumbent
-  would have been poisoned at 16070 by the loop-back pipe and this run would have taught us nothing.
-  **Board is now ONE thread: L7.**
-- **L1 / E9b — DRY (F280).** 8-2's flag-glitch window: both Mac archives ran their full 21,600 s and
-  printed `done:` at **`best=12953` vs baseline 12952**, i.e. one frame *worse* than the WR, **zero
-  banked**, across **~903M frames** (452.75M + 450.41M) and `anom=0x00000` in both. That was the largest
-  priced target left on the route (114 frames). **The live board is now two threads: L4 and L7.**
-- **L3 / H25 — PARKED (F275), not refuted.** Dry a third time, from a key that could finally represent
-  the answer. All three structural objections closed; only beam *width* remained, and the user ruled
-  that out. Reopens only on a backward primitive. 19 GB of layers deleted.
-- **L2 — DRY (F273).** 1-2's clip-entry hunt, three archives, ~680M frames, all at the control.
-
-### Standing rules for anything launched here
-- **Never start a search without a memory cap** (`docs/search-runbook.md` §1) — not even a short control.
-  Linux uses `systemd-run --user --scope -p MemoryMax=`; macOS has no cgroups, so the Mac relies on
-  `explore`'s fixed-capacity archive plus a watchdog.
-- **A watchdog must only ever kill PIDs it started** — never a machine-wide `pgrep`. This cost ~2.2 h of
-  E9b search in session 21, and an orphaned machine-wide watchdog was still running on the Mac 4h49m
-  after its children died (killed in s22). Portable process count is `pgrep -x NAME | wc -l`.
-- **When a job moves machines, diff the two launchers before trusting a number** (F281, and the `CELLS`
-  60000/80000 split earlier the same session). Both failures were silent under-delivery, never an error.
+### If a future session wants to restart compute
+Every launcher is committed and re-runnable, and both L7 launchers are now feature-identical (`ONLY` /
+`SKIP` / `SEEDADD`, F281). `SEEDADD=<n>` gives independent coverage rather than a byte-identical duplicate.
+Standing rules that cost real search time to learn: **never start a search without a memory cap**; **a
+watchdog must only ever kill PIDs it started**; **when a job moves machines, diff the two launchers before
+trusting a number**; and **a goal predicate must be position-qualified wherever more than one site can
+satisfy it** (F274 — the improve-only incumbent turns one false hit into permanent silent blindness).
 
 ## In progress
 - **Nothing.** Session 22 closed L3 (parked) and L10 (done, F277–F279). The next unit is the top
@@ -909,6 +878,14 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-26 s22 — **L7/L9 FINISHED AND DRY, and the seeds converged** (F285, F286,
+  `docs/experiments/L7-w84-sweep.md`). All ten roots complete: **~3.25 billion frames** across all five of
+  8-4's sub-areas, two independent seeds each, with F266's object-slot lens. **Classes 17 and 18 never fired
+  once.** Every class that did fire was triaged to deaths (`GES` 6/11), the known loop-back pipe, scroll lock,
+  the game's own `AreaFrenzy` spawner, or firebar slot duplication. **H1 also negative** from the only roots
+  that reach the ending: `best_last_input=17846`, exactly the WR's. **The seed convergence is the real result** —
+  `r1s200` and `r2s200` reproduced their first-seed masks bit-for-bit from different seeds on a different
+  machine, which is evidence of a saturated class set rather than an unlucky miss. **Last thread on the board.**
 - 2026-08-26 s22 — **L4 DRY** (F284, `docs/experiments/L4-w84r2-pipe.md`). 8-4 room 2's exit pipe, two full
   6 h archives at 150,000 cells, **~382M frames, 291 page-9 pipe entries, none earlier than the WR's 16182**.
   The result is only readable because the goal was position-qualified mid-session (F274). **Second-to-last

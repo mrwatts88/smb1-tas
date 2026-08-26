@@ -165,3 +165,35 @@ anomalous state exists in 8-4. What it does close is the specific, priced hypoth
 for — F266's blind spot (the object-slot lens that no earlier sweep carried) has now been applied to all
 five of 8-4's sub-areas, on two independent seeds for four of them, and **the star-flag class it was built
 to see never appeared.**
+
+## The final three roots (finished 07:33, and they add a real piece of evidence)
+
+The armed hand-off fired at 01:33 and ran second independent seeds for the three rooms that had only one:
+
+| root | sub-area | seed | rollouts | frames | goals | deaths | `anom` mask | first-seed mask |
+|---|---|---|---|---|---|---|---|---|
+| `r1s200` | room 1 | 281 | 10,477,860 | **268.88M** | 0 | 572,275 | `0x15002` | `0x15002` (r1) |
+| `r2s200` | room 2 | 282 | 10,082,990 | **259.85M** | 0 | 296,254 | `0x17042` | `0x17042` (r2) |
+| `r4s200` | water | 284 | 9,354,004 | **242.85M** | 0 | 137,527 | `0x14003` | `0x04003` (r4) |
+
+**All ten roots are now complete: ~3.25 billion simulated frames. Class 17 and class 18 never fired once.**
+
+### The masks converged, and that is the strongest thing in this write-up
+
+`r1s200` reproduced `r1`'s mask **exactly** (`0x15002`), and `r2s200` reproduced `r2`'s **exactly**
+(`0x17042`), from a completely different random seed and a different machine. `r4s200` differs from `r4`
+by a single bit — class 16, the position-jump/teleport class, which is the already-known loop-back pipe.
+
+That matters because it changes what kind of negative this is. A single rollout search that finds nothing
+tells you only that *that* policy did not reach it. **Two independent seeds agreeing bit-for-bit on which
+anomaly classes are reachable from a root is evidence the sweep has saturated that root's reachable class
+set** — it is not still sampling new territory and coming up empty by luck; it is returning the same
+answer twice. It remains a statement about this rollout policy and these ten roots, not a proof about 8-4.
+But it is the difference between "we looked and did not find it" and "we looked twice, independently, and
+got the same inventory both times."
+
+### Final verdict on L7
+
+Dry, across all five of 8-4's sub-areas, on two independent seeds each, at ~3.25 billion frames, with the
+object-slot lens (F266) that no earlier sweep in this project ever carried. The class it was built to see
+— a second star flag, priced at **857 frames** — did not appear.

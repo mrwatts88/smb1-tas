@@ -8,7 +8,17 @@ its date and fact number.
 
 ---
 
-## THE LIVE BOARD — **ONE live thread** (2026-08-26 s22), and that is all of it
+## THE LIVE BOARD — **EMPTY** (2026-08-26 s22). Every thread is closed, dry, or parked.
+
+**L7 was the last one and it finished dry** (F285/F286): ~3.25 billion frames across all five of 8-4's
+sub-areas on two independent seeds each, with the object-slot lens no earlier sweep carried, and the
+857-frame star-flag class never appeared. The independent seeds **converged bit-for-bit on the same
+anomaly-class masks**, which is evidence the sweep saturated what those roots can reach.
+
+**What remains is not a thread, it is a question nobody has enumerated:** H47 — an over-cap forward
+displacement mechanism, priced at up to 127 px ≈ 50 frames of legal headroom (F270). Exactly one instance
+is known (F268's +6,406 px vine teleport) and it is clamped away (F269). Per the project's own rule that
+is **un-enumerated, not refuted** — and it is a mechanism-discovery problem, not a search problem.
 
 **s22 update, in order:** L3 **parked**, then **L1 went dry** (F280 — 8-2's 114-frame site, ~903M frames, zero
 banked). The board is now **L4 (8-4 room 2's exit pipe)** and **L7 (the 8-4 novelty sweep)** — *both in 8-4*, the

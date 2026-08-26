@@ -2455,3 +2455,47 @@ which is exactly the kind of evidence PROCESS asks for. The route's per-level pi
 (F124), 4-1/8-1/8-3 zero available loss (F225), 4-2 measured closed both routes, 8-2 dry (F280),
 **1-2 closed by arithmetic (F283)** — and **8-4 is the only level left**, which is where both surviving
 threads (L4, L7) already live.
+
+## 2026-08-26 08:45 — session 22 ends: the board is empty, and the seeds converged
+
+**The last three roots finished at 07:33** — `r1s200` 268.88M frames, `r2s200` 259.85M, `r4s200` 242.85M,
+all goals 0. `pgrep -x explore` is empty on both machines. **The project has no running compute and no
+live thread for the first time since session 17.**
+
+**L7's final number: ~3.25 billion simulated frames**, all ten roots, all five of 8-4's sub-areas, two
+independent seeds each, carrying F266's object-slot lens that no earlier sweep in this project ever had.
+**Class 17 and class 18 never fired once.** Every class that did fire was run down rather than waved at:
+`GES` 6/11 are `PlayerLoseLife`/`PlayerDeath` (the ~4.5M deaths), the position-jump and `AreaPointer 229`
+hits are the room-2 loop-back pipe we already knew, the frenzy classes are the game's **own** `AreaFrenzy`
+spawner (core-replayed), and `DuplicateObj_Offset` is firebar/Bowser slot duplication.
+
+**The best evidence in the whole unit is something I did not plan for: the independent seeds converged.**
+`r1s200` reproduced `r1`'s anomaly mask **exactly** (`0x15002`) and `r2s200` reproduced `r2`'s exactly
+(`0x17042`) — different seeds, different machine. `r4s200` differs from `r4` by one bit, and that bit is
+the loop-back teleport we already had. Two independent samples returning the same class inventory is
+evidence the sweep **saturated** those roots' reachable classes rather than missing by luck. It is still a
+statement about this rollout policy and these ten roots — not a proof about 8-4 — but it is a materially
+better negative than a single dry run, and it is the right note to end the compute on.
+
+**H1 closed out negative too**, from the only roots whose horizon reaches the axe: `best_last_input=17846`,
+exactly the WR's own, over 468M frames. That is the first direct test of the approach F223 explicitly left
+untested.
+
+**How the whole board closed, in one line each:** L7 dry (F285/F286), L4 dry (F284), L1 dry (F280), 1-2
+closed by arithmetic (F283), L3 parked (F275), L10 done (F277–F279), L11 closed unstarted (F283).
+
+**What I am careful NOT to write down:** that the record is unbeatable. Every priced target has been
+searched where it was priced, and the unbounded thread has been swept — but H47's class (an over-cap
+displacement mechanism, priced at up to 127 px ≈ 50 frames, F270) has exactly one known instance and it is
+clamped away. Per this project's founding rule that is **un-enumerated, not refuted**, and it is a
+mechanism-discovery problem rather than a search problem. STATUS says so explicitly so that a future
+session does not inherit a false closure.
+
+**Ops lessons this session cost real search time to learn**, all now standing rules in STATUS: never start
+a search without a memory cap; a watchdog must only ever kill PIDs it started; when a job moves machines,
+diff the two launchers first (it bit twice in one day — a silent 25 % under-size, then a silently ignored
+`SKIP` that spent two slots on byte-identical duplicates); a goal predicate must be position-qualified
+wherever more than one site can satisfy it, because the improve-only incumbent turns one false hit into
+permanent silent blindness; and **prose is not a queue** — three separate pieces of real work this session
+were "documented" somewhere a human could find them and would never have been picked up by the documented
+decision procedure.
