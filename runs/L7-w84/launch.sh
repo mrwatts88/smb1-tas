@@ -53,15 +53,23 @@ if [ "${WAIT:-0}" = "1" ]; then
   echo "WAIT: <= ${WAITN:-0} explore running, launching at $(date -u +%FT%TZ)"
 fi
 
+# SEEDADD added 2026-08-26 (s22) to MATCH launch_mac.sh.  The two launchers for this one job had
+# already drifted twice in a single session -- the CELLS 60000/80000 default split, and ONLY/SKIP
+# existing here but not there (F281) -- so keeping them feature-identical IS the fix.  SEEDADD offsets
+# every seed and renames the tag, so re-running an already-covered root is INDEPENDENT coverage rather
+# than a byte-identical duplicate (same binary + same params + same seed = the same rollouts).
 go() { # go TAG ROOT HORIZON SEED
   case " ${SKIP:-} " in *" $1 "*) return 0 ;; esac
   if [ -n "${ONLY:-}" ]; then case " ${ONLY} " in *" $1 "*) ;; *) return 0 ;; esac; fi
-  systemd-run --user --scope -q -p MemoryMax="$M" --unit "l7-$1" -- \
+  TAG="$1"
+  SEED=$(( $4 + ${SEEDADD:-0} ))
+  if [ "${SEEDADD:-0}" -ne 0 ]; then TAG="$1s${SEEDADD}"; fi
+  systemd-run --user --scope -q -p MemoryMax="$M" --unit "l7-$TAG" -- \
     ./build/explore "$CORE" "$ROM" "$IN" --root $2 --horizon $3 \
     --max-addr 0x300 --max-weight 20 --prog-fw 1 --anomaly \
-    --cells "$C" --rollout 6,50 $K --seed $4 --secs "$S" --report 300 --out runs/L7-w84 \
-    > "runs/L7-w84/$1.log" 2>&1 &
-  echo "launched l7-$1 root=$2 horizon=$3 cells=$C memmax=$M secs=$S"
+    --cells "$C" --rollout 6,50 $K --seed $SEED --secs "$S" --report 300 --out runs/L7-w84 \
+    > "runs/L7-w84/$TAG.log" 2>&1 &
+  echo "launched l7-$TAG root=$2 horizon=$3 cells=$C memmax=$M secs=$S seed=$SEED"
 }
 go r1 15210  800 81   # room 1  — control 15224, pipe 15748; horizon runs into room 2's start
 go r2 15905  550 82   # room 2  — control 15918, pipe 16185; L4's 15-frame exit-pipe site (cols 150-152)

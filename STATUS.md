@@ -184,6 +184,17 @@ frames** (1,329 with the music, F259). Collect the Mac's logs first. **A dry is 
 rollout policy from that root, not a proof.** As of this stamp **zero class-17/18 hits** across every
 root on both machines.
 
+### Armed hand-off — the Linux box refills itself (s22, `runs/L7-w84/handoff_linux.sh`)
+A detached waiter (`pgrep -af handoff_linux`) polls every 120 s and, **the moment the Linux box empties**
+(L4's two roots and L7's `r3`/`r5` all end their 6 h around 01:15–01:35), relaunches
+`ONLY="r1 r2 r4" SEEDADD=200 CELLS=80000 MEMMAX=1500M ./runs/L7-w84/launch.sh` — i.e. it puts the whole
+machine back on **8-4, the only level left that can pay**. Log: `runs/L7-w84/handoff_linux.log`.
+**Why those three roots:** `r3`/`r5` already have two independent seeds each (83/183, 85/185) while
+`r1`/`r2`/`r4` have **one**, and `r4` (the water room) had never been searched at all before today. Seeds
+are offset (+200) so this is independent coverage, not a byte-identical duplicate (F281). Each job runs
+under `systemd-run --scope -p MemoryMax=1500M`, 3 × 1500M on a 15.7 GB box — safe unattended.
+**If the waiter is gone and the box is idle, just run that command by hand; it is idempotent per tag.**
+
 ### Finished this session — read these, do not relaunch
 - **L1 / E9b — DRY (F280).** 8-2's flag-glitch window: both Mac archives ran their full 21,600 s and
   printed `done:` at **`best=12953` vs baseline 12952**, i.e. one frame *worse* than the WR, **zero
