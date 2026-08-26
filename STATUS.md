@@ -163,7 +163,7 @@ scheduled; there is no cloud spend and never was any (**total spend: $0**).
 ### Final state of the machines
 | | state |
 |---|---|
-| **Linux** (primary) | Repo at `~/Documents/smb1-tas`, **3.5 GB** (was 121 GB). `pgrep -x explore` and `pgrep -x smb-opt` both empty. **211 GB free** (was 147 GB). |
+| **Linux** (primary) | Repo at `~/Documents/smb1-tas`, **792 MB** (was 121 GB). `pgrep -x explore` and `pgrep -x smb-opt` both empty. **211 GB free** (was 147 GB). |
 | **Mac** | **`~/code/smb` deleted entirely.** All processes killed — two L7 watchdog shells, one E9b watchdog shell, and both `caffeinate` processes. Its other 23 projects untouched. No Docker containers or images belonged to this project. |
 
 ### What was deleted, and what was deliberately kept
@@ -172,9 +172,16 @@ These are BFS/beam intermediate state — regenerable from the committed launche
 a run has printed its verdict.
 
 **Kept, because it is the evidence every fact cites:** all **522 `.log` files** (115 MB), **653
-`.path` files**, and **1,522 non-layer `.bin` files** (2.2 GB — `chain_*.bin` reconstructed input
-chains, `apex_candidates_*.bin`, difftest inputs). A blanket `*.bin` delete would have destroyed
-those; the deletion was narrowed to `layer_*` only after checking.
+`.path` files**, and **1,491 artifact `.bin` files — only 10.2 MB** (`chain_*.bin` reconstructed input
+chains, `apex_candidates_*.bin`, `beetle_*`/`carry*` difftest inputs). A blanket `*.bin` delete would
+have destroyed those, so the deletion was narrowed to `layer_*` after checking the filenames.
+
+**A second pass caught what the first missed.** `layer_*` did not match the BFS **merge temps**, named
+`run_<layer>_<thread>_<seq>.bin` and living in layer dirs' `tmp/` subdirectories: 507 MB in
+`bfscx_layers/tmp/` and **2,233 MB in `runs/P2.1b-model/room_layers/tmp/`** across 31 files. Those 31
+files were **99.5 % of what the first pass had counted as "non-layer `.bin` artifacts to keep"** — the
+real artifacts are the 10.2 MB above. Deleted on the second pass. **Final repo size: 792 MB** (from
+121 GB).
 
 **The Mac's run logs were copied back before the directory was deleted** — 80 logs and 84 path files
 now at **`runs/mac-archive/`**. F285/F286 cite `runs/L7-w84/*.log` "on both machines"; half that

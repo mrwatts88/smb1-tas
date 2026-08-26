@@ -2554,3 +2554,17 @@ files are third-party and are now public: `data/disasm/smbdis.asm` (doppelganger
 widely mirrored, but disassembled Nintendo code) and `data/wr/happylee-supermariobros,warped.fm2`
 (HappyLee's TAS movie, published on TASVideos). Flagged rather than silently shipped, because removing
 them later needs a history rewrite, not just a delete.
+
+**Cleanup second pass.** Asked what untracked files remained, and the answer exposed a miss in the
+first pass: `layer_*` did not match the BFS **merge temps**, which are named
+`run_<layer>_<thread>_<seq>.bin` and sit in layer dirs' `tmp/` subdirectories — 507 MB in
+`bfscx_layers/tmp/` and **2,233 MB in `runs/P2.1b-model/room_layers/tmp/`** across just 31 files.
+Those 31 files were **99.5 % of what the first pass had proudly counted as "1,522 non-layer `.bin`
+artifacts kept"**; the genuine artifacts (`chain_*`, `apex_candidates_*`, difftest inputs) are
+**10.2 MB across 1,491 files**. So the earlier note was right to protect the artifacts and wrong about
+their size — the figure was inflated ~220x by temps I had lumped in with them.
+
+Deleted. **Repo: 3.5 GB → 792 MB** (121 GB at the start of the day). Also confirmed: `git status
+--untracked-files=all` shows **nothing untracked-but-unignored**, so no stray file was ever left out
+of version control by accident; and the ROM is present, gitignored, never in the index, and absent
+from all history.
