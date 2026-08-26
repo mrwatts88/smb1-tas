@@ -155,18 +155,13 @@ pre-cleanup narrative version of this file is archived at
 
 **Verified against the machines 2026-08-26 (session 22). Nine jobs live.**
 
-### Linux (4) — all under `systemd-run --scope` with `MemoryMax`, all 6 h budgets
-| tag | what | log | started | a record needs | state |
-|---|---|---|---|---|---|
-| `l4-a` | 8-4 room 2 exit-pipe, approach root 16050 | `runs/L4-w84r2/a.log` | s22 ~19:20 | goal **< 16182** | 81 %, `best=16182` = control |
-| `l4-w` | same, whole-room root 15905 | `runs/L4-w84r2/w.log` | s22 ~19:20 | goal **< 16182** | 81 %, `best=16182` = control |
-| `l7-r3` | 8-4 room 3 novelty sweep, seed 83 | `runs/L7-w84/r3.log` | s22 ~19:50 | an ANOMALY class 17/18 | 75 %, mask `0x17053`, no goal by design |
-| `l7-r5` | 8-4 Bowser room, seed 85 | `runs/L7-w84/r5.log` | s22 ~19:50 | class 17/18, or `best_*.path` `last_input < 17846` | 75 %, `best=17846` = WR's own |
+### Linux (2) — L4 FINISHED AND DRY (F284); `r3`/`r5` still going
+| tag | what | log | a record needs | state |
+|---|---|---|---|---|
+| `l7-r3` | 8-4 room 3 novelty sweep, seed 83 | `runs/L7-w84/r3.log` | an ANOMALY class 17/18 | ends ~01:35, mask `0x17053` |
+| `l7-r5` | 8-4 Bowser room, seed 85 | `runs/L7-w84/r5.log` | class 17/18, or `best_*.path` `last_input < 17846` | ends ~01:35, `best=17846` = WR's own |
 
-**L4 caveat (F274):** its goal is `--goal-ram 0x0e=3,0x6d=9` — pipe entry **on page 9**. The bare
-`GES==3` fired on room 2's loop-back pipe 112 frames "early" and, via the improve-only incumbent rule,
-had made every real candidate unreportable. Page 9 narrows the pipe, it does not identify it: every
-candidate still gets a core replay + DESTINATION check (runbook §4.3) before it is called anything.
+**When these two end, the armed hand-off refills the box** (see below).
 
 ### Mac (5) — native, ~2x faster, no cgroups (watchdog scoped to its own PIDs only)
 | tag | what | log | a record needs | state |
@@ -196,6 +191,13 @@ under `systemd-run --scope -p MemoryMax=1500M`, 3 × 1500M on a 15.7 GB box — 
 **If the waiter is gone and the box is idle, just run that command by hand; it is idempotent per tag.**
 
 ### Finished this session — read these, do not relaunch
+- **L4 — DRY (F284).** 8-4 room 2's exit pipe. Both roots ran their full 6 h: `a` 221.47M frames / 144
+  goals, `w` 160.42M frames / 147 goals — **~382M frames and 291 pipe entries, every one at the WR's own
+  16182.** `maxx=2572` vs the WR's entry x 2436, so the frontier went well past the pipe and never got
+  there earlier. The 15 priced frames at cols 150-152 are not reachable by an arc search from either root.
+  Trustworthy **only because of the mid-session goal fix** (F274): with the bare `GES==3` the incumbent
+  would have been poisoned at 16070 by the loop-back pipe and this run would have taught us nothing.
+  **Board is now ONE thread: L7.**
 - **L1 / E9b — DRY (F280).** 8-2's flag-glitch window: both Mac archives ran their full 21,600 s and
   printed `done:` at **`best=12953` vs baseline 12952**, i.e. one frame *worse* than the WR, **zero
   banked**, across **~903M frames** (452.75M + 450.41M) and `anom=0x00000` in both. That was the largest
@@ -907,6 +909,10 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-26 s22 — **L4 DRY** (F284, `docs/experiments/L4-w84r2-pipe.md`). 8-4 room 2's exit pipe, two full
+  6 h archives at 150,000 cells, **~382M frames, 291 page-9 pipe entries, none earlier than the WR's 16182**.
+  The result is only readable because the goal was position-qualified mid-session (F274). **Second-to-last
+  thread closed; only L7 remains.**
 - 2026-08-26 s22 — **1-2 CLOSED BY ARITHMETIC (F283), and L11 closed unstarted with it.** The level's
   ceiling is **3** frames — an exhaustive rung gives layer 77 vs the WR's 80 (F144), and Maru370's hand-made
   "perfect 1-2" independently lands on the same 3 — against a **requirement of 8**, with F145 proving every
