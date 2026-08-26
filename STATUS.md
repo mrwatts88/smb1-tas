@@ -5,9 +5,11 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 22 — caretaking, no new unit opened. **L3 / H25 finished and is DRY a third time** (F275) — phase 2's continuation was bound-pruned to zero at layer 188 — but the `cls` axis demonstrably bit (different layer counts from both earlier negatives, same wall), so the key defect F272 found is closed and H25 stays **untested, not refuted**. **L4 was relaunched at full size and was immediately caught reporting fake records** (F274): room 2's LOOP-BACK pipe fires the `GES==3` goal 112 frames "ahead of the WR", and because `ONGOAL` only records *improving* goals, that one false hit had made every genuine entry permanently unreportable. Fixed by requiring page 9 in the goal; both roots relaunched, control green at 16182.)
+**Updated:** 2026-08-26 — **PROJECT FINISHED AND WOUND DOWN (session 22).** No faster route was found; the record stands at HappyLee's 17,868 frames. The board closed in one session: **L1/8-2 dry** (F280, ~903M frames), **L4/8-4's exit pipe dry** (F284, 291 pipe entries, none earlier than the WR's), **1-2 closed by arithmetic** (F283 — ceiling 3 against a requirement of 8, confirmed independently by Maru370's hand-made run), **L3 parked** (F275), and **L7, the last thread, dry across all ten roots at ~3.25 billion frames with the independent seeds converging bit-for-bit** (F285/F286). Machines released, 117 GB of layer files deleted, the Mac's copy removed with its logs archived first, and the engine patch extracted to its own repo. **What is NOT claimed: that the record is unbeatable.** H47's class is un-enumerated, not refuted. Read the wind-down block below, then `docs/open-threads.md`.
 
-<details><summary>Previous stamps (sessions 21, 19)</summary>
+<details><summary>Previous stamps (sessions 22-mid, 21, 19)</summary>
+
+**Updated:** 2026-08-25 (session 22 — caretaking, no new unit opened. **L3 / H25 finished and is DRY a third time** (F275) — phase 2's continuation was bound-pruned to zero at layer 188 — but the `cls` axis demonstrably bit (different layer counts from both earlier negatives, same wall), so the key defect F272 found is closed and H25 stays **untested, not refuted**. **L4 was relaunched at full size and was immediately caught reporting fake records** (F274): room 2's LOOP-BACK pipe fires the `GES==3` goal 112 frames "ahead of the WR", and because `ONGOAL` only records *improving* goals, that one false hit had made every genuine entry permanently unreportable. Fixed by requiring page 9 in the goal; both roots relaunched, control green at 16182.)
 
 **Updated:** 2026-08-25 (session 21 — three units. **L7** (8-4's never-run novelty sweep + an object-slot lens, F265/F266) and **L4** (8-4 room 2's exit pipe, control-gated at 16182, F267) are running/queued. Then, with the machines full, **H12** was read and it landed: `PutPlayerOnVine` indexes two 2-byte tables by `PlayerFacingDir`, L+R makes that **3**, and Mario teleports **+6,406 px** (F268) — the project's first over-cap displacement. It is clamped away (F269), but the reading **prices H47's entire class at 127 px ≈ 50 frames of legal headroom** (F270).)
 
@@ -16,8 +18,10 @@ pre-cleanup narrative version of this file is archived at
 </details>
 
 ## Where we are
-- ## >>> **`docs/open-threads.md` (2026-08-25) is the full enumeration of what is left** — 49
-  hypotheses, 22 closed with proof, ~8 real threads, tiered by whether they are running, ready,
+- ## >>> **`docs/open-threads.md` is the full enumeration, and as of 2026-08-26 its live board is EMPTY.** Every
+  thread is closed, dry, or parked, each with a fact number and an artifact. Read it before believing any
+  summary here. Historical framing follows — 49
+  hypotheses, 22 closed with proof, tiered by whether they were running, ready,
   blocked on a missing primitive, or structural long shots. Read it before picking anything up.
 - ## >>> **E10 DONE, first pass (Mac session 20, `docs/experiments/E10-rom-read.md`) — and it
   CLOSES the board's top open lead.** The disassembly was read end to end. **H43(b) is refuted at
@@ -151,6 +155,56 @@ pre-cleanup narrative version of this file is archived at
   (`tools/{fceux,mesen2,bizhawk}_run.sh`). Git: private GitHub remote; document → STATUS →
   commit → push after every unit.
 
+## PROJECT WOUND DOWN — 2026-08-26 (session 22)
+
+**The project is finished and the machines are released.** Nothing is running anywhere; nothing is
+scheduled; there is no cloud spend and never was any (**total spend: $0**).
+
+### Final state of the machines
+| | state |
+|---|---|
+| **Linux** (primary) | Repo at `~/Documents/smb1-tas`, **3.5 GB** (was 121 GB). `pgrep -x explore` and `pgrep -x smb-opt` both empty. **211 GB free** (was 147 GB). |
+| **Mac** | **`~/code/smb` deleted entirely.** All processes killed — two L7 watchdog shells, one E9b watchdog shell, and both `caffeinate` processes. Its other 23 projects untouched. No Docker containers or images belonged to this project. |
+
+### What was deleted, and what was deliberately kept
+**Deleted: 117.2 GB of `layer_*.bin` / `layer_*.bin.xz`** across 679 files, plus `bfscx_layers/`.
+These are BFS/beam intermediate state — regenerable from the committed launchers, and worthless once
+a run has printed its verdict.
+
+**Kept, because it is the evidence every fact cites:** all **522 `.log` files** (115 MB), **653
+`.path` files**, and **1,522 non-layer `.bin` files** (2.2 GB — `chain_*.bin` reconstructed input
+chains, `apex_candidates_*.bin`, difftest inputs). A blanket `*.bin` delete would have destroyed
+those; the deletion was narrowed to `layer_*` only after checking.
+
+**The Mac's run logs were copied back before the directory was deleted** — 80 logs and 84 path files
+now at **`runs/mac-archive/`**. F285/F286 cite `runs/L7-w84/*.log` "on both machines"; half that
+evidence lived only on the Mac and would have been lost. `runs/mac-archive/L7-w84/` holds `r1`, `r2`,
+`r4`, `r3s100`, `r5s100` — five of the ten sweep roots.
+
+### The engine work is preserved separately
+**`~/Documents/smb-opt-modes`** — a standalone git repo (committed, clean, not yet pushed; `gh` is
+not installed on this box, so the GitHub remote needs creating by hand). It holds the **5,921-line
+patch** against MrWint/smb-opt at pin `daa44287`, plus `regen_patch.sh`, `Dockerfile.smbopt`,
+`mac_sync_engine.sh` and `mac_run.sh`, and a README documenting what the patch adds (enemy models
+for 1-1/4-2 difftested to 0 diffs; a new 4-2 case; the `ygate` and `drift` heuristics; the bucketed
+`--beam-buckets` diversity beam and its `cls` axis), how to apply and build it, and the control gate
+that must reproduce `6, 16, 34, 70, 134, 673, 3472, 16472, 69489, 257001`.
+
+To publish it: create an empty GitHub repo, then
+`git -C ~/Documents/smb-opt-modes remote add origin <url> && git -C ~/Documents/smb-opt-modes push -u origin main`.
+
+### Where the result stands
+**No faster route was found.** The record stands at HappyLee's 17,868 frames. What this project can
+say is in `docs/open-threads.md` and the fact ledger: every *priced* target on the route was searched
+where it was priced and returned empty, and the one thread whose payoff was not bounded by the loss
+map (the 8-4 novelty sweep) was swept across all five sub-areas on two independent seeds each at
+~3.25 billion frames, with the two seeds **converging bit-for-bit** on the same anomaly-class
+inventory. **That is not a proof the record is unbeatable, and nothing here should be read as one.**
+H47's class — an over-cap forward displacement mechanism, priced at up to 127 px ≈ 50 frames — has
+exactly one known instance and it is clamped away. It is **un-enumerated, not refuted**.
+
+<details><summary>Running jobs (historical — all finished; kept for the launcher parameters)</summary>
+
 ## Running jobs
 
 **NONE. `pgrep -x explore` is empty on both machines (2026-08-26 08:45); 147 G free, 8.7 G RAM free.**
@@ -185,6 +239,8 @@ Standing rules that cost real search time to learn: **never start a search witho
 watchdog must only ever kill PIDs it started**; **when a job moves machines, diff the two launchers before
 trusting a number**; and **a goal predicate must be position-qualified wherever more than one site can
 satisfy it** (F274 — the improve-only incumbent turns one false hit into permanent silent blindness).
+
+</details>
 
 ## In progress
 - **Nothing.** Session 22 closed L3 (parked) and L10 (done, F277–F279). The next unit is the top
