@@ -164,3 +164,74 @@ record, has none.**
 ```
 python3 tools/climb_facing_probe.py          # the table in §2; needs build/harness and the ROM
 ```
+
+---
+
+# L10 — the other nine `PlayerFacingDir` / `Player_MovingDir` readers (session 22)
+
+**Unit:** L10, 2026-08-25 session 22, Linux. Pure reading — no search, no RAM, run while four jobs
+were live. Method as in §1: find the site, decide whether the index can leave its table, and if it
+can, check the table's real size in the listing and what sits after it.
+
+`SetVXPl` / `PutPlayerOnVine` (§1) was the only one of eleven that had ever been checked, and it
+produced F268's +6,406 px. These are the other nine.
+
+## 8. The site table
+
+| smbdis | routine | how facing / moving dir is used | out of range? | verdict |
+|---|---|---|---|---|
+| 5989 | `MoveOnVine` → `CSetFDir` | `ClimbAdderLow,x` + `ClimbAdderHigh,x`, X ∈ {0,1,2,3} built from (right-pressed, facing==1) | **No** | Both tables are **4 bytes** — `.db $0e,$04,$fc,$f2` and `.db $00,$00,$ff,$ff` — sized for exactly this 2×2. Facing 3 takes the same branch as facing 2. Vine-only, and 8-4 has no vine |
+| 6152 | `X_Physics` | `cmp Player_MovingDir` — comparison, never an index | n/a | See §9: it is the *value* of `Player_MovingDir` that matters here, not a table |
+| 6184 | `GetXPhy` | `MaxLeftXSpdData,y` (3 B, y≤2), `MaxRightXSpdData,y` (**4** B, y≤3 — the 4th is the pipe-intro `$0c`), `FrictionData,y` (3 B, y≤2); facing only in a `cmp` | **No** | All three in range; y comes from the 0–2 ladder or the explicit `ldy #$03`. The facing-3 friction doubling here is the already-known effect |
+| 6208 | `GetPlayerAnimSpeed` → `ProcSkid` | `PlayerAnimTmrData,y` (3 B, y≤2) — in range — **but `lda PlayerFacingDir / sta Player_MovingDir`** | table No; **the write is the find** | **The one new primitive: `Player_MovingDir` can become 3.** Analysed in §9 |
+| 6346 | `FireballObjCore` | `ldy PlayerFacingDir / dey / lda FireballXSpdData,y` → y = **2** | **YES** | `FireballXSpdData` is **2 bytes** (`.db $40, $c0`); index 2 reads the byte after it. A genuine second out-of-table read — but it only lands in `Fireball_X_Speed`, and it needs Fiery Mario, which this route never becomes. No player displacement |
+| 6396 | `SetupBubble` | `lsr` on facing, tests d0 only | No table | Facing 3 has d0 = 1, so it takes the facing-1 branch. Air bubbles are cosmetic |
+| 9479 | `MoveBloober` | `ldy Player_MovingDir` → `sty Enemy_MovingDir,x` | copies a 3 into an enemy field | The consumer (`SwimX`, 9495) is `ldy Enemy_MovingDir,x / dey / bne` — a test, not a table. 3 behaves as 2 (swim left). Chain dies here; see §9 |
+| 12079 | `CheckSideMTiles` → `ChkPBtm` | `ldy PlayerFacingDir / dey / bne StopPlayerMove` | test only | **Constraint worth carrying: facing must be exactly 1 to enter a downward pipe.** Facing 3 (L+R) falls to `StopPlayerMove` — L+R *blocks* pipe entry. Directly relevant to L4 |
+| 14612 | `ProcOnGroundActs` | `lda Player_MovingDir / and PlayerFacingDir` → skid graphics offset (y≤6) | No | 3 AND 1 = 1 → non-zero → no skid frame. Cosmetic |
+
+## 9. The one new primitive, and why it defeats itself
+
+`ProcSkid` (6217) is the **only** writer in the game that can put a 3 into `Player_MovingDir` — the
+main writer, `SetMoveDir` (5604), only ever stores `$01` or `$02` (`lda #$01` … `asl`). Its
+conditions are reachable: hold L+R (so `SavedJoypadBits & $03` = 3, which never equals a normal
+moving direction, so the skid branch is taken) with `Player_XSpeedAbsolute < $0b`.
+
+Two normally-adverse comparisons then flip to *equal*, and both are speed-relevant:
+
+- **`X_Physics` (6152):** `lda Left_Right_Buttons / cmp Player_MovingDir / bne ChkRFast`. Holding L+R
+  normally fails this compare (3 vs 1 or 2) and drops to `ChkRFast`, which increments Y and costs you
+  the top cap. With `Player_MovingDir` = 3 it **matches**, keeping the path that can reach `GetXPhy`
+  with **Y = 0** — `MaxRightXSpdData[0]` = `$28` = the 40 cap.
+- **`GetXPhy` (6184):** `lda PlayerFacingDir / cmp Player_MovingDir / beq ExitPhy`. Facing 3 against
+  moving dir 3 **matches**, so the `asl FrictionAdderLow` that doubles friction under L+R is skipped.
+
+So the state cancels both known L+R penalties at once. It still does not pay, for a reason visible in
+the same listing:
+
+1. **The writer zeroes the speed in the same breath.** `ProcSkid` continues `lda #$00 / sta
+   Player_X_Speed / sta Player_X_MoveForce`. You cannot enter the state with speed.
+2. **It survives only at zero speed.** `SetMoveDir` runs every frame *after* `PlayerMovementSubs`, and
+   `ldy Player_X_Speed / beq PlayerSubs` skips the store **only** when speed is exactly 0. The first
+   frame the player has any horizontal speed, `Player_MovingDir` is overwritten with 1 or 2 and the
+   state is gone.
+
+Net: **at most one frame of favourable branches, bought with the player's entire horizontal speed.**
+That is not a trade any route wants, and it is a code-level argument, not a search result.
+
+## 10. Verdict
+
+Eleven readers now audited, and **the vine remains the only one that reads past its table into
+something that moves Mario.** One further genuine out-of-table read exists (`FireballXSpdData[2]`,
+6346) but it is confined to a fireball's speed and needs a powerup the route never takes. Everything
+else is either sized for the out-of-range value already (`ClimbAdder*`, 4 bytes), sanitised at the
+consumer (`ImpedePlayerMove` does `ldx #$02`, so `$00` = 3 is identical to `$00` = 2 — worth knowing,
+since that is the routine the whole clip programme lives in), a bit test that treats 3 as 1, or
+cosmetic.
+
+**Two things to carry forward:**
+- **L4 constraint:** a downward pipe needs `PlayerFacingDir == 1` exactly (12079). Any candidate
+  holding L+R at the pipe mouth is impeded instead of entering. Worth checking the model honours this.
+- **Dead end recorded so it is not re-walked:** `HammerXSpdData` (6870) *is* a 2-byte table indexed by
+  `Enemy_MovingDir − 1`, so a 3 there would read out of range — but the only path that copies
+  `Player_MovingDir` into an enemy is the bloober (9479), and no Hammer Bro ever receives it.

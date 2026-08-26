@@ -2328,3 +2328,34 @@ session — and reading is what has actually produced this project's finds (F268
 sense that a human could find them, and would not have been picked up by the documented decision procedure:
 the E6 re-run, L7's read-out, and the fact that `r5` had been stopped at 25 %. Anything that must happen
 next belongs in the table with an ID, or it does not exist.
+
+## 2026-08-25 — session 22, unit L10 (user-directed): the other nine facing/moving-dir readers
+
+**Did.** Read all nine un-audited `PlayerFacingDir` / `Player_MovingDir` sites (smbdis 5989, 6152, 6184,
+6208, 6346, 6396, 9479, 12079, 14612) against the real table sizes in the listing, and followed the two
+propagation chains they opened. Pure reading, run with four search jobs live — which is exactly the point
+of having a reading unit at the top of the queue.
+
+**Learned.**
+1. **The vine is still the only reader that goes past its table into something that moves Mario** (F277).
+   Most sites were never index sites at all — 6152/6184 only `cmp`, 6396 tests d0 with `lsr` so 3 acts as 1,
+   12079 tests with `dey/bne`, 14612 uses `and` for a graphics offset. `ClimbAdderLow`/`High` at 5989 turn
+   out to be **4 bytes each**, sized for exactly the 0–3 index, so facing 3 is covered by construction.
+2. **One genuine second out-of-table read: `FireballXSpdData[2]`** (6346) — a 2-byte table indexed by
+   facing−1. Real, but it lands only in `Fireball_X_Speed` and needs Fiery Mario, which this route never
+   takes. Recorded rather than chased.
+3. **A new primitive, found and closed in the same unit (F278).** `ProcSkid` (6217) is the only writer in
+   the game that can put a **3** into `Player_MovingDir`. That state cancels *both* known L+R penalties at
+   once — `X_Physics` keeps the path to the 40 cap, and `GetXPhy` skips the friction doubling — which was
+   genuinely surprising and looked for a moment like the lever. It is not: the same writer zeroes
+   `Player_X_Speed`, and `SetMoveDir` overwrites the direction on any non-zero speed, so it is **one frame
+   of favourable branches bought with the player's entire horizontal speed**. Code-level negative, no search
+   needed, which is the kind of closure PROCESS actually wants.
+4. **A live constraint fell out for L4** (F279): a downward pipe needs `PlayerFacingDir == 1` **exactly**
+   (12079), so L+R blocks pipe entry — worth checking the model honours it, since L4 is searching a pipe
+   entry right now. And `ImpedePlayerMove` sanitises `$00` = 3 to the `$00` = 2 path via `ldx #$02`, so the
+   F278 state cannot corrupt the clip programme's own routine.
+
+**Next.** L10 is struck from the queue; the top unblocked units are now **L9** (read the L7 sweep out when
+its roots finish) and **L8** (E6's six roots with the object lens, when RAM frees). Four jobs still running
+on Linux, two on the Mac.

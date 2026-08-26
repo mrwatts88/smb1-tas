@@ -261,12 +261,9 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- **Nothing.** Session 22 closed L3 (below); no unit is mid-flight. The next session takes the top
-  unblocked item from "Next up" — but read "Running jobs" first: **L4 (both roots, Linux) and E9b (Mac)
-  are live, and L7's r1–r4 fire on the Mac when E9b exits.** Reading those out is the first work available.
-- **Watchers armed in session 22 die with that session** (they were Monitor tasks, not daemons): the L4
-  log tail and a 5-minute Mac poll. A fresh session re-arms them or just reads the logs directly —
-  nothing depends on them.
+- **Nothing.** Session 22 closed L3 (parked) and L10 (done, F277–F279). The next unit is the top
+  unblocked row of "Next up" — now **L9** (read the L7 sweep out, when its roots finish) or **L8**
+  (E6's six roots with the object lens, when RAM frees). Read "Running jobs" first.
 
 ## Superseded in-progress note
 - **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started
@@ -830,13 +827,10 @@ novelty sweep (running). The session-19 order is **stale and will send you to re
 E9b-1 is running right now, E10 is done, E11 was answered by F273, and E9b-2 is all but answered by the
 same fact. Those four rows are struck through in the table below with what actually happened to each.
 
-**The real order is the first three rows of the table:**
-1. **L10** — the remaining facing-direction readers. **Pure reading, so it is the only unit that is
-   unblocked while the machines are full**, which is the normal state. It is also the exact class that
-   produced F268's +6,406 px, i.e. the one that has actually paid.
-2. **L9** — read the L7 sweep out the moment its roots finish. This is what converts the running compute
+**The real order is the first rows of the table** (~~L10~~ was done in s22 — F277–F279):
+1. **L9** — read the L7 sweep out the moment its roots finish. This is what converts the running compute
    into a result; leaving it unread is how a sweep becomes wasted wall-clock.
-3. **L8** — re-run E6's six roots with the object lens. Six levels have never been looked at through the
+2. **L8** — re-run E6's six roots with the object lens. Six levels have never been looked at through the
    class that matters (F266), and **it is the only remaining thread whose payoff is not bounded by the
    loss map**: every movement thread is capped by the 290 frames of measured geometric loss (F245); a
    structural anomaly is not.
@@ -898,7 +892,7 @@ that matters. Both are RAM-blocked behind whatever is running, not blocked on th
 
 | ID | Title | Track | Size | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| **L10** | **The remaining `PlayerFacingDir` / `Player_MovingDir` readers — THE ONLY UNBLOCKED UNIT WHEN THE MACHINES ARE FULL, WHICH IS USUALLY.** Pure ROM reading, no compute, no RAM. Sites: smbdis **5989, 6152, 6184, 6208, 6346, 6396, 9479, 12079, 14612**. Only `SetVXPl` and `PutPlayerOnVine` have been checked, and `PutPlayerOnVine` is the one that produced **+6,406 px** (F268) — the project's first over-cap displacement — so this is the exact class that has actually paid. Facing 3 (L+R) and facing 0 (L+R on a vine) are out-of-range at every `ldy PlayerFacingDir` site; the question per site is whether the out-of-range index reaches a table, and what is adjacent to that table in ROM. Price everything against **F270: 127 px ≈ 50 frames of legal headroom** to the right of where the WR runs — a displacement only has to land inside the screen to pay. | B | S–M | — | A table in `docs/experiments/H12-input-semantics.md` with one row per site: the index, whether it can go out of range, what it lands on, and either a bound or a measured displacement |
+| ~~L10~~ | **DONE 2026-08-25 s22 (F277–F279) — see Done. The vine stays the only reader that moves Mario; `Player_MovingDir` = 3 exists but defeats itself; a down pipe needs facing == 1 exactly.** ~~The remaining `PlayerFacingDir` / `Player_MovingDir` readers.~~ Pure ROM reading, no compute, no RAM. Sites: smbdis **5989, 6152, 6184, 6208, 6346, 6396, 9479, 12079, 14612**. Only `SetVXPl` and `PutPlayerOnVine` have been checked, and `PutPlayerOnVine` is the one that produced **+6,406 px** (F268) — the project's first over-cap displacement — so this is the exact class that has actually paid. Facing 3 (L+R) and facing 0 (L+R on a vine) are out-of-range at every `ldy PlayerFacingDir` site; the question per site is whether the out-of-range index reaches a table, and what is adjacent to that table in ROM. Price everything against **F270: 127 px ≈ 50 frames of legal headroom** to the right of where the WR runs — a displacement only has to land inside the screen to pay. | B | S–M | — | A table in `docs/experiments/H12-input-semantics.md` with one row per site: the index, whether it can go out of range, what it lands on, and either a bound or a measured displacement |
 | **L9** | **Read the L7 sweep out — the unit that turns the running jobs into a result.** Do this the moment `r1`–`r5` finish (`r3`/`r5` on Linux, `r1`/`r2`/`r4` on the Mac — collect the Mac's logs first). Recipe: `grep ANOMALY runs/L7-w84/*.log`, then `tools/e3_replay.py runs/L7-w84/anom_<class>_f<frame>.path` per hit, then `tail -n 3 runs/L7-w84/*.log` for the `anom=0x<mask>` summary per root. **Priced: a live class-18 hit (`*** SECOND STAR FLAG ***`) is 857 frames** (1,329 with the music, F259); class 17 is worth reading, not priced in advance. On `r5` only, a `best_*.path` with `last_input < 17846` is a record on the ending-input coast (H1). **A dry is a statement about the rollout policy from that root, not a proof** — record it that way. Already known: r5's s21 partial (25 %, 26 M frames) fired classes 0/1/6/14/15/16 only, **not 17 or 18**. | B | S | L7 runs finishing | A per-sub-area verdict in `docs/experiments/L7-w84-sweep.md`: every ANOMALY class that fired, each replayed hit triaged, and an explicit statement of what the mask says did NOT fire |
 | **L8** | **Re-run E6's six roots with the object-slot lens — six levels that have NEVER been looked at through the class that matters.** Same binary, same launcher (`runs/E6-vram/launch.sh`), roots 1-1 / 1-2 / 4-1 / 4-2 / 8-2 / 8-3. **Why it is not a repeat:** F266 shows every earlier sweep's nearest class fired only on `Enemy_ID > $36` across five of the six slots, so `$31` (`StarFlagObject`, the class F258 priced at **857 frames**) was **invisible in every slot**, and slot 5 was not covered at all. `explore.c` now carries class 17 (novel `Enemy_ID` in a *live* slot, calibrated) and class 18 (a *second* star flag, calibrated by count), and class 5 covers all six slots. So the six non-8-4 levels have had no object-lens sweep in their history. **This is L7's other half and it is the only remaining thread whose payoff is not bounded by the loss map** — every movement thread is capped by the 290 frames of measured geometric loss (F245); a structural anomaly is not. | B | M | RAM (behind L4 + L7) | A per-root verdict in a new `docs/experiments/L8-e6-objectlens.md`: the `anom=0x<mask>` per root, every class-17/18 hit replayed and triaged, and an explicit list of which classes did not fire |
 | ~~E9b-1~~ | **RUNNING NOW ON THE MAC (`runs/E9b/arc{16,32}.log`) — do NOT relaunch; this row is the spec, not a to-do. Its read-out is part of L9.** ~~8-2's cols 201-212 — the largest geometric loss on the route (114 f, F245/H48). START HERE.** The launcher is written: **`./runs/E9b/launch.sh`** (read `runs/E9b/README.md`). **Blocked only on RAM** — wait for `pgrep -x explore` to be empty. The site: a one-column pillar (col 203, top row 6, `Y` 96), a two-column bottomless shaft (204-205), a two-column wall (206-207, rows 3-12, top `Y` 48). The WR falls into the shaft and **wall-jumps** up it — 183 frames for 173 px against a 69-frame bound. Its faces **refuse** (col 205 is empty top to bottom) and F244's sink needs a foot at x >= 3284 while the side probe impedes from x = 3283 unless `Y <= 55`, by which height Mario is already over the wall — **so it is a jump-arc problem, not a clip problem**. H48: the direct jump from the pillar needs 41 px of rise before x = 3283, the WR's own arc gives 42 px in 25 px of travel, so it must be issued at x <= 3259 and the first issuable frame after landing at x 3258 is x ~ 3260 — **it misses by 1-2 px**. Land 3-10 px earlier and it clears with 10-25 px of margin; the cost is a flatter approach jump that must still clear the col-199/201 staircase (2 px of margin at the WR's). **No-memory fallback while the box is full:** splice a jump into the WR inputs at dump 12289 and replay on the core. | A | M | — | Either a core-replayed path with `StarFlagTaskControl == 5` at core <= 12952 (banked) or <= 12931 (a record), or a swept statement that no pillar landing at x <= 3252 with speed >= 39 exists |
@@ -950,6 +944,18 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s22 — **L10 DONE: the other nine facing/moving-dir readers audited** (F277–F279,
+  `docs/experiments/H12-input-semantics.md` §8–10). **The vine stays the only reader that goes past its table
+  into something that moves Mario.** One further genuine out-of-table read found — `FireballXSpdData[2]` (6346,
+  a 2-byte table indexed by facing−1) — but it lands only in a fireball's speed and needs Fiery Mario, which this
+  route never takes. Everything else is sized for the out-of-range value already (`ClimbAdder*` are 4 bytes),
+  sanitised at the consumer, a bit test that treats 3 as 1, or cosmetic. **New primitive found and closed in the
+  same unit (F278):** `Player_MovingDir` *can* hold 3 (`ProcSkid`, 6217 — the only writer that can), and it
+  cancels **both** known L+R penalties at once (keeps the 40 cap in `X_Physics`, skips the friction doubling in
+  `GetXPhy`) — but the writer zeroes `Player_X_Speed` in the same breath and `SetMoveDir` restores 1/2 on any
+  non-zero speed, so it is one frame of favourable branches bought with all your speed. Code-level negative.
+  **Constraint handed to L4 (F279):** a downward pipe needs `PlayerFacingDir == 1` exactly, so L+R *blocks* pipe
+  entry — check the model honours it.
 - 2026-08-25 s22 — **F274 audited across the whole project: blast radius is one run, no record lost** (F276).
   Swept every `GOAL frame` line in every Track E `explore` log on both machines — all sit at `baseline+1`, so no
   incumbent ever fell below a baseline and nothing was ever suppressed. E3-w84 already pinned page+X, E3-w42 pinned
