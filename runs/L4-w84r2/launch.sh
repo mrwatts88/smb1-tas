@@ -26,6 +26,18 @@
 # already produced one (`AreaPointer = 229` + a 255 px position jump at frame 16223, x 1536).  So
 # EVERY candidate must be core-replayed and DESTINATION-checked (runbook 4.3) before it counts.
 #
+# THE PAGE-9 CLAUSE (session 22 -- ADDED AFTER IT BIT, F274).  The first full-size `w` run reported
+# `GOAL frame=16074 (-108)` and `16070 (-112)` *** AHEAD OF THE WR *** within ten minutes.  Both are
+# the room-2 LOOP-BACK pipe: entry at **x 2116 (page 8)**, and the core replay dumps Mario back at
+# **x 312**, start of room 2, `AreaPointer` still $65 (`runs/L4-w84r2/s22_nopage/`).  The WR's exit
+# pipe is at **x 2436 = page 9, X 132**.  `GameEngineSubroutine == 3` alone fires on ANY pipe.
+# Worse than a false positive: ONGOAL (explore.c:454) only ever records a goal that IMPROVES on the
+# incumbent, so a 16070 loop-back permanently blinds the run to every real entry (which cannot be
+# earlier than ~16150).  The run could no longer answer its own question.
+# Fix: the goal pairs are ANDed (explore.c:132), so `--goal-ram 0x0e=3,0x6d=9` requires the pipe
+# entry to happen on **page 9**, which the loop-back at page 8 cannot satisfy and the WR's own entry
+# does -- the control gate still reproduces 16182.  The destination check stays mandatory anyway:
+# page 9 narrows the pipe, it does not identify it.
 # CONTROL GATE (green, 2026-08-25, `runs/L4-w84r2/ctrl/`): root 16050, 40 s, 4,000 cells ->
 #   `GOAL frame=16182  (baseline 16182, +0)`  -- the seeded WR line reproduces its own entry.
 #
@@ -47,7 +59,7 @@ go() { # go TAG ROOT HORIZON SEED
   if [ -n "${ONLY:-}" ]; then case " ${ONLY} " in *" $1 "*) ;; *) return 0 ;; esac; fi
   systemd-run --user --scope -q -p MemoryMax="$M" --unit "l4-$1" -- \
     ./build/explore "$CORE" "$ROM" "$IN" --root $2 --horizon $3 \
-    --goal-ram 0x0e=3 --baseline 16182 --anomaly \
+    --goal-ram 0x0e=3,0x6d=9 --baseline 16182 --anomaly \
     --cells "$C" --rollout 6,50 $K --seed $4 --secs "$S" --report 300 --out runs/L4-w84r2 \
     > "runs/L4-w84r2/$1.log" 2>&1 &
   echo "launched l4-$1 root=$2 horizon=$3 cells=$C memmax=$M secs=$S"

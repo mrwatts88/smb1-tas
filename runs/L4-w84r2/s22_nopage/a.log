@@ -1,0 +1,12 @@
+root=16050  state=12792 B  lives=2  area=$65  x=2143  y=365  WR last input before root=16037
+archive: 150000 cells, state 1.92 GB, paths 0.03 GB
+  GOAL frame=16182  (baseline 16182, +0)
+anomaly calibration from the WR line: 1 GES / 1 OperMode / 1 World / 1 AreaPointer / 2 PlayerState / 4 Enemy_ID values are normal here
+seeded WR line: 132 cells, incumbent last_input=1073741824
+  *** ANOMALY SecondaryHardMode = 1  frame 16074 x 2203 y 427  runs/L4-w84r2/anom_14_f16074.path
+  *** ANOMALY Player_State = 2  frame 16098 x 2258 y 400  runs/L4-w84r2/anom_8_f16098.path
+  *** ANOMALY GES = 11  frame 16089 x 2216 y 432  runs/L4-w84r2/anom_1_f16089.path
+  *** ANOMALY AreaPointer = 229  frame 16223 x 1536 y 432  runs/L4-w84r2/anom_4_f16223.path
+  *** ANOMALY position jump (clip/teleport) = 255  frame 16223 x 1536 y 432  runs/L4-w84r2/anom_16_f16223.path
+  *** ANOMALY ScrollLock = 1  frame 16175 x 2222 y 512  runs/L4-w84r2/anom_12_f16175.path
+[   300s] cells=150000 rollouts=133078 frames=3.61M (12k fps) goals=2 deaths=0 best=16182 maxx=2563 maxrel=239 maxaddr=-1 anom=0x15112 improved=58486 evict=1265341

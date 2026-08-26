@@ -2231,3 +2231,51 @@ in STATUS — a watchdog must only kill PIDs it started).
 deficit of 8, after ~680M simulated frames. That is the round run *after* the subpixel-key defect was
 fixed, so it is the informative one. F273; board row updated. The live board is now: **L1 running (Mac),
 L3 running (Linux, the reopened one), L4 stopped pending a full-size relaunch, L7 queued (Mac), L2 dry.**
+
+## 2026-08-25 — session 22 (Linux). L3 finished and is dry; L4 was reporting fake records and is fixed
+
+**Session shape:** the prompt was "see what's in progress, arm watchers, handle anything that finishes",
+so this is a caretaking session — no new unit was opened. Two of the three live jobs reached a state that
+needed acting on, and one of them turned out to be broken in a way that mattered.
+
+**Did.**
+1. **L3 / H25 phase 1 had just finished** (5,225 apex candidates at step 162, 1640.8 s). Wrote
+   `runs/L3-w84r3/launch_phase2.sh` — the resume command STATUS had checkpointed, wrapped in
+   `systemd-run MemoryMax=10G MemorySwapMax=0` + `tools/watchdog.sh`, because the checkpointed command
+   carried no cgroup cap and the standing rule has no exception for short runs. **Phase 2 came back dry
+   in 11.9 s:** frontier bound-pruned to zero at layer 188, no goal (F275).
+2. **Checked whether the `cls` fix actually bit**, since that is the whole reason the unit was reopened.
+   It did: the continuation's layer counts differ from both earlier negatives (layer 185: 151,752 vs
+   F133(e)'s 151,546 and F133(d)'s 86,322) while `max x` per layer is identical and all three collapse at
+   exactly layer 188. A genuinely different candidate set reaches the same wall. Also dumped the bound's
+   end-class census to pin the target: R=33, n=1280, all ground / running / `abs 0`, moving RIGHT at
+   1.00–10.98 px/frame, facing LEFT — the landing frame F272 predicted.
+3. **Relaunched L4 at full size** (`CELLS=150000 MEMMAX=2500M`, both roots) now that L3 had freed the box —
+   STATUS listed this as the first thing to do when RAM frees.
+4. **Caught L4 reporting two fake records within ten minutes, and fixed the cause** (F274). See below.
+5. **Killed an orphaned machine-wide watchdog on the Mac** (pid 57194, the pre-incident E9b launcher's
+   3 GB RSS killer, still scanning every `explore` on the box 4h49m after its own children died). The
+   current E9b pair keeps its own watchdog (78958). This is the hazard the last commit flagged.
+6. **Armed two watchers**: the L4 logs for goals and terminal states, and a 5-minute Mac poll that emits
+   only on change (E9b best, `done:`, L7 log count, class-17/18 anomaly count, any "AHEAD OF THE WR").
+
+**Learned — the L4 failure is the interesting part of the session.** The full-size `w` root printed
+`GOAL frame=16074 (-108)` and `GOAL frame=16070 (-112)`, both flagged `*** AHEAD OF THE WR ***`. Core
+replay: entry at **x 2116 (page 8)**, and Mario re-emerges at **x 312, `AreaPointer` still $65** — the
+room-2 **loop-back** pipe, dumping him back at the room's start. The launcher had predicted exactly this
+and required a destination check, so the false positive itself was anticipated. **What was not anticipated
+is the second-order damage:** `ONGOAL` (`explore.c:454`) only records a goal that *improves* on the
+incumbent, so banking a 16070 loop-back makes every genuine entry — which cannot be earlier than ~16150 —
+permanently unreportable. The run was still printing progress while having lost the ability to answer its
+own question. Fixed by ANDing a position clause into the goal (`--goal-ram 0x0e=3,0x6d=9`, i.e. pipe entry
+**on page 9**, which the page-8 loop-back cannot satisfy and the WR's own entry does); both roots
+relaunched and reproduce `GOAL frame=16182 (+0)` exactly. Evidence preserved in `runs/L4-w84r2/s22_nopage/`.
+
+That is the third time the F230/F237 doctrine has bitten — **a proxy goal makes fake records** — and the
+first time the proxy also *suppressed the true ones*. Worth generalising: any search whose goal is a
+state predicate rather than a position-qualified one should be audited for the same pattern, because the
+incumbent rule turns one false hit into permanent blindness rather than one bad candidate.
+
+**Next.** L4 (both roots, 6 h) and E9b (Mac, ~5 h left) are running; L7's r1–r4 fire when E9b exits.
+H25 stays `untested`, not `refuted` — the honest next lever there is phase 1's *width* (`--beam 1000`,
+~4x its 27 minutes), not its key, which is now correct.

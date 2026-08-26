@@ -5,9 +5,11 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
-**Updated:** 2026-08-25 (session 21 — three units. **L7** (8-4's never-run novelty sweep + an object-slot lens, F265/F266) and **L4** (8-4 room 2's exit pipe, control-gated at 16182, F267) are running/queued. Then, with the machines full, **H12** was read and it landed: `PutPlayerOnVine` indexes two 2-byte tables by `PlayerFacingDir`, L+R makes that **3**, and Mario teleports **+6,406 px** (F268) — the project's first over-cap displacement. It is clamped away (F269), but the reading **prices H47's entire class at 127 px ≈ 50 frames of legal headroom** (F270).)
+**Updated:** 2026-08-25 (session 22 — caretaking, no new unit opened. **L3 / H25 finished and is DRY a third time** (F275) — phase 2's continuation was bound-pruned to zero at layer 188 — but the `cls` axis demonstrably bit (different layer counts from both earlier negatives, same wall), so the key defect F272 found is closed and H25 stays **untested, not refuted**. **L4 was relaunched at full size and was immediately caught reporting fake records** (F274): room 2's LOOP-BACK pipe fires the `GES==3` goal 112 frames "ahead of the WR", and because `ONGOAL` only records *improving* goals, that one false hit had made every genuine entry permanently unreportable. Fixed by requiring page 9 in the goal; both roots relaunched, control green at 16182.)
 
-<details><summary>Previous stamp (session 19)</summary>
+<details><summary>Previous stamps (sessions 21, 19)</summary>
+
+**Updated:** 2026-08-25 (session 21 — three units. **L7** (8-4's never-run novelty sweep + an object-slot lens, F265/F266) and **L4** (8-4 room 2's exit pipe, control-gated at 16182, F267) are running/queued. Then, with the machines full, **H12** was read and it landed: `PutPlayerOnVine` indexes two 2-byte tables by `PlayerFacingDir`, L+R makes that **3**, and Mario teleports **+6,406 px** (F268) — the project's first over-cap displacement. It is clamped away (F269), but the reading **prices H47's entire class at 127 px ≈ 50 frames of legal headroom** (F270).)
 
 **Updated:** 2026-08-25 (session 19 — **E9a DONE and positive-controlled** (F246): no face admits a *full-speed* lateral entry, and the classifier reproduces 1-2's known clip frame for frame. **8-2's 114-frame site is real on the core** (F247): the jump clears the wall at speed 40 and reaches the pole 112 frames early, but loses HappyLee's flag glitch and ends the level 63-126 frames LATE. **Track E now runs natively on the Mac, byte-identical and 3x faster** (F248), and E9b-1 is RUNNING there.)
 
@@ -159,19 +161,27 @@ pre-cleanup narrative version of this file is archived at
   reproduced its control** (`GOAL frame=12953 (baseline 12952, +1)`, `runs/E9b/relaunch.log`, pids
   78956/78957, fresh 6 h). Standing rule from this: **a watchdog must only ever kill PIDs it started**
   — never a machine-wide `pgrep`; and any portable process count is `pgrep -x NAME | wc -l`.
-- **[L4, session 21] STOPPED to clear the box for L3 — relaunch at full size when L3 is done.**
-  The 40,000-cell placeholder (`runs/L4-w84r2/a.log`, ~1.4 h in, at the control) was killed on purpose:
-  it was undersized from the start and always wanted a full-size rerun. Restart with
-  `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh` (both roots). Everything below still applies.
-  `runs/L4-w84r2/a.log` (root 16050, horizon 200, `--cells 40000`, `MemoryMax=700M`, 6 h). Goal
-  `GameEngineSubroutine == 3` (pipe entry), **baseline 16182 = the WR's own, reproduced exactly by the
-  control gate**; the goal is the record quantity, with the monotonicity argument written down (F267).
-  **A goal < 16182 is a banked frame and in 8-4 one frame IS the record** — but the control run itself
-  produced a **wrong-pipe** rollout (`AreaPointer = 229`, 255 px jump), so every candidate is
-  core-replayed and DESTINATION-checked (runbook §4.3) before it is called anything, then synced in
-  FCEUX + BizHawk. Second root **`w` (15905, the whole room, lets the approach state vary) is written and
-  NOT launched — RAM.** When the E7 archives exit: `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh`
-  (relaunches `a` at full size and starts `w`). Write-up: `docs/experiments/L4-w84r2-pipe.md`; fact F267.
+  **[session 22] The orphan was cleaned up.** The pre-incident E9b launcher's watchdog (pid 57194) was still
+  alive 4h49m after its own children were killed, scanning every `explore` on the Mac and killing anything over
+  3 GB — a machine-wide killer with nothing left to guard. Killed. The live E9b pair keeps its own watchdog
+  (78958), which is the *same* machine-wide shape: it is tolerable only because L7's r1–r4 run at `--cells
+  60000/80000` and sit well under 3 GB. **Fix it properly before any Mac job is sized above that** (P0.11d).
+- **[L4, session 22] RUNNING ON LINUX AT FULL SIZE, BOTH ROOTS — and its goal was fixed mid-session (F274).**
+  `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh`, launched 2026-08-25 ~19:20, **6 h each**, under
+  `systemd-run --scope --unit l4-a / l4-w`. Logs `runs/L4-w84r2/{a,w}.log`. Roots: `a` 16050 (the approach,
+  horizon 200), `w` 15905 (the whole room, horizon 350 — never run before this session).
+  **READ THIS BEFORE TRUSTING ANY GOAL LINE.** The first full-size `w` run printed `GOAL frame=16074 (-108)`
+  and `16070 (-112)` flagged `*** AHEAD OF THE WR ***` within ten minutes. Both were room 2's **loop-back**
+  pipe: entry at x 2116 (page 8), core replay dumps Mario back at **x 312**, `AreaPointer` still $65
+  (evidence kept in `runs/L4-w84r2/s22_nopage/`). Worse, `ONGOAL` (`explore.c:454`) only records goals that
+  **improve** on the incumbent, so that one false hit made every genuine entry (which cannot be earlier than
+  ~16150) permanently unreportable — the run was printing progress while unable to answer its own question.
+  **Fixed:** the goal is now `--goal-ram 0x0e=3,0x6d=9` (pipe entry **on page 9**; the page-8 loop-back cannot
+  satisfy it, the WR's entry at x 2436 does). Both roots relaunched and reproduce `GOAL frame=16182
+  (baseline 16182, +0)` — control gate green. **A goal < 16182 is a banked frame and in 8-4 one frame IS the
+  record** — but page 9 narrows the pipe, it does not identify it, so every candidate still gets a core replay
+  + DESTINATION check (runbook §4.3) before it is called anything, then FCEUX + BizHawk.
+  Write-up: `docs/experiments/L4-w84r2-pipe.md`; facts F267, **F274**.
 - **[L7, session 21] THE 8-4 NOVELTY SWEEP — `r5` ON LINUX, `r1`-`r4` NOW BOUND FOR THE MAC.**
   The four queued Linux sweeps were cancelled: the Linux box is reserved for **L3**, which needs the
   machine to itself. `r1`-`r4` run on the Mac instead (`runs/L7-w84/launch_mac.sh`, native, ~3x faster,
@@ -251,21 +261,12 @@ pre-cleanup narrative version of this file is archived at
   pids, log path and how to read the verdict.
 
 ## In progress
-- **L3 / H25 — 8-4 room 3, phase 1 RUNNING on Linux** (started 2026-08-25 s21). `runs/L3-w84r3/launch.sh`,
-  log `runs/L3-w84r3/approach.log`, layers `runs/L3-w84r3/approach_layers`, `MemoryMax=10G` + watchdog.
-  **Why it is running at all, when the board said this was already dry twice:** F272 — both negatives
-  (F133 d/e) beamed on `off,y,spd,sub,vf`, and the return cost depends on
-  `(x_spd, x_spd_abs, moving_dir, facing_dir, is_on_ground, running_speed)`; **the key had four of those
-  six missing**, and the cheapest (R=33) end classes are exactly a **landing frame** — ground, running,
-  `x_spd_abs` 0, facing LEFT, 4.8-11 px/frame — which an h-ranked beam always discards in favour of the
-  faster state in the same speed band. New `cls` bucket axis carries the missing tail. Engine control gate
-  green after the change (W42Main 6584 575 587 --check-path 12 → 6, 16, 34, 70, 134, 673, 3472, 16472,
-  69489, 257001).
-  **Phase 2 when phase 1 stops at step 162** (this is the checkpoint a fresh session resumes from):
-  `third_party/smb-opt/target/release/smb-opt bfscx W84Room3 data/wr/wr_inputs.bin 16354 0 194 --threads 8
-  --acc-mb 96 --resume 162 --layer-dir runs/L3-w84r3/approach_layers`
-  **A goal at <= 194 is H25's frame** → core replay, destination check, then FCEUX + BizHawk.
-  Dry = a negative for this candidate set only, but from a key that can represent the answer.
+- **Nothing.** Session 22 closed L3 (below); no unit is mid-flight. The next session takes the top
+  unblocked item from "Next up" — but read "Running jobs" first: **L4 (both roots, Linux) and E9b (Mac)
+  are live, and L7's r1–r4 fire on the Mac when E9b exits.** Reading those out is the first work available.
+- **Watchers armed in session 22 die with that session** (they were Monitor tasks, not daemons): the L4
+  log tail and a 5-minute Mac poll. A fresh session re-arms them or just reads the logs directly —
+  nothing depends on them.
 
 ## Superseded in-progress note
 - **E10 pass 3 — stack over/underflow and `VRAM_Buffer` overflow** (the last two unaudited write classes). Pass 2 (the zero page) is DONE and closed: **F261 — the `Enemy_ID` injector set is exactly {`CastleObject`, `$06CB`, `$06CD`}**, every other store writes a compile-time constant, so H50's question is provably singular: *can anything write a non-zero byte into $06CB or $06CD?* `tools/oob_audit.py` now supports zero-page targets. Pass 3 targets `VRAM_Buffer1_Offset` (advanced +7/+10/+3 by `GetPlayerColors`/`WriteBlockMetatile`/`OutputNumbers`; only `ColorRotation` bounds itself) and the stack paths. *Superseded claim (Mac, started
@@ -848,6 +849,12 @@ speed-killing mint is the only mechanism 4-2 has.
 **Doctrine reminders that bind every unit below:** find, don't prove; banked sub-threshold frames
 count and go in the table above; and **a search goal must be the quantity the record is measured in
 and monotone with it** — three proxy goals produced three fake records this session (F230, F237).
+**Session 22 adds the second-order version (F274), and it is the one that actually costs you runs:** because
+`ONGOAL` records only goals that *improve* on the incumbent, a single false hit does not merely add a bad
+candidate — it **raises the bar past every true one** and the run goes silently blind while still reporting
+progress. So a goal predicate must be *position-qualified*, not just state-qualified, wherever more than one
+site in the level can satisfy it (8-4 room 2 has at least two loop-back pipes besides the exit). When adopting
+any existing launcher, check this before trusting a single one of its numbers.
 
 **Added session 21 (H12 leftovers — all reading, no RAM, so they fit while the box is full):**
 (i) **the route's only swim section has never had its input semantics read** — 8-4's water room, 696
@@ -920,6 +927,16 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 149/184/82/415; needs 553 and the warp-key finding).
 
 ## Done (one line per unit, newest first; details in the pointed file)
+- 2026-08-25 s22 — **L3 / H25 DRY a third time, from a key that could have seen it** (F275,
+  `docs/experiments/L3-w84r3-classkey.md` §6–7). Phase 1 kept **5,225** apex candidates at step 162
+  (vs F133(d) 2,303 / F133(e) 4,333); phase 2's exhaustive continuation (`launch_phase2.sh`, 11.9 s) was
+  **bound-pruned to zero at layer 188** with no goal. The `cls` axis bit — layer counts differ from both
+  earlier negatives (185: 151,752 vs 151,546 / 86,322) while `max x` is identical and all three die at 188 —
+  so a genuinely different candidate set hits the same wall. **H25 stays `untested`, not `refuted`:** layers
+  1–162 are still beamed at 250/bucket. Cheapest strictly-stronger rerun is `--beam 1000` (~4× phase 1's 27 min).
+- 2026-08-25 s22 — **L4's goal predicate fixed after it produced two fake records** (F274). Room 2's loop-back
+  pipe satisfies `GES==3` 112 frames early; the incumbent rule then suppressed every real candidate. Goal is
+  now position-qualified (`0x6d=9`). Evidence: `runs/L4-w84r2/s22_nopage/`.
 - 2026-08-25 s21 — **L2 DRY** (F273). 1-2's clip-entry hunt: three independent 6 h archives
   (`runs/E7-w12/{body,sub16,sub32}.log`), three roots, two subpixel granularities, ~680M simulated frames,
   **every one finishing exactly at the control** (`best=3764` vs baseline 3763) with not one banked frame
