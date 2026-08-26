@@ -49,13 +49,27 @@ if [ "${WAIT:-0}" = "1" ]; then
 fi
 
 MINE=""
+# ONLY / SKIP / SEEDADD, added 2026-08-26 (s22) after this launcher silently ignored a SKIP.
+# The Linux launch.sh has had ONLY/SKIP since it was written; this one did not, so `SKIP="r3 r5"`
+# was accepted and ignored, and it launched all five roots -- including exact duplicates of the
+# r3/r5 already running on Linux at the same --cells AND THE SAME SEED.  Same binary (F248 byte
+# identity) + same params + same seed = byte-identical rollouts, i.e. two of the Mac's five slots
+# doing work that could not produce one new anomaly.  Two launchers for the same job drifted apart;
+# that is the same class of defect as the CELLS 60000/80000 split found earlier the same session.
+# SEEDADD offsets every seed and renames the tag, so re-running an already-covered root is
+# INDEPENDENT coverage instead of a duplicate.
 go() { # go TAG ROOT HORIZON SEED
+  case " ${SKIP:-} " in *" $1 "*) return 0 ;; esac
+  if [ -n "${ONLY:-}" ]; then case " ${ONLY} " in *" $1 "*) ;; *) return 0 ;; esac; fi
+  TAG="$1"
+  SEED=$(( $4 + ${SEEDADD:-0} ))
+  if [ "${SEEDADD:-0}" -ne 0 ]; then TAG="$1s${SEEDADD}"; fi
   ./build/explore "$CORE" "$ROM" "$IN" --root $2 --horizon $3 \
     --max-addr 0x300 --max-weight 20 --prog-fw 1 --anomaly \
-    --cells "$C" --rollout 6,50 $K --seed $4 --secs "$S" --report 300 --out runs/L7-w84 \
-    > "runs/L7-w84/$1.log" 2>&1 &
+    --cells "$C" --rollout 6,50 $K --seed $SEED --secs "$S" --report 300 --out runs/L7-w84 \
+    > "runs/L7-w84/$TAG.log" 2>&1 &
   MINE="$MINE $!"
-  echo "launched l7-$1 pid $! root=$2 horizon=$3 cells=$C"
+  echo "launched l7-$TAG pid $! root=$2 horizon=$3 cells=$C seed=$SEED"
 }
 go r1 15210  800 81   # room 1  — control 15224, pipe 15748
 go r2 15905  550 82   # room 2  — control 15918, pipe 16185 (L4's site)

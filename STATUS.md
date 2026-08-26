@@ -152,113 +152,57 @@ pre-cleanup narrative version of this file is archived at
   commit → push after every unit.
 
 ## Running jobs
-- **[INCIDENT, session 21 — read this before writing any watchdog] My L7 Mac launcher killed the two
-  E9b archives.** Two bugs, both now fixed in `runs/L7-w84/launch_mac.sh`: (1) `WAIT=1` used
-  `pgrep -x -c explore`, and **BSD `pgrep` does not count like GNU `pgrep`**, so the wait fell straight
-  through and launched on a busy machine; (2) its RSS watchdog killed **every** `explore` over 1.5 GB,
-  and E9b's two were at ~2.0 GB. Killed at 13,800 s of 21,600 (64 %, ~2.2 h of search lost, both still
-  at the control with nothing banked, so no *result* was lost). **E9b was relaunched immediately and
-  reproduced its control** (`GOAL frame=12953 (baseline 12952, +1)`, `runs/E9b/relaunch.log`, pids
-  78956/78957, fresh 6 h). Standing rule from this: **a watchdog must only ever kill PIDs it started**
-  — never a machine-wide `pgrep`; and any portable process count is `pgrep -x NAME | wc -l`.
-  **[session 22] The orphan was cleaned up.** The pre-incident E9b launcher's watchdog (pid 57194) was still
-  alive 4h49m after its own children were killed, scanning every `explore` on the Mac and killing anything over
-  3 GB — a machine-wide killer with nothing left to guard. Killed. The live E9b pair keeps its own watchdog
-  (78958), which is the *same* machine-wide shape: it is tolerable only because L7's r1–r4 run at `--cells
-  60000/80000` and sit well under 3 GB. **Fix it properly before any Mac job is sized above that** (P0.11d).
-- **[L4, session 22] RUNNING ON LINUX AT FULL SIZE, BOTH ROOTS — and its goal was fixed mid-session (F274).**
-  `CELLS=150000 MEMMAX=2500M ./runs/L4-w84r2/launch.sh`, launched 2026-08-25 ~19:20, **6 h each**, under
-  `systemd-run --scope --unit l4-a / l4-w`. Logs `runs/L4-w84r2/{a,w}.log`. Roots: `a` 16050 (the approach,
-  horizon 200), `w` 15905 (the whole room, horizon 350 — never run before this session).
-  **READ THIS BEFORE TRUSTING ANY GOAL LINE.** The first full-size `w` run printed `GOAL frame=16074 (-108)`
-  and `16070 (-112)` flagged `*** AHEAD OF THE WR ***` within ten minutes. Both were room 2's **loop-back**
-  pipe: entry at x 2116 (page 8), core replay dumps Mario back at **x 312**, `AreaPointer` still $65
-  (evidence kept in `runs/L4-w84r2/s22_nopage/`). Worse, `ONGOAL` (`explore.c:454`) only records goals that
-  **improve** on the incumbent, so that one false hit made every genuine entry (which cannot be earlier than
-  ~16150) permanently unreportable — the run was printing progress while unable to answer its own question.
-  **Fixed:** the goal is now `--goal-ram 0x0e=3,0x6d=9` (pipe entry **on page 9**; the page-8 loop-back cannot
-  satisfy it, the WR's entry at x 2436 does). Both roots relaunched and reproduce `GOAL frame=16182
-  (baseline 16182, +0)` — control gate green. **A goal < 16182 is a banked frame and in 8-4 one frame IS the
-  record** — but page 9 narrows the pipe, it does not identify it, so every candidate still gets a core replay
-  + DESTINATION check (runbook §4.3) before it is called anything, then FCEUX + BizHawk.
-  Write-up: `docs/experiments/L4-w84r2-pipe.md`; facts F267, **F274**.
-- **[L7, session 21] THE 8-4 NOVELTY SWEEP — `r5` ON LINUX, `r1`-`r4` NOW BOUND FOR THE MAC.**
-  The four queued Linux sweeps were cancelled: the Linux box is reserved for **L3**, which needs the
-  machine to itself. `r1`-`r4` run on the Mac instead (`runs/L7-w84/launch_mac.sh`, native, ~3x faster,
-  `--cells 60000`), queued behind E9b's relaunched pair — start them with
-  `ssh mac "cd ~/code/smb && nohup env WAIT=1 WAITN=0 ./runs/L7-w84/launch_mac.sh &"` once E9b is done.
-  **The Mac's binary was rebuilt from this session's `explore.c` by scp, not `git pull`** (the Mac's
-  https credential is not available over ssh: `could not read Username for github.com`), so it carries
-  classes 17/18 but its tree is otherwise at 3b15721. `runs/L7-w84/` — `r5.log` (Bowser room, root 17577,
-  `--cells 40000`, `MemoryMax=800M`, 6 h) is **running now**; `r1`-`r4` (roots 15210 / 15905 / 16342 / 16707,
-  `--cells 80000`, `MemoryMax=1500M`) are **queued**: a detached `WAIT=1 WAITN=2 SKIP=r5 ./runs/L7-w84/launch.sh`
-  polls every 60 s and fires them when at most two `explore` remain (r5 and L4's `a`, i.e. when the E7
-  archives exit). If that waiter
-  is gone (`pgrep -af "L7-w84/launch.sh"` empty) just run the launcher by hand — it is idempotent per tag.
-  **How to read it:** `grep ANOMALY runs/L7-w84/*.log`, then `tools/e3_replay.py runs/L7-w84/anom_<class>_f<frame>.path`.
-  **Priced:** a class-18 hit (`*** SECOND STAR FLAG ***`) that is live is **857 frames** (1,329 with the music,
-  F259); class 17 is worth reading, not priced in advance. On `r5` only, a `best_*.path` with `last_input < 17846`
-  is a record on the ending-input coast (H1). Write-up: `docs/experiments/L7-w84-sweep.md`; facts F265/F266.
-- **[E9b-1, session 19] TWO `build/explore` archives ON THE MAC** — `ssh mac`, logs
-  `~/code/smb/runs/E9b/{arc16,arc32}.log`, rooted at 12157 with `--subcell 16/32 --ysubcell 64`,
-  6 h each, RSS watchdog at 3 GB. Both reproduced the control (`GOAL frame=12953`) at startup.
-  **A record is `$0746 == 5` at core <= 12931; anything < 12952 is a banked frame.** They are hunting
-  F247's ~4 px flag-glitch window on a line that already arrives 112 frames early. Launcher:
-  `runs/E9b/launch_mac.sh` (committed; it also carries the build recipe and the byte-identity
-  control gate).
-- **[TRACK E, session 18] ALL FOUR FINISHED — L2 IS DRY (F273).** `sub16` and `sub32` ran their full
-  21,600 s and printed `done:` at **best 3764** (control) against baseline 3763; `body` was at 20,400 s /
-  best 3764 when session 21 last read it and will have exited on its own (check `tail -n 2
-  runs/E7-w12/body.log`; the verdict does not change — it needed <= 3755). Together ~**680M simulated
-  frames**, 3 roots x 2 subpixel granularities, **0 banked frames**. `e8-climb` was already retired as
-  unable to answer its own question (below). Original entry kept for the parameters:
-- **[TRACK E, session 18] FOUR `build/explore` archives, 6 h budget each, all under
-  `systemd-run --user --scope -p MemoryMax=`.** Check: `tail -n 3 runs/E7-w12/*.log runs/E8-w82/*.log`.
-  They may well have exited by the time you read this — the logs are the record either way, and every
-  launcher is committed and re-runnable.
 
-  | run | log | covers | a record needs | control |
-  |---|---|---|---|---|
-  | `e7-body` | `runs/E7-w12/body.log` | 1-2 from core 2900 to the warp (reaches the E11 frame) | goal <= **3755** | reproduces 3764 |
-  | `e7-sub16` | `runs/E7-w12/sub16.log` | 1-2's clip + turnaround, subpixel in the key | goal <= **3755** | reproduces 3764 |
-  | `e7-sub32` | `runs/E7-w12/sub32.log` | same, rooted earlier | goal <= **3755** | reproduces 3764 |
-  | `e8-climb` | `runs/E8-w82/climb.log` | 8-2's unexamined shaft climb | goal <= **12931** | reproduces 12953 |
+**Verified against the machines 2026-08-26 (session 22). Nine jobs live.**
 
-  **[SESSION 19] `e8-climb` CANNOT ANSWER ITS OWN QUESTION — do not wait on it.** F245 shows 8-2's
-  site is a **1-2 pixel** question and that run keys cells at `--xcell 6 --ycell 12 --spdcell 8` with
-  **no subpixel dimension**, i.e. below its resolution (the same defect the Mac session found for
-  1-2). It was left running only because there was no RAM to replace it. Its replacement is written:
-  **`runs/E9b/launch.sh`** (rooted at 12157, before the approach jump, `--subcell 16/32`).
+### Linux (4) — all under `systemd-run --scope` with `MemoryMax`, all 6 h budgets
+| tag | what | log | started | a record needs | state |
+|---|---|---|---|---|---|
+| `l4-a` | 8-4 room 2 exit-pipe, approach root 16050 | `runs/L4-w84r2/a.log` | s22 ~19:20 | goal **< 16182** | 81 %, `best=16182` = control |
+| `l4-w` | same, whole-room root 15905 | `runs/L4-w84r2/w.log` | s22 ~19:20 | goal **< 16182** | 81 %, `best=16182` = control |
+| `l7-r3` | 8-4 room 3 novelty sweep, seed 83 | `runs/L7-w84/r3.log` | s22 ~19:50 | an ANOMALY class 17/18 | 75 %, mask `0x17053`, no goal by design |
+| `l7-r5` | 8-4 Bowser room, seed 85 | `runs/L7-w84/r5.log` | s22 ~19:50 | class 17/18, or `best_*.path` `last_input < 17846` | 75 %, `best=17846` = WR's own |
 
-  **Anything below those thresholds is a record; anything below the control number is a banked frame.**
-  Either way: replay it (`tools/e3_replay.py FILE --around N`), **check the destination not the goal
-  flag**, price it against the deficit, then sync in FCEUX + BizHawk. Recipe: `P4E-finder.md`.
-  The 1-2 runs were relaunched late with `--subcell` after the Mac session pointed out the cell key
-  had no subpixel dimension and clip windows are 1-2 px — so they have the least wall-clock.
-  **Retired this session with measurements, not guesses:** the 4-2 warp key costs **~58-66 frames
-  against a 22-frame budget** (`runs/E3-w42/late.log`, two independent roots agree — this is the
-  "4-2 hope" thread's never-taken measurement, now taken); the 8-4 room searches (F231/F232);
-  the P3.4 novelty sweeps on 1-1/4-1/4-2/8-3 (`runs/E6-vram/`, only mundane hits, VRAM offset
-  peaked at 67 vs the 227 needed).
-  Standing rule unchanged: **never start a search without a cgroup cap**.
-- **[TRACK B, session 17] No Track B job running** — both P3.2 band-A sweeps **finished** (8-4: 61,440 runs / 16.9M frames / 1213 s; 1-2: 61,440 / 23.1M / 1552 s). **Zero earlier endings in either.** Verdict + histograms in `docs/experiments/P3.2-ram-oracle.md` §10, results kept at `runs/P3.2/*.csv`. Relaunch shape: `tools/ram_oracle_sweep.sh TAG AT LO HI`.
-- **[TRACK A] No Track A job running** (`pgrep -x smb-opt` empty; 145G free, every layer dir deleted).
-  The coin-fixed clip + carry both finished and reproduced their pre-fix results exactly — and **the core
-  still rejects the candidate** (F148). See "In progress" for what that means and what comes next.
-- **None** (2026-08-24 session 16: the P2.3c-8 rungs all finished on their own; `pgrep -x smb-opt` empty.
-  Kept for repicks: `runs/P2.3c-8/mint_d90_layers` 9.1G + `f122_retest_layers` 858M — needed to census a
-  ZERO-SCROLL goal parent once F129's goal fix lands; delete after that. 147G free.) Session 15 note: the P2.5b-1 `w11_d368` control was stopped as infeasible —
-  see Done/F124 — and its 94 GB layer dir deleted; `pgrep -x smb-opt` empty; 147G free). Beam-tooling
-  lesson recorded: layer dirs MUST live on the NVMe (`/home`), never the tmpfs scratchpad (`/tmp`,
-  7.7G RAM-backed) — a run filling tmpfs OOM/quota-dies AND starves the shell of fork memory.
-- **Sizing lesson (session 15):** a `--check-path` rung at deadline = optimum+1 is NOT a cheap
-  control — zero slack gives tens of states, one frame of slack gives tens of millions (the bound is
-  a coarse x-only table). The control you actually want runs *before* layer 1: `--check-path N`
-  audits the reference path's bound and goal at startup (main.rs:938–950). Read that, then decide
-  whether the exhaustive part is worth its disk.
-- Standing rule: **never start a search without a cgroup cap** — not even a short control
-  (`docs/search-runbook.md` §1). Check here first every session; list each job with machine,
-  pids, log path and how to read the verdict.
+**L4 caveat (F274):** its goal is `--goal-ram 0x0e=3,0x6d=9` — pipe entry **on page 9**. The bare
+`GES==3` fired on room 2's loop-back pipe 112 frames "early" and, via the improve-only incumbent rule,
+had made every real candidate unreportable. Page 9 narrows the pipe, it does not identify it: every
+candidate still gets a core replay + DESTINATION check (runbook §4.3) before it is called anything.
+
+### Mac (5) — native, ~2x faster, no cgroups (watchdog scoped to its own PIDs only)
+| tag | what | log | a record needs | state |
+|---|---|---|---|---|
+| `l7-r1` | 8-4 room 1, root 15210, seed 81 | `runs/L7-w84/r1.log` | class 17/18 | started 05:08Z, `--cells 80000` |
+| `l7-r2` | 8-4 room 2, root 15905, seed 82 | `runs/L7-w84/r2.log` | class 17/18 | started 05:08Z |
+| `l7-r4` | 8-4 **water room**, root 16707, seed 84 — never searched at all | `runs/L7-w84/r4.log` | class 17/18 | started 05:08Z |
+| `l7-r3s100` | room 3 again, **seed 183** | `runs/L7-w84/r3s100.log` | class 17/18 | independent coverage, not a duplicate (F281) |
+| `l7-r5s100` | Bowser again, **seed 185** | `runs/L7-w84/r5s100.log` | class 17/18 / H1 | independent coverage (F281) |
+
+**How to read the sweep (this is unit L9):** `grep ANOMALY runs/L7-w84/*.log`, then
+`tools/e3_replay.py runs/L7-w84/anom_<class>_f<frame>.path` per hit, then `tail -n 3 runs/L7-w84/*.log`
+for the `anom=0x<mask>` summary per root. **A live class-18 hit (`*** SECOND STAR FLAG ***`) is 857
+frames** (1,329 with the music, F259). Collect the Mac's logs first. **A dry is a statement about the
+rollout policy from that root, not a proof.** As of this stamp **zero class-17/18 hits** across every
+root on both machines.
+
+### Finished this session — read these, do not relaunch
+- **L1 / E9b — DRY (F280).** 8-2's flag-glitch window: both Mac archives ran their full 21,600 s and
+  printed `done:` at **`best=12953` vs baseline 12952**, i.e. one frame *worse* than the WR, **zero
+  banked**, across **~903M frames** (452.75M + 450.41M) and `anom=0x00000` in both. That was the largest
+  priced target left on the route (114 frames). **The live board is now two threads: L4 and L7.**
+- **L3 / H25 — PARKED (F275), not refuted.** Dry a third time, from a key that could finally represent
+  the answer. All three structural objections closed; only beam *width* remained, and the user ruled
+  that out. Reopens only on a backward primitive. 19 GB of layers deleted.
+- **L2 — DRY (F273).** 1-2's clip-entry hunt, three archives, ~680M frames, all at the control.
+
+### Standing rules for anything launched here
+- **Never start a search without a memory cap** (`docs/search-runbook.md` §1) — not even a short control.
+  Linux uses `systemd-run --user --scope -p MemoryMax=`; macOS has no cgroups, so the Mac relies on
+  `explore`'s fixed-capacity archive plus a watchdog.
+- **A watchdog must only ever kill PIDs it started** — never a machine-wide `pgrep`. This cost ~2.2 h of
+  E9b search in session 21, and an orphaned machine-wide watchdog was still running on the Mac 4h49m
+  after its children died (killed in s22). Portable process count is `pgrep -x NAME | wc -l`.
+- **When a job moves machines, diff the two launchers before trusting a number** (F281, and the `CELLS`
+  60000/80000 split earlier the same session). Both failures were silent under-delivery, never an error.
 
 ## In progress
 - **Nothing.** Session 22 closed L3 (parked) and L10 (done, F277–F279). The next unit is the top
