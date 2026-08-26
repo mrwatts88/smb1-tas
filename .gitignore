@@ -15,6 +15,10 @@ target/
 data/**/*.ram
 # third-party sources (cloned/built by tools/build_core.sh)
 third_party/
+# Build artifact, deliberately untracked: `smb-opt xpos-dump data/xpos_table_11.txt`
+# regenerates it (tools/build_core.sh). 8.4 MB / 70,688 lines, one line per XPosState
+# class. Its only consumer is src/search/bfs_par.c --xpos-table, which no current
+# launcher uses. Deterministic from the pinned engine, so it is not worth git history.
 data/xpos_table_*.txt
 # default layer dir when bfscx is run without --layer-dir (e.g. the control gate)
 bfscx_layers/
