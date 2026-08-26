@@ -151,7 +151,31 @@ candidate set — **not a proof that the frame does not exist**, and it must not
 What would raise it to a proof is the same thing it has always been: an unbeamed approach, which is a
 state-space problem (F98's law), not a key problem. The key defect F272 identified is now closed.
 
-**Follow-on, if H25 is ever picked up again:** the honest remaining lever is the *width* of phase 1, not
-its key — `--beam 250` on 3,977 buckets is 5,225 survivors out of ~12M generated per layer. A rerun at
-`--beam 1000` costs ~4x phase 1's 27 minutes and is the cheapest strictly-stronger version of this
-negative.
+## 8. Parked (user decision, 2026-08-25 s22)
+
+The honest remaining lever was the *width* of phase 1, not its key — `--beam 250` on 3,977 buckets keeps
+5,225 survivors out of ~12M generated per layer. **The user's call: no more widening.** "I'm done widening
+beams. I'm done just searching further into the abyss."
+
+That is the right call on the evidence, and worth recording *why* rather than just that it happened. This
+hypothesis has now had each of its three structural objections closed in turn:
+
+1. **F125 / H39** — an approach goaled on the WR's apex can only find "reach the WR's apex sooner", and the
+   WR's apex is already proven not to yield the frame. → L3 emitted a **set** of 5,225 apexes and continued
+   every one exhaustively. Closed.
+2. **F272** — the beam key contained none of `x_spd_abs, moving_dir, facing_dir, is_on_ground,
+   running_speed`, four of the six fields the return cost depends on. → the `cls` axis, verified above to
+   have genuinely changed the retained set. Closed.
+3. **Width.** Not a structural objection at all — just more search.
+
+When the only thing left is (3), the thread is done. Three independent negatives, the last from a key that
+could represent the answer, for **one frame**.
+
+**What would reopen it is a different primitive, not a bigger search.** The 1,280 R=33 end classes are
+*already enumerated* (`runs/L3-w84r3/endclasses.log`). A **backward** reachability from those classes to a
+step ≤ 161 state answers H25 directly and is goal-directed rather than a forward beam — it does not delete
+the slow landing states, because it starts from them. The engine has no such primitive and nobody should
+build one for a single frame. But if a backward primitive is ever built for another reason, **H25 reopens
+for free** and the target set is sitting on disk.
+
+`runs/L3-w84r3/approach_layers` (19 GB) was deleted; `launch.sh` regenerates it in 27 minutes.

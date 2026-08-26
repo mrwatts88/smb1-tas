@@ -2279,3 +2279,15 @@ incumbent rule turns one false hit into permanent blindness rather than one bad 
 **Next.** L4 (both roots, 6 h) and E9b (Mac, ~5 h left) are running; L7's r1–r4 fire when E9b exits.
 H25 stays `untested`, not `refuted` — the honest next lever there is phase 1's *width* (`--beam 1000`,
 ~4x its 27 minutes), not its key, which is now correct.
+
+**Addendum, same session — H25 parked by the user.** Asked whether L3 was dead, the answer was yes on the
+evidence: this hypothesis has had each of its three structural objections closed in turn (F125/H39's
+apex-goal defect → L3 emitted a set of 5,225 apexes; F272's key defect → the `cls` axis, verified to have
+changed the retained set; and what remained was only beam **width**). User's call, and the right one: *"I'm
+done widening beams. I'm done just searching further into the abyss."* Parked, not refuted — the distinction
+still matters and is written into the hypothesis. What would reopen it is a **different primitive**, not a
+bigger search: a backward reachability from the 1,280 already-enumerated R=33 end classes to a step ≤ 161
+state, which starts *from* the slow landing states a forward beam deletes. Nobody should build that for one
+frame; if it ever exists for another reason, H25 is free. The 19 GB layer dir was deleted (`launch.sh`
+regenerates it in 27 min). `P2.2a′` in "Next up" was struck through at the same time — it was a restatement
+of the same unit and would otherwise have been picked up by a future session as new work.
