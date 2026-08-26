@@ -954,8 +954,10 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
   cancels **both** known L+R penalties at once (keeps the 40 cap in `X_Physics`, skips the friction doubling in
   `GetXPhy`) — but the writer zeroes `Player_X_Speed` in the same breath and `SetMoveDir` restores 1/2 on any
   non-zero speed, so it is one frame of favourable branches bought with all your speed. Code-level negative.
-  **Constraint handed to L4 (F279):** a downward pipe needs `PlayerFacingDir == 1` exactly, so L+R *blocks* pipe
-  entry — check the model honours it.
+  **F279, corrected in-session before it was acted on:** the facing gate at 12079 belongs to the *side*-collision
+  `$6c`/`$1f` metatiles, **not** to the vertical pipe entry L4 is goaled on (`HandlePipeEntry`, 12270, has no facing
+  check). L/R does block a vertical pipe, but via the Down-nullification at 5584, and **`smb-opt` already models that
+  correctly** (`emu.rs:523`) — so there was no model gap and nothing for L4 to fix.
 - 2026-08-25 s22 — **F274 audited across the whole project: blast radius is one run, no record lost** (F276).
   Swept every `GOAL frame` line in every Track E `explore` log on both machines — all sit at `baseline+1`, so no
   incumbent ever fell below a baseline and nothing was ever suppressed. E3-w84 already pinned page+X, E3-w42 pinned

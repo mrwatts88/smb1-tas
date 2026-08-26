@@ -187,7 +187,7 @@ produced F268's +6,406 px. These are the other nine.
 | 6346 | `FireballObjCore` | `ldy PlayerFacingDir / dey / lda FireballXSpdData,y` → y = **2** | **YES** | `FireballXSpdData` is **2 bytes** (`.db $40, $c0`); index 2 reads the byte after it. A genuine second out-of-table read — but it only lands in `Fireball_X_Speed`, and it needs Fiery Mario, which this route never becomes. No player displacement |
 | 6396 | `SetupBubble` | `lsr` on facing, tests d0 only | No table | Facing 3 has d0 = 1, so it takes the facing-1 branch. Air bubbles are cosmetic |
 | 9479 | `MoveBloober` | `ldy Player_MovingDir` → `sty Enemy_MovingDir,x` | copies a 3 into an enemy field | The consumer (`SwimX`, 9495) is `ldy Enemy_MovingDir,x / dey / bne` — a test, not a table. 3 behaves as 2 (swim left). Chain dies here; see §9 |
-| 12079 | `CheckSideMTiles` → `ChkPBtm` | `ldy PlayerFacingDir / dey / bne StopPlayerMove` | test only | **Constraint worth carrying: facing must be exactly 1 to enter a downward pipe.** Facing 3 (L+R) falls to `StopPlayerMove` — L+R *blocks* pipe entry. Directly relevant to L4 |
+| 12079 | `CheckSideMTiles` → `ChkPBtm` | `ldy PlayerFacingDir / dey / bne StopPlayerMove` | test only | Gates the **side**-collision handling of `$6c` (sideways-pipe bottom) and `$1f` (water-pipe bottom) on facing == 1. **NOT the vertical pipe entry** — see §11, where this was first mis-scoped and then corrected |
 | 14612 | `ProcOnGroundActs` | `lda Player_MovingDir / and PlayerFacingDir` → skid graphics offset (y≤6) | No | 3 AND 1 = 1 → non-zero → no skid frame. Cosmetic |
 
 ## 9. The one new primitive, and why it defeats itself
@@ -229,9 +229,47 @@ consumer (`ImpedePlayerMove` does `ldx #$02`, so `$00` = 3 is identical to `$00`
 since that is the routine the whole clip programme lives in), a bit test that treats 3 as 1, or
 cosmetic.
 
-**Two things to carry forward:**
-- **L4 constraint:** a downward pipe needs `PlayerFacingDir == 1` exactly (12079). Any candidate
-  holding L+R at the pipe mouth is impeded instead of entering. Worth checking the model honours this.
+**One thing to carry forward:**
 - **Dead end recorded so it is not re-walked:** `HammerXSpdData` (6870) *is* a 2-byte table indexed by
   `Enemy_MovingDir − 1`, so a 3 there would read out of range — but the only path that copies
   `Player_MovingDir` into an enemy is the bloober (9479), and no Hammer Bro ever receives it.
+
+
+## 11. Correction: the facing gate at 12079 is not the vertical pipe (same session)
+
+§10 first recorded this as "a downward pipe needs `PlayerFacingDir == 1`, so L+R blocks pipe entry",
+and flagged it at L4. **That was wrong, and it was caught before anything was done with it.** There are
+two distinct pipe mechanisms and I conflated them:
+
+- **12079 `ChkPBtm`** sits in `CheckSideMTiles`, the *side* collision path. Its facing test guards the
+  `$6c` (sideways-pipe bottom) and `$1f` (water-pipe bottom) metatiles only.
+- **12270 `HandlePipeEntry`** is the vertical pipe entry — the one that sets `GameEngineSubroutine = 3`,
+  which is **L4's actual goal** — and it is reached from `LandPlyr` in the *bottom* collision path. It
+  contains **no facing check whatsoever**. Its conditions are `Up_Down_Buttons & $04` (Down held),
+  `$00 == $11` (right foot on warp-pipe-right) and `$01 == $10` (left foot on warp-pipe-left).
+
+**L/R does block a vertical pipe, but by a different mechanism** — the Down-nullification at smbdis
+5584:
+
+```asm
+and #%00000100          ;check for pressing down
+beq SizeChk
+lda Player_State        ;check player's state
+bne SizeChk             ;if not on the ground, branch
+ldy Left_Right_Buttons
+beq SizeChk
+lda #$00
+sta Left_Right_Buttons  ;if pressing down while on the ground,
+sta Up_Down_Buttons     ;nullify directional bits
+```
+
+Pressing Down **while grounded** with any left/right held zeroes *both* direction bytes, so
+`HandlePipeEntry`'s Down test fails. Airborne, the nullification is skipped.
+
+**And the model already has this right.** `third_party/smb-opt/src/emu.rs:523` guards the entry with
+`(!self.started_on_ground || self.joypad_lr.is_empty()) && cv == 0x10 && right_foot_on_vert_pipe` —
+the same airborne-or-no-LR disjunction the ROM produces. So there is **no model gap** and nothing to
+check on L4, which runs the real core anyway.
+
+The surviving rule is the practical one, for the right reason: **grounded, a vertical pipe needs Down
+with no left/right held.**

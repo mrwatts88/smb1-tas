@@ -2359,3 +2359,21 @@ of having a reading unit at the top of the queue.
 **Next.** L10 is struck from the queue; the top unblocked units are now **L9** (read the L7 sweep out when
 its roots finish) and **L8** (E6's six roots with the object lens, when RAM frees). Four jobs still running
 on Linux, two on the Mac.
+
+**Correction, same session — F279 was mis-scoped and is fixed.** I recorded "a downward pipe needs
+`PlayerFacingDir == 1`, so L+R blocks pipe entry" and handed it to L4 as a constraint to check. Checking
+it is what showed it was wrong. There are **two** pipe mechanisms and I conflated them: 12079 (`ChkPBtm`)
+is the *side*-collision handler for the `$6c` and `$1f` bottom-pipe metatiles, and that is what gates on
+facing. The **vertical** pipe entry — `HandlePipeEntry` (12270), the one that sets `GameEngineSubroutine
+= 3`, which is **L4's actual goal** — has **no facing check at all**; it needs Down held plus both foot
+metatiles ($11 right, $10 left).
+
+L/R does block a vertical pipe, but through a different mechanism: the Down-nullification at smbdis 5584
+zeroes *both* `Left_Right_Buttons` and `Up_Down_Buttons` when Down is pressed while grounded with any
+left/right held, so the Down test fails. Airborne, it is skipped. **And `smb-opt` already encodes exactly
+that** — `emu.rs:523` guards the entry with `(!started_on_ground || joypad_lr.is_empty())`, the same
+disjunction the ROM produces. So there was **no model gap and nothing for L4 to fix**, and L4 runs the
+real core regardless.
+
+Caught because the follow-up was actually done instead of left as a note. The surviving rule is the
+practical one, for the right reason: grounded, a vertical pipe needs Down with no left/right held.
