@@ -2538,3 +2538,12 @@ seeds at ~3.25 billion frames, and those seeds converged bit-for-bit on the same
 **That is not a proof the record is unbeatable.** H47's class — an over-cap forward displacement
 mechanism worth up to ~50 frames — has exactly one known instance and it is clamped away. It is
 **un-enumerated, not refuted**, and STATUS says so at the top so nobody inherits a false closure.
+
+**Engine repo published.** `gh` installed and authenticated (`mrwatts88`, SSH), and the engine work is
+now at **https://github.com/mrwatts88/smb-opt-modes** — private, pushed, tracking `origin/main`.
+Private was the default chosen deliberately: it matches `smb1-tas`, and the repo is a derivative of
+MrWint's work (it carries only a diff and build tooling, no upstream source). Private → public is a
+one-command change; the reverse is not really possible, so the reversible option was taken.
+
+That is the last item. Both repos are pushed and clean, both machines are idle, and the project is
+closed.

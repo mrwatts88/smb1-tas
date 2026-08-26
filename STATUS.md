@@ -190,8 +190,9 @@ for 1-1/4-2 difftested to 0 diffs; a new 4-2 case; the `ygate` and `drift` heuri
 `--beam-buckets` diversity beam and its `cls` axis), how to apply and build it, and the control gate
 that must reproduce `6, 16, 34, 70, 134, 673, 3472, 16472, 69489, 257001`.
 
-To publish it: create an empty GitHub repo, then
-`git -C ~/Documents/smb-opt-modes remote add origin <url> && git -C ~/Documents/smb-opt-modes push -u origin main`.
+**Published 2026-08-26: https://github.com/mrwatts88/smb-opt-modes** (private). Pushed and tracking
+`origin/main`. It is private to match `smb1-tas` and because it is a derivative of MrWint's work —
+flip it with `gh repo edit mrwatts88/smb-opt-modes --visibility public` if that is ever wanted.
 
 ### Where the result stands
 **No faster route was found.** The record stands at HappyLee's 17,868 frames. What this project can
