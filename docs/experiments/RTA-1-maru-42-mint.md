@@ -132,17 +132,23 @@ a two-mint human line has zero margin by construction, and 122 + 9 = 131 is the 
   standing mints (~30+ frames for 20 px at +4–5 per freeze) are out.
 - ~~The cheap lever is one pixel of margin.~~ **Refuted in §3b**: no perturbation of either mint
   exceeds +10; 10 per freeze is the no-L+R ceiling, so any two-mint line is 132 with zero margin.
-  Margin therefore needs a **different mint shape**, not a better-timed one. Candidates the engine
-  can price: (a) a rising slide along a **tall** face (pipe B's 7-tile face at col 78, or the warp
-  pipe's 3-tile face — the runner's wall jump is the crude form of this): every impede refreshes
-  the freeze and adds a collision-push pixel, then the last refresh buys a full 15-frame run over
-  the top — possibly > 10 from one contact; (b) a third +10 mint, which costs a ~15-frame re-accel
-  and is over budget unless it replaces something.
-- **The well-posed search — next unit:** `bfscx --goal-offset N` from the S2 arrival with the
-  human-legal input set (no L+R), deadline = Maru's step count + 5, N = 137 and 142 (5 and 10 px of
-  margin). A goal at N = 137 within budget is a human line with a real window; a dry run at N = 137
-  says the margin does not exist under the budget and the ease work moves to consistency setups
-  (visual cues for the 1-frame jump) instead. Check F129's `goal_refused` fix first.
+  Margin therefore needs **more contacts**, not a better-timed one. A first draft of this section
+  proposed a "tall-face slide" (the warp pipe's or pipe B's face) as a > 10 px shape — **withdrawn
+  (user's catch):** the warp pipe's face is exactly where the runner's wall jump mints, and it gives
+  9–10 — the same 15-frame fast-accel arithmetic — so the one existing measurement of a tall-face
+  contact is evidence *against* a > 10 shape; and pipe B's top (row 4, y 64) is not reachable in one
+  jump, so a slide up it has no "run over the top" phase at all. **No known no-L+R mint is worth more
+  than 10.**
+- **The only route to margin is a third contact** — notch +10, (50,3) +10, pipe wall jump +9–10 ≈ 30,
+  i.e. 8–10 px of slack that widens *all three* windows from 1 frame to several. Cost: one more speed
+  reset, ~15–18 frames (F123), against ~5 frames of framerule slack ⇒ **one framerule (21 frames)**,
+  which is presumably the pre-Lightning human route. **Whether "easy" is worth a framerule is the
+  user's call**, and it decides the deliverable:
+  - *No* → consistency setups (visual cues, position-based) for two 1-frame tricks, plus one cheap
+    engine question: is there *any* three-contact line inside Maru's + 5? (`bfscx --goal-offset 137`,
+    human inputs, S2 arrival root; expected dry, and dry is an answer.) Check F129's `goal_refused` first.
+  - *Yes* → build the 3-mint line from Maru's inputs plus a wall jump on the core, and measure each
+    window with `tools/rta_mint_probe.py` under 8 px of margin.
 - **The runner's line differs from Maru's in where mint 2 is.** From the user's description of the
   videos (Niftski): he stays on the brick-run top, "slides up the left side of the block facing
   backwards", goes **over** the upper (50,3)–(51,3) pair and comes down to the three group. So his

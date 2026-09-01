@@ -2608,3 +2608,10 @@ was a forgiving replacement: it is not (1-frame jump window, 2-frame tap, ≤ +1
 10 per freeze is structural without L+R, so two-mint lines have zero margin by construction and the
 "+1 px" plan is withdrawn. Next unit is the engine mint search for a different mint shape within
 Maru's budget (STATUS). `tools/rta_mint_probe.py` gained `--set mint1`.
+
+**Correction (same session, user's catch).** I had listed the warp pipe's face as a candidate for a
+> 10 px "tall-face slide" mint — but that face is exactly where the runner's wall jump already mints,
+for 9–10. The one measurement of a tall-face contact argues *against* a > 10 shape, and pipe B's top is
+unreachable in one jump. Withdrawn in RTA-1 §4, F290 and STATUS. Standing conclusion: no known no-L+R
+mint exceeds 10; margin needs a third contact, which costs about a framerule — a trade only the user
+can make, so STATUS now leads with that question.

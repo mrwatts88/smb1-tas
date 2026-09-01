@@ -19,11 +19,13 @@ execution can still fail. Second probe (`--set mint1`, F290): **mint 1 is just a
 perturbation of either mint exceeds +10** — 10 px per freeze is the no-L+R ceiling, so every two-mint
 line is 132 with zero margin by construction. The runner's actual line (from video): no early mint, (50,3)
 +10, then a **wall jump on the warp pipe's face** (+9–10 max per the community) — two zero-margin tricks
-in series. **Next unit:** the engine mint search — `bfscx --goal-offset N` from the S2 arrival, human-legal
-inputs (no L+R), deadline = Maru's + 5, N = 137 then 142 — to find whether any mint *shape* (tall-face
-slide with freeze refreshes; pipe B or the warp pipe's face) buys margin inside the budget. Dry at 137 ⇒
-margin doesn't exist under the framerule and the ease work becomes consistency setups for the 1-frame
-jump. Check F129's `goal_refused` fix landed first. Also still to replay: the runner's (50,3) contact.
+in series. **No known no-L+R mint is worth more than 10** (a "tall-face" > 10 idea was withdrawn: the
+runner's pipe wall jump IS a tall-face contact and gives 9–10). **Margin therefore needs a third
+contact** (≈ 30 px, 8–10 of slack, every window widens) at ~15–18 frames against ~5 of slack ⇒ **one
+framerule**. **NEEDS USER INPUT before the next unit: is "easy" worth a framerule?** *No* → consistency
+setups for the two 1-frame tricks + one cheap engine question (`bfscx --goal-offset 137`, human inputs,
+S2 root, Maru + 5; expected dry). *Yes* → build the 3-mint line on the core and measure its windows.
+Either way check F129's `goal_refused` fix landed, and still to replay: the runner's (50,3) contact.
 Run on the Fedora box (`~/Documents/smb1-tas`; the Mac clone has no engine/core).
 
 **Updated:** 2026-08-26 — **PROJECT FINISHED AND WOUND DOWN (session 22).** No faster route was found; the record stands at HappyLee's 17,868 frames. The board closed in one session: **L1/8-2 dry** (F280, ~903M frames), **L4/8-4's exit pipe dry** (F284, 291 pipe entries, none earlier than the WR's), **1-2 closed by arithmetic** (F283 — ceiling 3 against a requirement of 8, confirmed independently by Maru370's hand-made run), **L3 parked** (F275), and **L7, the last thread, dry across all ten roots at ~3.25 billion frames with the independent seeds converging bit-for-bit** (F285/F286). Machines released, 117 GB of layer files deleted, the Mac's copy removed with its logs archived first, and the engine patch extracted to its own repo. **What is NOT claimed: that the record is unbeatable.** H47's class is un-enumerated, not refuted. Read the wind-down block below, then `docs/open-threads.md`.
