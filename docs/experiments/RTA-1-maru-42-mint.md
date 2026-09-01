@@ -239,6 +239,15 @@ against the framerule boundary from F28), or from any input file of his. **Next:
 continuation from the post-ledge-mint state to the three group's top (and to x ≥ 1005) to see how much
 of the 2 frames is recoverable.
 
+**Watch it.** The ledge line as a playable movie and a clip (all under `runs/RTA-1/`, regenerable):
+`ledge_line.fm2` = Maru's movie with records 6899+ replaced by the crafted line
+(`tools/splice_fm2.py data/wr/maru-rtarules.fm2 runs/RTA-1/ledge_seg.bin 6899 runs/RTA-1/ledge_line.fm2 --pad 60`,
+the segment being bytes 6899–7173 of the probe's `w17_h0_rb2_t1_N_(31, 24).bin`); frames rendered
+headless with `tools/fceux_run.sh OUTDIR=… FROM=6885 TO=7010 --playmov … --loadlua tools/lua/frames_fceux.lua`
+(FCEUX frame = QuickNES row + 3), then `ledge_line.gif` (30 fps = half speed, 2x), `ledge_line_60fps.mp4`,
+and `ledge_sheet.png` (12 key frames: tap on the edge, contact with the lower pair, floor, the re-jump,
+landing on the three group's right end, off toward the lift).
+
 ## 4. What it means for making it easy
 
 - **The budget is the constraint.** Maru's line is the no-L+R optimum and enters the pipe on the WR's
