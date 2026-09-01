@@ -205,6 +205,40 @@ crossing is different. **Next unit (engine):** from the post-mint state of the l
 enemies off (both goombas are dead) — compare the two optimal continuations. Inside ~5 frames of the
 (50,3) line ⇒ the ledge mint replaces the runner's hardest trick at no framerule cost.
 
+## 3e. Rejoining the runner's path from the ledge mint (user's question) — it works, for ≈ 2 frames
+
+"Why not get back on top of the three group and meet the old route?" I expected the lower pair to be a
+ceiling over every usable takeoff. Wrong: `--rejump J:24` after the ledge mint (tap W = 17, K = 2):
+
+| re-jump from x (speed) | result |
+|---|---|
+| ≤ 811 (27–28) | head clips the pair, lands short on the floor at x 849–854 |
+| **812 / 814 / 816 / 818 / 820** (29–33) | **clean landing on the three group's top at x 891–901, no contact** — a 5-frame window |
+| ≥ 822 (34–35) | clips the (54,7) face (+4/+5, facing right, one impede) but still lands on top at x 861–863 |
+
+He escapes from under the pair before rising enough to bump, and the arc clears the face. The same
+band holds for taps at W = 16 and 18. (Floor-landing runs show odd end offsets of 154–159; not
+examined — they are failures regardless.)
+
+**Frame cost, same prefix, absolute rows (t₁ = the (50,3) line's takeoff row):** the (50,3) line
+(W 13–15, H 20/24) is grounded on the three group's top at **t₁ + 63…66, x 878–880, speed 40**; the
+ledge line (tap W = 17 = t₁ + 4, re-jump J = 31/33/35) at **t₁ + 71/73/75, x 891/896/901, speed 40**.
+Seven frames later, 12 px further at the same speed (≈ 5 frames of running) ⇒ **≈ 2 frames slower**,
+hand-crafted, before any optimisation of K / J / tap position. Sanity check: Maru is on the group at
+t₁ + 54, x 863, speed 23 (mid re-accel) — about even with the (50,3) line ten frames later, i.e. the
+runner's line is as fast as the no-L+R optimum, as it must be to share its framerule.
+
+**So the rejoin line is:** bounce → land on the top → **tap Left in the last 3 ground frames, let go,
+run off the ledge, Right after ~2 frames** (+10, no jump) → land on the floor → **jump from x 812–820**
+(≈ 5 frames; visually: just as Mario comes out from under the lower pair) → land on the three group's
+top at x ≈ 891–901 → the runner's existing path to the pipes and his wall jump. It replaces a 3-frame
+takeoff + 7-frame Right window + A-hold + no-Left-hold with a 3-frame tap + ~3-frame Right window +
+5-frame re-jump, **no timed jump at a wall at all**, for ≈ 2 frames. Whether 2 frames fit is the
+runner's slack, which we do not have: countable from a video at 60 fps (main-area start → 8-1 card,
+against the framerule boundary from F28), or from any input file of his. **Next:** the engine's optimal
+continuation from the post-ledge-mint state to the three group's top (and to x ≥ 1005) to see how much
+of the 2 frames is recoverable.
+
 ## 4. What it means for making it easy
 
 - **The budget is the constraint.** Maru's line is the no-L+R optimum and enters the pipe on the WR's

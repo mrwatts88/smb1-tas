@@ -28,6 +28,7 @@ X0 = 720
 
 TAP = 1                    # --tap N: Left-tap length in frames (0 = control, no tap)
 AIR = "N"                  # --air L: hold Left (instead of neutral) during the ascent until Right returns
+REJUMP = None              # --rejump J:H2 (with --H 0): jump again J frames after the tap+neutral, A held H2 frames
 
 def byte(s): return sum(BIT[c] for c in s)
 
@@ -43,6 +44,9 @@ def build(base, W, H, rb):
     else: k = int(rb)
     if H == 0:                                  # no jump: run off the ledge; k = neutral frames after the tap
         inp += bytes([byte("B")] * k)
+        if REJUMP:                              # --rejump J:H2 — after the ledge mint, J frames B+Right then A+B+Right H2 frames
+            J, H2 = REJUMP
+            inp += bytes([byte("BR")] * J) + bytes([byte("ABR")] * H2)
     for j in range(H): inp += bytes([byte("ABR" if j >= k else ("ABL" if AIR == "L" else "AB"))])
     inp += bytes([byte("BR")] * 200)
     return bytes(inp), takeoff_rec, k
@@ -50,7 +54,7 @@ def build(base, W, H, rb):
 def run(base, W, H, rb, frames):
     os.makedirs(TMP, exist_ok=True)
     inp, trec, k = build(base, W, H, rb)
-    name = f"w{W}_h{H}_rb{rb}_t{TAP}_{AIR}"
+    name = f"w{W}_h{H}_rb{rb}_t{TAP}_{AIR}_{REJUMP}"
     p = f"{TMP}/{name}.bin"; open(p, "wb").write(inp)
     ramp = f"{TMP}/{name}.ram"
     subprocess.run(["./build/harness", "third_party/QuickNES_Core/quicknes_libretro.so",
@@ -62,7 +66,7 @@ def run(base, W, H, rb, frames):
     def x(r): return B(r, 0x6d) * 256 + B(r, 0x86)
     def off(r): return x(r) - (B(r, 0x071a) * 256 + B(r, 0x071c))
     t = trec - 1                                # row of the takeoff frame
-    lo, hi = t, min(t + 70, nrows)
+    lo, hi = t, min(t + (110 if REJUMP else 70), nrows)
     imps = [r for r in range(lo, hi) if B(r, 0x0785) == 16]
     contact = (f"impede@{imps[0]-t:2d} y={B(imps[0],0xce):3d} f={B(imps[0],0x33)} n={len(imps)}" if imps
                else "no contact                 ")
@@ -78,7 +82,18 @@ def run(base, W, H, rb, frames):
                 outcome = {48: "TOP503", 112: "TOP547", 176: "FLOOR"}.get(yr, f"ground y={yr}") + f"@{r-t} x={xr}"
                 break
     ymin = min(B(r, 0xce) for r in range(lo, hi))
-    print(f"W={W:2d} H={H:2d} tap={TAP} air={AIR} rb={rb:>7s}(k={k:2d}) x0={X0+2.5*(W+max(TAP,1)):6.1f} | {contact} | gain={gain:+3d} ymin={ymin:3d} | {outcome}")
+    g3 = next((r for r in range(t + 5, min(t + 110, nrows)) if B(r, 0x1d) == 0 and x(r) >= 864 and B(r, 0xce) == 112), None)
+    on3 = f"on3grp@{g3-t} x={x(g3)} xs={B(g3,0x57)}" if g3 else "not on 3grp by +110"
+    if REJUMP:
+        imp2 = [r for r in range(t + 15, hi) if B(r, 0x0785) == 16]
+        c2 = f"2nd contact@{imp2[0]-t} x={x(imp2[0])} y={B(imp2[0],0xce)} n={len(imp2)}" if imp2 else "no 2nd contact"
+        g = next((r for r in range(t + 15 + REJUMP[0] + 3, hi) if B(r, 0x1d) == 0), None)
+        land = f"lands@{g-t} x={x(g)} y={B(g,0xce)}" if g else "no landing"
+        bump = next((r for r in range(t + 15, hi) if B(r, 0x9f) == 1 and B(r, 0x1d) == 1 and B(r,0xce) > 128), None)
+        jr = t + k + REJUMP[0] + 1                      # row of the re-jump's first A frame
+        dead2 = next((r for r in range(t, hi) if B(r, 0x0e) == 11), None)
+        print(f"J={REJUMP[0]:2d} jump@x={x(jr)} xs={B(jr,0x57)} y={B(jr,0xce)} | {c2:34s} | {land:26s} | {on3} | off_end={off(hi-1):3d}{' DEATH@'+str(dead2-t) if dead2 else ''}"); sys.stdout.flush(); return
+    print(f"W={W:2d} H={H:2d} tap={TAP} air={AIR} rb={rb:>7s}(k={k:2d}) x0={X0+2.5*(W+max(TAP,1)):6.1f} | {contact} | gain={gain:+3d} ymin={ymin:3d} | {outcome} | {on3}")
     sys.stdout.flush()
 
 def main():
@@ -87,6 +102,8 @@ def main():
     if "--tap" in a: TAP = int(a[a.index("--tap") + 1])
     global AIR
     if "--air" in a: AIR = a[a.index("--air") + 1]
+    global REJUMP
+    if "--rejump" in a: REJUMP = tuple(int(v) for v in a[a.index("--rejump") + 1].split(":"))
     W = a[a.index("--W") + 1] if "--W" in a else "0:18"
     Ws = range(int(W.split(":")[0]), int(W.split(":")[1]) + 1)
     Hs = [int(h) for h in (a[a.index("--H") + 1] if "--H" in a else "12,16,20,24").split(",")]

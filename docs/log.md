@@ -2629,3 +2629,9 @@ the lower two-block?" Yes: +10, no jump, tap in the last 3 ground frames + 2–4
 (F292). Maru's hop is there to avoid exactly that contact (he passes x 788 at y 141, under the face).
 This would delete the runner's hardest trick if the floor-level continuation fits the framerule — an
 engine comparison (post-mint state → x ≥ 1005, both lines) is the next unit.
+
+**Unit 4 (same session, user's follow-up).** "Why can't we go on top of the three group and rejoin the
+old path?" I guessed the lower pair blocked every takeoff; the probe said otherwise: re-jump from
+x 812–820 lands cleanly on the group (F293). Cost ≈ 2 frames vs the (50,3) line, hand-crafted. The
+line now has no timed jump at a wall. Blocked on one number only the runner's run can give: his slack.
+Lesson (again): geometric intuition about SMB1 collision is worth one replay, not a conclusion.
