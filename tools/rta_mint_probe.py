@@ -7,7 +7,7 @@ the mint, the pipe-entry state, and where the next level load goes (W8-1 = the w
 
 Run from the repo root on a host with build/harness, the ROM and data/wr/maru_inputs.bin
 (python3 tools/fm2_to_inputs.py data/wr/maru-rtarules.fm2 data/wr/maru_inputs.bin).
-usage: tools/rta_mint_probe.py [--set base|facing|jump|right|all]   (default all)
+usage: tools/rta_mint_probe.py [--set base|facing|jump|right|all|mint1]   (default all; mint1 = the col-30 mint)
 Results and reading: docs/experiments/RTA-1-maru-42-mint.md."""
 import os, subprocess, sys
 
@@ -30,20 +30,39 @@ def run(base, name, edits):
     def B(r, a): return ram[(r - 1) * 2048 + a]
     def x(r): return B(r, 0x6d) * 256 + B(r, 0x86)
     def off(r): return x(r) - (B(r, 0x071a) * 256 + B(r, 0x071c))
-    imps = [r for r in range(6930, 6990) if B(r, 0x0785) == 16]
+    lo, hi, offrow = WIN
+    imps = [r for r in range(lo, hi) if B(r, 0x0785) == 16]
     impede = (f"impedes={len(imps)}@{imps[0]} y={B(imps[0],0xce)} face={B(imps[0],0x33)}" if imps
-              else f"no impede (y@6952={B(6952,0xce)})")
+              else f"no impede (y@{lo+21}={B(lo+21,0xce)})")
     ent = next((r for r in range(7100, 7400) if B(r, 0x0e) == 3), None)
     entry = "no pipe entry" if ent is None else f"entry@{ent} x={x(ent)} off={off(ent)} xscr={B(ent,0x06ff)}"
     dead = next((r for r in range(6930, 7400) if B(r, 0x0e) == 11), None)
     load = next((r for r in range(6930, 7800) if (B(r, 0x075f), B(r, 0x075c)) != (3, 1)), None)
     dest = f"W{B(load,0x075f)+1}-{B(load,0x075c)+1}@{load}" if load else "warp FAILED"
     if dead: dest = f"DEATH@{dead} " + dest
-    print(f"{name:13s} {impede:34s} off@6990={off(6990):3d} | {entry:36s} | {dest}")
+    print(f"{name:13s} {impede:34s} off@{offrow}={off(offrow):3d} | {entry:36s} | {dest}")
     sys.stdout.flush()
+
+WIN = (6930, 6990, 6990)   # (impede-scan lo, hi, row at which the offset is read); mint1 sets (6775, 6800, 6830)
 
 def variants(which):
     V = [("base", [])]
+    if which == "mint1":
+        # mint 1 (col-30 face via the notch): records 6771-6772 B+Left, 6773-6789 A held (neutral to 6778,
+        # Right from 6779), 6790+ B+Right. Impede on row 6783. Measured at row 6830 (after mint 1, before mint 2).
+        V += [("m1_tap1f", [(6771, "BR")]),                       # 1-frame tap on the last ground frame
+              ("m1_tapR", [(6772, "BR")]),                        # Right on the last ground frame (facing 1)
+              ("m1_noLtap", [(6771, "BR"), (6772, "BR")]),
+              ("m1_tap3f", [(6770, "BL")])]
+        for k in (-3, -2, -1, 1, 2, 3):
+            e = [(6771, "BR"), (6772, "BR")] + [(r, "BR") for r in range(6773, 6790)]
+            for r in range(6773 + k, 6790 + k): e.append((r, "ABR" if r >= 6779 else "AB"))
+            e += [(6771 + k, "BL"), (6772 + k, "BL")]
+            V.append((f"m1_jump{k:+d}", e))
+        for rr in (6775, 6777, 6778, 6780, 6781, 6783, 6785):
+            V.append((f"m1_Rback@{rr}", [(r, "AB") for r in range(6773, 6790)] + [(r, "ABR") for r in range(rr, 6790)]))
+        V.append(("m1_R_allair", [(r, "ABR") for r in range(6773, 6790)]))
+        return V
     if which in ("facing", "all"):
         V += [("noLtap_R", [(6938, "BR")]),            # facing right at the impede
               ("noLtap_neut", [(6938, "B")]),
@@ -64,7 +83,9 @@ def variants(which):
     return V
 
 def main():
+    global WIN
     which = sys.argv[sys.argv.index("--set") + 1] if "--set" in sys.argv else "all"
+    if which == "mint1": WIN = (6775, 6800, 6830)
     base = open(INPUTS, "rb").read()
     for name, edits in variants(which): run(base, name, edits)
 

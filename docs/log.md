@@ -2600,3 +2600,11 @@ write-up before it became a fact.
 **Files.** `data/wr/maru-rtarules.fm2` (third-party, README §Third-party), `tools/rta_mint_trace.py`,
 `tools/rta_mint_probe.py`, `docs/experiments/RTA-1-maru-42-mint.md`, F287–F289, STATUS stamp. On the
 box, untracked: `data/wr/maru_inputs.bin`, `runs/qn_maru.ram` (both regenerable by the commands in RTA-1 §5).
+
+**Addendum (same session).** The user watched the runner's videos against the map: no early mint (he
+goes over the 22–26 bricks, not under), (50,3) mint, then a wall jump on the warp pipe's face — which
+the community already caps at "9–10 xpos" and F93 explains. Probed Maru's mint 1 hoping the notch mint
+was a forgiving replacement: it is not (1-frame jump window, 2-frame tap, ≤ +10 in every variant; F290).
+10 per freeze is structural without L+R, so two-mint lines have zero margin by construction and the
+"+1 px" plan is withdrawn. Next unit is the engine mint search for a different mint shape within
+Maru's budget (STATUS). `tools/rta_mint_probe.py` gained `--set mint1`.

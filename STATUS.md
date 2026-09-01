@@ -15,12 +15,16 @@ human-legal mint exactly** — two +10 px mints (col-30 face via the notch; (54,
 15-frame scroll freeze **while facing left, which gives fast-accel (~2x) for the whole window**; facing
 right yields only +4–5. Perturbation probe (`tools/rta_mint_probe.py`): **jump window = 1 frame, Left tap
 = exactly 1 frame, total = 132 with zero margin, and mint size is 9–11 px by subpixel** — so a perfect
-execution can still fail. **Next unit:** (a) find +1 px of margin in mint 1 (subpixel over its Right
-re-press/approach, a few dozen replays) — if 123 is reachable the mint-2 window widens to ≥ 4 frames;
-(b) replay the runner's actual face, (50,3)'s left side from the brick-run top (his line goes over the
-upper pair; Maru goes under the lower pair). Budget for anything else: Maru's line has single-digit
-frames of framerule slack, so an easier mint must cost ≤ ~5 frames more than his. Run on the Fedora box
-(`~/Documents/smb1-tas`; the Mac clone has no engine/core).
+execution can still fail. Second probe (`--set mint1`, F290): **mint 1 is just as tight and no
+perturbation of either mint exceeds +10** — 10 px per freeze is the no-L+R ceiling, so every two-mint
+line is 132 with zero margin by construction. The runner's actual line (from video): no early mint, (50,3)
++10, then a **wall jump on the warp pipe's face** (+9–10 max per the community) — two zero-margin tricks
+in series. **Next unit:** the engine mint search — `bfscx --goal-offset N` from the S2 arrival, human-legal
+inputs (no L+R), deadline = Maru's + 5, N = 137 then 142 — to find whether any mint *shape* (tall-face
+slide with freeze refreshes; pipe B or the warp pipe's face) buys margin inside the budget. Dry at 137 ⇒
+margin doesn't exist under the framerule and the ease work becomes consistency setups for the 1-frame
+jump. Check F129's `goal_refused` fix landed first. Also still to replay: the runner's (50,3) contact.
+Run on the Fedora box (`~/Documents/smb1-tas`; the Mac clone has no engine/core).
 
 **Updated:** 2026-08-26 — **PROJECT FINISHED AND WOUND DOWN (session 22).** No faster route was found; the record stands at HappyLee's 17,868 frames. The board closed in one session: **L1/8-2 dry** (F280, ~903M frames), **L4/8-4's exit pipe dry** (F284, 291 pipe entries, none earlier than the WR's), **1-2 closed by arithmetic** (F283 — ceiling 3 against a requirement of 8, confirmed independently by Maru370's hand-made run), **L3 parked** (F275), and **L7, the last thread, dry across all ten roots at ~3.25 billion frames with the independent seeds converging bit-for-bit** (F285/F286). Machines released, 117 GB of layer files deleted, the Mac's copy removed with its logs archived first, and the engine patch extracted to its own repo. **What is NOT claimed: that the record is unbeatable.** H47's class is un-enumerated, not refuted. Read the wind-down block below, then `docs/open-threads.md`.
 

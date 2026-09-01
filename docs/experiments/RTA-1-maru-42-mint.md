@@ -97,18 +97,52 @@ landing row 6967), so the ground tap is what leaves Mario facing left through th
 5. The "legs apart" of the tell is the running animation frame while facing left — i.e. the fast-accel
    state itself is what the runner is seeing.
 
+## 3b. Mint 1 (the notch / col-30 face) is just as tight (`tools/rta_mint_probe.py --set mint1`)
+
+Motivation: the runner (from the videos) has **no early mint** — he goes over the 22–26 bricks, not
+under — and his second mint is a **wall jump on the warp pipe's own left face** ("falling, hits the
+side, jumps back up, goes in"), which the community caps at "9–10 xpos AT MAX" (`community-claims.md`)
+and which is F93's foot-check impede entered from a fall. So his line is (50,3) +10 and pipe wall jump
++9–10 = 131–132. Question: is Maru's notch mint an easier +10 that could replace the wall jump?
+Offset read at row 6830 (after mint 1, before mint 2); Maru's tap here is 2 frames (records 6771–6772).
+
+| variant | contact | offset after | note |
+|---|---|---|---|
+| **base** | 1 impede @6783, y 126, facing 2 | **122** (+10) | warp works |
+| tap 1 frame instead of 2 | 2 impedes | 121 (+9) | |
+| Right on the last ground frame / no tap | 3 impedes, facing 1 | 114 (+2) | facing right again ~nothing |
+| tap 3 frames | 1 impede | 122 (+10) | downstream desync of the fixed movie inputs |
+| jump 1–3 frames early | 4 impedes, contact y 147–153 | **111 (−1)** | mint lost entirely |
+| jump 1–3 frames late | 2–3 impedes, y 129–136 | 120–121 (+8/+9) | |
+| Right back at 6779 (movie) / 6780 / 6781 | 1 impede | 122 (+10) | 3-frame window for this input |
+| Right back at 6775 / 6777 / 6778 / 6783 / 6785 | 2 impedes | 120–121 | |
+| Right held all jump | 2 impedes | 121 | |
+
+**Reading.** Jump window 1 frame again; the tap must be exactly 2 frames here; Right-back has a
+~3-frame window. **No variant of either mint exceeds +10.** The 10 is structural for a no-L+R mint:
+15 frames of fast-accel from speed 0 = 11 px of x, minus the pixel the impede costs. So the
+"one pixel of margin" idea of §4 is **not available from simple perturbations of Maru's inputs** —
+a two-mint human line has zero margin by construction, and 122 + 9 = 131 is the failure everyone sees.
+
 ## 4. What it means for making it easy
 
 - **The budget is the constraint.** Maru's line is the no-L+R optimum and enters the pipe on the WR's
   row, with the WR's framerule slack of 8 (F29) minus the 3 it loses in the warp-zone room: **single-digit
   frames of slack** at the framerule. Any easier mint must cost **≤ ~5 frames more than Maru's**;
   standing mints (~30+ frames for 20 px at +4–5 per freeze) are out.
-- **The cheap lever is one pixel of margin.** Every near-miss above is 131. If mint 1 can be made to
-  yield 11 (a subpixel question over its Right re-press / approach — a few dozen replays), mint 2's
-  jump window goes from 1 frame to ≥ 4 (123 + 9 = 132) and the subpixel-9 failure mode disappears.
-  **Next unit.**
-- **The well-posed search** afterwards: `bfscx --goal-offset 132` from the S2 arrival, human-legal
-  input set (no L+R), deadline = Maru's + 5, candidates scored by jump-window width via this probe.
+- ~~The cheap lever is one pixel of margin.~~ **Refuted in §3b**: no perturbation of either mint
+  exceeds +10; 10 per freeze is the no-L+R ceiling, so any two-mint line is 132 with zero margin.
+  Margin therefore needs a **different mint shape**, not a better-timed one. Candidates the engine
+  can price: (a) a rising slide along a **tall** face (pipe B's 7-tile face at col 78, or the warp
+  pipe's 3-tile face — the runner's wall jump is the crude form of this): every impede refreshes
+  the freeze and adds a collision-push pixel, then the last refresh buys a full 15-frame run over
+  the top — possibly > 10 from one contact; (b) a third +10 mint, which costs a ~15-frame re-accel
+  and is over budget unless it replaces something.
+- **The well-posed search — next unit:** `bfscx --goal-offset N` from the S2 arrival with the
+  human-legal input set (no L+R), deadline = Maru's step count + 5, N = 137 and 142 (5 and 10 px of
+  margin). A goal at N = 137 within budget is a human line with a real window; a dry run at N = 137
+  says the margin does not exist under the budget and the ease work moves to consistency setups
+  (visual cues for the 1-frame jump) instead. Check F129's `goal_refused` fix first.
 - **The runner's line differs from Maru's in where mint 2 is.** From the user's description of the
   videos (Niftski): he stays on the brick-run top, "slides up the left side of the block facing
   backwards", goes **over** the upper (50,3)–(51,3) pair and comes down to the three group. So his
