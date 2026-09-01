@@ -42,8 +42,8 @@ def build(base, W, H, rb):
     if rb == "all": k = 0
     elif rb == "contact": k = max(0, contact_after - 1)
     else: k = int(rb)
-    if H == 0:                                  # no jump: run off the ledge; k = neutral frames after the tap
-        inp += bytes([byte("B")] * k)
+    if H == 0:                                  # no jump: run off the ledge; k = neutral frames after the tap (--air L: Left held instead)
+        inp += bytes([byte("BL" if AIR == "L" else "B")] * k)
         if REJUMP:                              # --rejump J:H2 — after the ledge mint, J frames B+Right then A+B+Right H2 frames
             J, H2 = REJUMP
             inp += bytes([byte("BR")] * J) + bytes([byte("ABR")] * H2)

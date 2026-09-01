@@ -192,8 +192,13 @@ Reading: **tap in the last three ground frames (within 7.5 px of the edge), let 
 press Right → +10.** K = 0 is Right on the ground = facing flipped back (+4). Long neutral on the
 ground (K ≥ 6 at earlier taps) is friction: he slows, falls further before x 787 and passes *under*
 the face — Maru's hop reproduced by accident. Airborne taps never change facing (+4).
-Versus (50,3): same 3-frame tap window, a ~3-frame Right window instead of ~7, but **no jump, no A
-hold, no Left-held-into-the-jump failure, and the position cue is the ledge itself.**
+**Left held after the tap** (`--air L`, the runner's habit): 2 frames → +10/+10/+9 (taps at
+762.5/765/767.5), 3 frames → +9/+9/none, **4+ frames → no contact at every tap** (Left on the ground
+slows him; he falls further and passes under the face — visibly). So the tolerance is a *tap*, not a
+hold: release within ~2 frames.
+Versus (50,3): same 3-frame tap window, a ~3-frame Right window instead of ~7, **no jump and no A
+hold**; the Left-hold failure still exists but is visible (no contact) and has no A press to be
+coordinated with — the timing reference becomes the edge instead of his own jump input.
 
 **Open — the frame cost.** After the contact he is on the floor at x ≈ 790 at low speed, under the
 lower pair; the line becomes floor → under the three group (rows 8–10 open) → the pit from the floor
