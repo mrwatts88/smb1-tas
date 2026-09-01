@@ -124,6 +124,53 @@ Offset read at row 6830 (after mint 1, before mint 2); Maru's tap here is 2 fram
 "one pixel of margin" idea of §4 is **not available from simple perturbations of Maru's inputs** —
 a two-mint human line has zero margin by construction, and 122 + 9 = 131 is the failure everyone sees.
 
+## 3c. The runner's face, (50,3), built on the core (`tools/rta_503_probe.py`) — and it is the forgiving one
+
+User decision: no framerule trade (the runner is going for the record), and the failing contact is
+the **upper pair**, not the pipe wall jump. Maru never touches (50,3), so the contact was built: Maru's
+inputs to his one grounded frame on the brick-run top (row 6898, x 720, speed 40), then crafted —
+`W` frames of `B+Right` along the top, a Left tap on the last ground frame, `A+B` with the stick
+neutral, `Right` back at record `k` after takeoff, then `B+Right`. Contact geometry: the face is at
+x 800, Mario's side point is x+13, so contact is at x ≈ 787; the run ends at x 768.
+
+**Takeoff position (Right back one frame before contact, `--rb contact`):**
+
+| takeoff x | contact | impedes | gain |
+|---|---|---|---|
+| ≤ 752.5 | none — flies over the pair (or lands on its top) | 0 | +0 |
+| **755.0 / 757.5 / 760.0** | y 56 / 59 / 62, rising | **1** | **+10** |
+| 762.5 / 765.0 | y 65 / 69 | 2 | +9 |
+| 767.5 (off the end of the run) | hits the *lower* pair at y 132 | 1 | +9, then the floor |
+
+A **3-frame takeoff window** (x 755–760, i.e. Mario's left edge 8–13 px before the last brick — his
+front edge just past the end of the run), versus 1 frame on (54,7) and on the notch. Contact 8–14 px
+below the pair's top clears it within 2–3 frames of rising; lower contact slides and re-impedes.
+
+**Right-back timing at takeoff 755/757.5 (contact at frame 13/12):** `k` = 8–14 → +10 (all six);
+`k` = 6 → +9/+8 (Right too early: pushes into the face during the slide — with Right held for the
+whole jump only takeoff 755 gives +10, 757.5/760 give +8 with 2–6 impedes); `k` = 16 → +9/+7,
+18 → +6/+5, 20+ → +4/+3 (the freeze is spent). So Right must be back **within ~5 frames before to
+1 frame after contact** — a ~7-frame window — and **not** earlier.
+
+**Stick during the ascent:** neutral is required. **Left held after the tap** (the natural "turn
+around" input) kills the contact: air control slows him, he floats over or onto the pair, +0 at every
+takeoff 750–762.5 (only 765 contacts, for +8). **Right held from takeoff** costs re-impedes (+8).
+
+**Tap:** none → facing right, **+4**. One frame → +10. Two frames → +10 with the window shifted 2.5 px
+left (the tap costs speed). **Jump length:** A held 16/20/24 frames all +10 (16/20 land on the pair's
+top at y 48; 24 clears it with feet at y 33 — 1 px under a head bump on the roof); 12 frames → +8.
+
+**So the runner's invisible failures are, in order of likelihood:** (1) **Left held into the jump**
+(no contact — but he *would* see no wall touch); (2) **Right pressed back too early** after the tap
+(contact looks right, facing left, legs apart — and it's +8); (3) **takeoff 1–2 frames late** (+9,
+also looks right); and the visible one, (4) no/late tap (facing right, +4), which is the one he
+restarts on. Nothing here is subpixel-sensitive: all three takeoffs in the window gave exactly +10.
+
+**The rule set that follows:** run the top at full speed; when the front edge of Mario passes the last
+brick, tap Left for one frame and jump on the next; **let go of the stick**; hold A; press Right back
+when Mario touches the block (up to ~5 frames early is fine, later than 1 frame after is not);
+keep holding Right. Facing left + legs apart confirms the tap only — it does not confirm the +10.
+
 ## 4. What it means for making it easy
 
 - **The budget is the constraint.** Maru's line is the no-L+R optimum and enters the pipe on the WR's

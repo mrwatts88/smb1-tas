@@ -2615,3 +2615,11 @@ for 9–10. The one measurement of a tall-face contact argues *against* a > 10 s
 unreachable in one jump. Withdrawn in RTA-1 §4, F290 and STATUS. Standing conclusion: no known no-L+R
 mint exceeds 10; margin needs a third contact, which costs about a framerule — a trade only the user
 can make, so STATUS now leads with that question.
+
+**Unit 2 (same session): the runner's face.** User: no framerule trade, and the failing contact is
+the upper pair (50,3), not the pipe wall jump. Built that contact on the core from Maru's prefix
+(`tools/rta_503_probe.py`, ~120 replays). It is the *forgiving* one: 3-frame takeoff window, ~7-frame
+Right-return window, no subpixel sensitivity (F291). The invisible failures are Left held into the jump
+(+0), Right back too early (+8) and a late takeoff (+9); the visible one (no tap, +4) is the only one he
+restarts on. Rule set in RTA-1 §3c. Answered the user's comparison: (54,7) and the notch are both
+1-frame takeoffs — the runner is already on the best face.
