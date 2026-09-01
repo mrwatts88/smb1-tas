@@ -1197,6 +1197,26 @@ need 533); update the explainer page (`docs/web/README.md` — its results table
 
 ## The 4-2 hope (standing thread — do not let this quietly die)
 
+**RECONCILED 2026-09-01 (this thread was written s16 and never updated after s18 measured it — read this
+before the s16 text below).** The cheapest key *has* now been measured, twice removed from the s16 beam
+numbers: `runs/E3-w42/r460.log` (s18, Track E archive on the real core, goal = rel ≥ 132 **and**
+`Player_X_Scroll` = 0, F227/F129) prints a **mint curve** — earliest frame per screen-lead — that reaches
+**rel 132 at core ≈ 7190** while the 553 top-route chain reaches the pipe at 7134 and a framerule needs
+≤ 7156. **Measured key ≈ 56–61 frames vs the 22 budget — ~39 over.** That is a Go-Explore *upper bound*,
+but a well-converged one (~700M frames, the rel-132 point flattening at 7190) and it matches the
+code-level mechanism exactly (F227: 4-2's only scroll freeze mints 1 px per frozen frame *and* zeroes the
+speed, so +20 px = ≥20 slow frames + a full re-acceleration). So the honest prior is now **well below
+1-in-4, not 1-in-4.** The banked-frames table's "~60" is this number; the s16 "~31/~43" below are the
+older, looser beam bounds it superseded. **The single sub-question still genuinely open** is the E-W42
+write-up's optimistic case: a mint paid *immediately before the pipe* skips the re-acceleration (Mario
+needs no speed to drop in) and prices at ~12–14 frames — inside 22 — **iff a drift-able wall face exists
+within ~20 px of the col-84 pipe.** The rollouts paid the mint far back (x 468) and never found a
+near-pipe one; the drift-able walls in 4-2 (col-30 brick mass, the pillars) are all far from the pipe,
+which is approached over open ground, so geometry probably forbids it. **The one unrun test that would
+settle it is P2.3c-10: `bfscx W42Main … --goal-offset 132 --beam-buckets off,y,spd,sub` rooted just
+before the pipe** — a bucketed beam finds a precise 1–2-frame wall entry that random rollouts miss, or
+confirms ~61 as the floor. Until that runs, treat 4-2 as *very likely closed, not proven*.
+
 **The open question, stated once:** *nobody has ever measured the cheapest possible way to build the
 4-2 scroll offset.* Every number we have is an upper bound from a search that wasn't trying to be cheap:
 the bottom route's ~31 came from a single-key beam (the exact defect F128 documents), and the top
