@@ -2635,3 +2635,10 @@ old path?" I guessed the lower pair blocked every takeoff; the probe said otherw
 x 812–820 lands cleanly on the group (F293). Cost ≈ 2 frames vs the (50,3) line, hand-crafted. The
 line now has no timed jump at a wall. Blocked on one number only the runner's run can give: his slack.
 Lesson (again): geometric intuition about SMB1 collision is worth one replay, not a conclusion.
+
+**Session end.** Five units in one sitting, all on the core, no engine search: Maru's movie obtained
+and read (F287–F288); the trick's windows measured (F289–F290); the runner's face built and found the
+most forgiving (F291); the user's ledge-fall idea measured (+10, no jump, F292); the rejoin onto the
+three group found (F293, ≈ 2 frames); the line rendered as fm2/GIF. The runner's actual failure — Left
+not landing before A — cannot occur in the ledge line, because there is no A. Open: the 2 frames vs
+his slack, his pipe section (no inputs), and whether to tell him (user's call). Both clones in sync.
