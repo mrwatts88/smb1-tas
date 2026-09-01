@@ -5,6 +5,23 @@ and `docs/experiments/`; standing search rules are in `docs/search-runbook.md`; 
 pre-cleanup narrative version of this file is archived at
 `docs/archive/STATUS-2026-08-24-pre-cleanup.md`. Keep every section here short.
 
+**Updated:** 2026-09-01 — **NEW TRACK OPENED: RTA-1, "make 4-2 as easy as possible for humans"** (user's
+new goal; the record attempt below stays closed). Not faster — 4-2 is framerule-quantized and the human
+"Lightning 4-2" already reaches the TAS's framerule — but *wider*: the wrong-warp setup a top runner drops
+constantly. First unit done (`docs/experiments/RTA-1-maru-42-mint.md`, F287–F289): **Maru's no-L+R TAS
+was obtained (`data/wr/maru-rtarules.fm2`), replays on the core end to end, and its 4-2 shows the
+human-legal mint exactly** — two +10 px mints (col-30 face via the notch; (54,7)'s left face), each =
+1-frame Left tap on the last ground frame → neutral-stick jump → Right back at contact → run through the
+15-frame scroll freeze **while facing left, which gives fast-accel (~2x) for the whole window**; facing
+right yields only +4–5. Perturbation probe (`tools/rta_mint_probe.py`): **jump window = 1 frame, Left tap
+= exactly 1 frame, total = 132 with zero margin, and mint size is 9–11 px by subpixel** — so a perfect
+execution can still fail. **Next unit:** (a) find +1 px of margin in mint 1 (subpixel over its Right
+re-press/approach, a few dozen replays) — if 123 is reachable the mint-2 window widens to ≥ 4 frames;
+(b) replay the runner's actual face, (50,3)'s left side from the brick-run top (his line goes over the
+upper pair; Maru goes under the lower pair). Budget for anything else: Maru's line has single-digit
+frames of framerule slack, so an easier mint must cost ≤ ~5 frames more than his. Run on the Fedora box
+(`~/Documents/smb1-tas`; the Mac clone has no engine/core).
+
 **Updated:** 2026-08-26 — **PROJECT FINISHED AND WOUND DOWN (session 22).** No faster route was found; the record stands at HappyLee's 17,868 frames. The board closed in one session: **L1/8-2 dry** (F280, ~903M frames), **L4/8-4's exit pipe dry** (F284, 291 pipe entries, none earlier than the WR's), **1-2 closed by arithmetic** (F283 — ceiling 3 against a requirement of 8, confirmed independently by Maru370's hand-made run), **L3 parked** (F275), and **L7, the last thread, dry across all ten roots at ~3.25 billion frames with the independent seeds converging bit-for-bit** (F285/F286). Machines released, 117 GB of layer files deleted, the Mac's copy removed with its logs archived first, and the engine patch extracted to its own repo. **What is NOT claimed: that the record is unbeatable.** H47's class is un-enumerated, not refuted. Read the wind-down block below, then `docs/open-threads.md`.
 
 <details><summary>Previous stamps (sessions 22-mid, 21, 19)</summary>

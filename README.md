@@ -120,6 +120,8 @@ Published separately at **[mrwatts88/smb-opt-modes](https://github.com/mrwatts88
 
 ## Third-party content
 
-`data/disasm/smbdis.asm` is doppelganger's SMB disassembly and
-`data/wr/happylee-supermariobros,warped.fm2` is HappyLee's TAS movie from TASVideos. Both are included
-as research inputs and remain their authors' work.
+`data/disasm/smbdis.asm` is doppelganger's SMB disassembly,
+`data/wr/happylee-supermariobros,warped.fm2` is HappyLee's TAS movie from TASVideos, and
+`data/wr/maru-rtarules.fm2` is Maru's "warps, RTA rules" (no Left+Right) TAS (TASVideos submission
+#6456; file from microstorage via speedrun.com thread 1wd01). All are included as research inputs and
+remain their authors' work.

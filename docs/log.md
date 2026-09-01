@@ -2568,3 +2568,35 @@ Deleted. **Repo: 3.5 GB → 792 MB** (121 GB at the start of the day). Also conf
 --untracked-files=all` shows **nothing untracked-but-unignored**, so no stray file was ever left out
 of version control by accident; and the ROM is present, gitignored, never in the index, and absent
 from all history.
+
+## 2026-08-31/09-01 — Mac session (over ssh to the box): new track RTA-1, "easiest 4-2 for humans"
+
+**Context.** Fresh Mac clone (no engine, core or ROM), Fedora box initially off, then on. Conversation
+started as "how would we approach making 4-2 easiest for humans" and ended with a measured answer.
+Worked from the Mac driving `~/Documents/smb1-tas` on the box over ssh; the Mac clone holds the docs.
+
+**Reframe.** Not faster (framerule-quantized; humans already reach the TAS's framerule, F36) but wider
+input windows: the runner's failure is the wrong-warp mint, not the movement. The user's description of
+the failing trick ("slide up the left side of the block facing backwards; works when facing backwards
+with legs apart") is a hidden-state question — the kind the core answers exactly.
+
+**Maru's no-L+R TAS** (F3) was the missing artifact: the human-legal optimum with inputs. Found via
+TASVideos #6456 → speedrun.com 1wd01 → microstorage; 0 L+R records; replays on the core end to end
+(F287). Its 4-2 mints twice, +10 each, with a recipe a human can execute in principle: 1-frame Left tap
+on the last ground frame, neutral jump, Right back at contact, run through the freeze facing left (F288).
+Facing left = fast-accel for the whole freeze = the amplifier; facing right yields +4–5.
+
+**Perturbation probe** (~30 replays at 1.2 s): jump window 1 frame, tap exactly 1 frame, 9–11 px per mint
+by subpixel, total 132 with zero margin (F289). That is the coin flip, quantified. Cheapest fix is one
+pixel of margin in mint 1; next unit.
+
+**Corrections made mid-session.** (1) My first pad decoder had the joypad bit order reversed (the game
+stores A in bit 7) — caught by cross-checking against the fm2 records before drawing conclusions.
+(2) A jump-shift variant group clobbered the Left tap it was meant to keep; re-run corrected
+(`tools/rta_mint_probe.py` has the fixed version). (3) I guessed the runner meets (54,7)'s face falling;
+the user's description says he goes over the upper pair — so his face is (50,3), rising. Fixed in the
+write-up before it became a fact.
+
+**Files.** `data/wr/maru-rtarules.fm2` (third-party, README §Third-party), `tools/rta_mint_trace.py`,
+`tools/rta_mint_probe.py`, `docs/experiments/RTA-1-maru-42-mint.md`, F287–F289, STATUS stamp. On the
+box, untracked: `data/wr/maru_inputs.bin`, `runs/qn_maru.ram` (both regenerable by the commands in RTA-1 §5).
