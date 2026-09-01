@@ -171,6 +171,40 @@ brick, tap Left for one frame and jump on the next; **let go of the stick**; hol
 when Mario touches the block (up to ~5 frames early is fine, later than 1 frame after is not);
 keep holding Right. Facing left + legs apart confirms the tap only — it does not confirm the +10.
 
+## 3d. The ledge fall onto the lower pair (user's idea): a mint with no jump in it
+
+Why does Maru hop off the run instead of running off? The trace answers: the 5-frame hop from x 723
+puts him past the ledge (x 768) already descending at 4 px/frame, so he reaches x 788 at **y 141 —
+below the lower pair's face** — and no impede fires; running off flat he would arrive at ≈ y 125
+and hit it. The hop is there to *avoid* a contact. The user's idea: use that contact instead.
+`tools/rta_503_probe.py --H 0 --rb K` = tap Left `W` frames after the landing, `K` neutral (B only)
+frames, then `B+Right`, no A. Every contact is the same: feet y 132, falling, one impede.
+
+| tap x (W) | K = 0 | 2 | 4 | 6 | 8 | 10 | 12 |
+|---|---|---|---|---|---|---|---|
+| 757.5 / 760 | +4 / +4 | +5 / +5 | +4 / none | +9 / none | none | none | none |
+| **762.5** | +4 | **+10** | **+10** | none | none | none | none |
+| **765.0** | +4 | **+10** | **+10** | +9 | none | none | none |
+| **767.5** (last ground frame) | +9 | **+10** | +9 | +9 | **+10** | **+10** | +7 |
+| 770–775 (already airborne) | +4 | +4 | +4–5 | +3–4 | +3–5 | +2–4 | +1–3 |
+
+Reading: **tap in the last three ground frames (within 7.5 px of the edge), let go for 2–4 frames,
+press Right → +10.** K = 0 is Right on the ground = facing flipped back (+4). Long neutral on the
+ground (K ≥ 6 at earlier taps) is friction: he slows, falls further before x 787 and passes *under*
+the face — Maru's hop reproduced by accident. Airborne taps never change facing (+4).
+Versus (50,3): same 3-frame tap window, a ~3-frame Right window instead of ~7, but **no jump, no A
+hold, no Left-held-into-the-jump failure, and the position cue is the ledge itself.**
+
+**Open — the frame cost.** After the contact he is on the floor at x ≈ 790 at low speed, under the
+lower pair; the line becomes floor → under the three group (rows 8–10 open) → the pit from the floor
+lip → pipes → the pipe wall jump for the second +10. Two speed resets, like the runner's current
+(50,3) + wall-jump line, so frame-neutral to first order — but Maru crosses the pit by dropping onto
+the lift from the three group's top (rows 7000–7010, grounded on it at y 133–142), and a floor-level
+crossing is different. **Next unit (engine):** from the post-mint state of the ledge line and of the
+(50,3) line (same prefix, row 6898), `bfscx W42Main` with goal x ≥ 1005 (F114's boundary), `--lift`,
+enemies off (both goombas are dead) — compare the two optimal continuations. Inside ~5 frames of the
+(50,3) line ⇒ the ledge mint replaces the runner's hardest trick at no framerule cost.
+
 ## 4. What it means for making it easy
 
 - **The budget is the constraint.** Maru's line is the no-L+R optimum and enters the pipe on the WR's

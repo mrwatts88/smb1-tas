@@ -2623,3 +2623,9 @@ Right-return window, no subpixel sensitivity (F291). The invisible failures are 
 (+0), Right back too early (+8) and a late takeoff (+9); the visible one (no tap, +4) is the only one he
 restarts on. Rule set in RTA-1 §3c. Answered the user's comparison: (54,7) and the notch are both
 1-frame takeoffs — the runner is already on the best face.
+
+**Unit 3 (same session, user's idea).** "Can we mint by just running off the ledge into the side of
+the lower two-block?" Yes: +10, no jump, tap in the last 3 ground frames + 2–4 neutral frames + Right
+(F292). Maru's hop is there to avoid exactly that contact (he passes x 788 at y 141, under the face).
+This would delete the runner's hardest trick if the floor-level continuation fits the framerule — an
+engine comparison (post-mint state → x ≥ 1005, both lines) is the next unit.

@@ -13,6 +13,7 @@ usage: tools/rta_503_probe.py [--W a:b] [--H list] [--rb {all,contact,K}] [--tap
   --rb all      Right held for the whole jump (phase 1: find contacts)
   --rb contact  Right back on the predicted contact frame (x+13 >= 800 at 2.5 px/frame) minus 1
   --rb K        Right back K frames after takeoff
+  --H 0         no jump at all: run off the ledge after the tap, K neutral (B only) frames, then B+Right
 Per run: contact (impede) row/y/facing, offset gain (offset 60 rows after takeoff minus 122), and
 the outcome: CLEAR = passed over the (50,3) pair (x in [800,831] with feet y <= 48), TOP503 = landed on
 it, TOP547 = landed on (54,7), FLOOR = fell to y 176, DEATH. Reading: docs/experiments/RTA-1-maru-42-mint.md."""
@@ -40,6 +41,8 @@ def build(base, W, H, rb):
     if rb == "all": k = 0
     elif rb == "contact": k = max(0, contact_after - 1)
     else: k = int(rb)
+    if H == 0:                                  # no jump: run off the ledge; k = neutral frames after the tap
+        inp += bytes([byte("B")] * k)
     for j in range(H): inp += bytes([byte("ABR" if j >= k else ("ABL" if AIR == "L" else "AB"))])
     inp += bytes([byte("BR")] * 200)
     return bytes(inp), takeoff_rec, k
