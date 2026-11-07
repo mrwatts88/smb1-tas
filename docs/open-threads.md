@@ -51,7 +51,7 @@ loss map (F245):
 | **8-4** | **any 1 frame** | 38 (room 3, L3 parked) + 15 (room 2 pipe, **L4 dry F284**) | **the only 1:1 level — L3 and L4 both live here.** Its 5 lag frames are NOT available (F264) |
 | 8-2 | 19 | **114** | L1 running |
 | ~~1-2~~ | 8 | ceiling **3** | **CLOSED (F283)** — 3 < 8, by counting |
-| 4-2 | 13 | 33 + 30 | measured closed on both routes (F122/F123) |
+| 4-2 | 13 (10 after F88) | 33 + 30 | main-area key measured closed (F122/F123); **the 30-frame warp-zone site (H35) was never searched — reopened 2026-11-07** |
 | 4-1 / 8-1 / 8-3 | 9 / 18 / 10 | **0** | geometry cannot pay here |
 | 1-1 | 1 | 0 | proven closed end to end (F124) |
 

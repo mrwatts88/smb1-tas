@@ -2654,3 +2654,14 @@ his slack, his pipe section (no inputs), and whether to tell him (user's call). 
 **Also considered, not advanced:** over-cap via stomps/shells/Bullet Bills (y-only or shell-only); the swim cap (F271 holds — every area entry clears speed, and 8-4's water is unavoidable by topology); `Platform_X_Scroll` for `ScreenLeft`-gated goals (1-2/4-2 carry only vertical lifts); the ending coast (F223 + L7 r5 already negative); the 1-2 arithmetic (3 < 8 holds whether or not the refund is kept). **Live, needing the box (listed in STATUS):** Maru's 8-4 room by room against F265 (his 14 slower frames are all in 8-4, but F11 is a room-3 claim); the 4-2 warp-key minimum with `--beam-buckets --goal-offset`; H42's x-1981 seam (needs the coupled end-game term).
 
 **Files.** F294/F295 in `docs/facts.md`; H47 status and evidence in `docs/hypotheses.md`; STATUS stamp + the omissions row; this entry. No tools changed. `tools/rta_line_build.py` from the RTA-1 session is still untracked — not this unit's file, left for that track to commit.
+
+## 2026-11-07 — Mac session: fresh-eyes crack hunt (user: "look for a crack, think outside the box"; reading only)
+
+**Did.** Read PROCESS/STATUS/open-threads/decisions, the full H1–H50 ledger and the facts behind the ending (F16/F17/F223), framerule (F27/F28/F257), cap (F67/F225/F271), loss map (F245) and 4-2 warp zone (F88–F91). Did not re-walk the framerule levers or H47's writer enumeration (2026-09-01 did). Audited the board's own closure claim against the loss map instead.
+
+**Found.** (1) **H35 never ran** — the warp zone is the one F245 site with no search behind it, and open-threads had folded it into F122/F123. F88's 3 frames make its 15-frame ceiling relevant again (need 10–13). (2) **HappyLee's 2-frames-short top-route claim vs our 56–61 key** — a 30+ frame disagreement between a primary source and our upper bound. Both low-prior (~10–15 %, ~15–20 %); either alone crosses 4-2's framerule. Nothing new on the mechanism side.
+
+**Box check.** `ssh laptop` OK; repo at 6ae675c; engine diff sha == `tools/smb-opt-modes.patch` sha (61aa5ec8…); control gate green under a 4 G cap; scratch `bfscx_layers/` removed.
+
+**Next.** H35 warp-zone search, then P2.3c-10 (STATUS stamp has both commands).
+
