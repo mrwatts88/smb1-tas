@@ -2665,3 +2665,5 @@ his slack, his pipe section (no inputs), and whether to tell him (user's call). 
 
 **Next.** H35 warp-zone search, then P2.3c-10 (STATUS stamp has both commands).
 
+**Same session, later: H35 launched** (user: "keep it simple on the Linux, get started"). `runs/H35-w42warp/launch.sh`, four `explore` runs (two roots x two seeds), 6 h, goal = world-8 pipe entry (`$0e=3,$75f=7`), WR core 7721 (dump row 7724, F45). Control green (+0). First launch of the two whole-room roots used a Y-down bonus that steered the floor start into pits; killed after ~2 min and relaunched with rightward progress (old logs kept as `*_ybias_killed.log`). Next session: read the four logs, record a fact, then P2.3c-10.
+
