@@ -2680,3 +2680,5 @@ his slack, his pipe section (no inputs), and whether to tell him (user's call). 
 **Learned.** H51 is dry but weaker than its frame count: death-blind, and the archive churns. Every earlier explore negative carries the same efficiency caveat, though no reported goal was wrong.
 
 **Next.** Proposed: an exhaustive two-jump enumeration in ram_oracle (hop over Bowser x final jump), which tests the crossing directly; then a fixed-binary H51 re-run if needed.
+
+**Same day, later: two-jump enumeration** (user: "yes"). Added `ram_oracle --two-jump`. The control at j1=17782 (251,400 runs) reproduced 17846. j1 >= 17783 dies, so I relaunched one j1 per core for 17770-17781 (about 20 min each). A network blip made the box unreachable for a while; it did not reboot, and the user's relaunch was refused because the units already existed. Result (F302): 3.41M runs, nothing below 17846. Identical slices for early hops show x(t) is fixed at the cap, so only y(t) at the crossing matters. Next: settle from the disassembly whether Bowser's motion is fixed by the entry frame.
