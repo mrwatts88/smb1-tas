@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     }
     const char *core = argv[1], *rom = argv[2], *inputs = argv[3], *outpath = NULL;
     long at = -1, input_skip = 0, addr_lo = 0x5e0, addr_hi = 0x6cf, cap = -1;
-    int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400; long truncate_at = -1, ending_scan = -1; long nudge = 0;
+    int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400; long truncate_at = -1, ending_scan = -1; long nudge = 0; long trace_js = -1, trace_hold = -1;
     uint8_t vals[256]; int nvals = 0;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--at")) at = strtol(argv[++i], NULL, 0);
@@ -121,6 +121,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--probe")) probe = 1;
         else if (!strcmp(argv[i], "--truncate")) truncate_at = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--ending-scan")) ending_scan = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--trace-js")) trace_js = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--trace-hold")) trace_hold = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--nudge")) nudge = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--probe-frames")) probe_n = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
@@ -171,7 +173,7 @@ int main(int argc, char **argv) {
         /* H1: enumerate (jump_start, A-hold length) for the final jump to the axe and report the
          * earliest achievable LAST INPUT frame that still reaches the ending.  Movie length is
          * measured to the last input, and 8-4 is unquantized (H24), so any reduction is frames. */
-        long base = ending_scan, i, js, hold, best = 1L<<30, bjs = -1, bhold = -1;
+        long base = ending_scan, i, js, hold, best = 1L<<30, bjs = -1, bhold = -1, outc[4] = {0, 0, 0, 0};
         size_t sz2 = retro_serialize_size(); void *st2 = malloc(sz2);
         for (i = 0; i < base; i++) { cur_pad = in[i + input_skip]; retro_run(); }
         if (nudge) {
@@ -191,14 +193,23 @@ int main(int argc, char **argv) {
             for (hold = 1; hold <= 24; hold++) {
                 if (!retro_unserialize(st2, sz2)) return 1;
                 ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
-                long ok = 0;
+                long ok = 0; int why = 3;   /* 0 axe, 1 died (GES 11 / 6), 2 pit, 3 timeout */
+                int tr = (js == trace_js && hold == trace_hold);
+                if (tr) printf("TRACE js=%ld hold=%ld  frame pad GES state Mx My | Bowser(slot1) id x y | flame(slot0) id x y\n", js, hold);
                 for (i = base; i < base + 200; i++) {
                     if (i < js)                 cur_pad = in[i + input_skip];
                     else if (i < js + hold)     cur_pad = 0x01;   /* A */
                     else                        cur_pad = 0x00;   /* released: airborne keeps x-speed */
                     retro_run();
-                    if (ram[OPERMODE] == 2 && ram[WORLDNUM] >= 7) { ok = 1; break; }
+                    if (tr) printf("  %ld %02x %u %u %u %u | %02x %u %u | %02x %u %u\n", i, cur_pad, ram[0x0e], ram[0x1d],
+                                   ram[0x6d] * 256 + ram[0x86], ram[0xce], ram[0x17], ram[0x6f] * 256 + ram[0x88], ram[0xd0],
+                                   ram[0x16], ram[0x6e] * 256 + ram[0x87], ram[0xcf]);
+                    if (ram[OPERMODE] == 2 && ram[WORLDNUM] >= 7) { ok = 1; why = 0; break; }
+                    if (ram[0x0e] == 11 || ram[0x0e] == 6) { why = 1; break; }
+                    if (ram[0xb5] > 1) { why = 2; break; }
                 }
+                outc[why]++;
+                if (tr) printf("TRACE outcome %d (0 axe, 1 died, 2 pit, 3 timeout) at frame %ld\n", why, i);
                 if (ok) {
                     long last = js + hold - 1;
                     if (last < best) { best = last; bjs = js; bhold = hold; }
@@ -207,6 +218,8 @@ int main(int argc, char **argv) {
         }
         printf("BEST last-input frame = %ld  (jump_start=%ld, A-hold=%ld)   WR last input = 17846\n",
                best, bjs, bhold);
+        printf("outcomes over %ld combos: axe %ld  died %ld  pit %ld  timeout %ld\n",
+               outc[0] + outc[1] + outc[2] + outc[3], outc[0], outc[1], outc[2], outc[3]);
         if (best < 17846) printf("*** %ld FRAMES EARLIER THAN THE WR ***\n", 17846 - best);
         retro_unload_game(); retro_deinit(); dlclose(h);
         return 0;

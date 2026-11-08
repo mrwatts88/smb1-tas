@@ -26,6 +26,10 @@
  *   --no-seed-wr      do NOT seed the archive with the movie's own continuation
  *   --tournp P        probability of tournament (progress-biased) cell selection (default 0.75)
  *   --xcell/--ycell/--scell/--spdcell/--enemycell N   cell coarseness (px / px / px / speed / px)
+ *   --subcell/--ysubcell N   key on the POSITION subpixels $0400/$0416 (F297; before 2026-11-07
+ *                     these read the speed fractions $0705/$0433)
+ *   --frccell/--yfrccell N   key on the speed fractions $0705/$0433 (the pre-F297 behaviour)
+ *   --keyaddr ADDR[/DIV]     add RAM byte ADDR (divided by DIV) to the key; up to 4
  *   --seed N, --secs N, --report N, --out DIR
  *
  * Path file: a text header line then `len` raw input bytes.  Replay = movie's own inputs to
@@ -54,8 +58,14 @@
 #define SLX      0x71c
 #define SLPAGE   0x71a
 #define SCTIMER  0x785
-#define PXFRAC   0x705   /* Player_X_MoveForce - the horizontal subpixel */
-#define PYFRAC   0x433   /* Player_Y_MoveForce */
+/* F297 (2026-11-07): $0705/$0433 are SPEED fractions (Player_X_MoveForce = friction/subspeed
+   accumulator, Player_Y_MoveForce = vertical-speed fraction). The POSITION subpixels are
+   SprObject_X_MoveForce $0400 and SprObject_YMF_Dummy $0416. --subcell/--ysubcell now key on
+   the position subpixels; --frccell/--yfrccell key on the speed fractions (the old behaviour). */
+#define PXSUB    0x400   /* SprObject_X_MoveForce - horizontal position subpixel */
+#define PYSUB    0x416   /* SprObject_YMF_Dummy - vertical position subpixel */
+#define PXFRAC   0x705   /* Player_X_MoveForce - horizontal speed fraction */
+#define PYFRAC   0x433   /* Player_Y_MoveForce - vertical speed fraction */
 #define ENID     0x16
 #define ENFLAG   0x0f   /* Enemy_Flag: slot i is a live object iff $0f+i != 0 */
 #define ENX      0x87
@@ -252,7 +262,8 @@ int main(int argc, char **argv) {
     const char *core=argv[1], *rom=argv[2], *inputs=argv[3], *outdir="runs/E3";
     long root=-1, input_skip=2, ncells=150000, rlo=8, rhi=64, horizon=900, secs=300, report=15, coast=400;
     long xcell=4, ycell=8, scell=64, spdcell=8, ecell=16, seedwr=1, probex=-1, nullmax=200, relcell=2;
-    long subcell=0, ysubcell=0;
+    long subcell=0, ysubcell=0, frccell=0, yfrccell=0;
+    long kaddr[4]; long kdiv[4]; int nkey=0;   /* --keyaddr ADDR[/DIV]: raw RAM bytes in the cell key */
     long wlo=-1, whi=-1, maxaddr=-1, maxw=0, anomaly=0;
     double tournp=0.75;
     long gaddr[8], gval[8]; int ngoal=0; long baseline=-1; const char *seedpaths[8]; int nseed=0;
@@ -273,6 +284,9 @@ int main(int argc, char **argv) {
         else if(!strcmp(argv[i],"--relcell")) relcell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--subcell")) subcell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--ysubcell")) ysubcell=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--frccell")) frccell=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--keyaddr") && nkey<4) { char *e; kaddr[nkey]=strtol(argv[++i],&e,0); kdiv[nkey]=(*e=='/')?strtol(e+1,NULL,0):1; if(kdiv[nkey]<1) kdiv[nkey]=1; nkey++; }
+        else if(!strcmp(argv[i],"--yfrccell")) yfrccell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--max-addr")) maxaddr=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--max-weight")) maxw=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--anomaly")) anomaly=1;
@@ -367,8 +381,11 @@ int main(int argc, char **argv) {
                    | ((uint64_t)(sl/scell)<<43) | ((uint64_t)(r)[AREAPTR]<<48) \
                    | ((uint64_t)((r)[GES]&15)<<56); \
         k ^= ed*0x9e3779b97f4a7c15ULL; k ^= mv*0x94d049bb133111ebULL; \
-        if(subcell)  k ^= (uint64_t)((r)[PXFRAC]/subcell)*0xd6e8feb86659fd93ULL; \
-        if(ysubcell) k ^= (uint64_t)((r)[PYFRAC]/ysubcell)*0xa0761d6478bd642fULL; k ^= k>>29; k *= 0xbf58476d1ce4e5b9ULL; k ^= k>>32; k|1ULL; })
+        if(subcell)  k ^= (uint64_t)((r)[PXSUB]/subcell)*0xd6e8feb86659fd93ULL; \
+        if(ysubcell) k ^= (uint64_t)((r)[PYSUB]/ysubcell)*0xa0761d6478bd642fULL; \
+        if(frccell)  k ^= (uint64_t)((r)[PXFRAC]/frccell)*0x8ebc6af09c88c6e3ULL; \
+        if(yfrccell) k ^= (uint64_t)((r)[PYFRAC]/yfrccell)*0x589965cc75374cc3ULL; \
+        for(int kq=0;kq<nkey;kq++) k ^= (uint64_t)((r)[kaddr[kq]]/kdiv[kq]+1)*(0x2545f4914f6cdd1dULL+0x9e3779b97f4a7c15ULL*(uint64_t)kq); k ^= k>>29; k *= 0xbf58476d1ce4e5b9ULL; k ^= k>>32; k|1ULL; })
 
     long inserted=0, improved=0, rollouts=0, frames=0, goals=0, evict=0, deaths=0, probes=0;
     unsigned anom_seen=0; long anom_hits=0;
