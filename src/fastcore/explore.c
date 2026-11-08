@@ -30,6 +30,8 @@
  *                     these read the speed fractions $0705/$0433)
  *   --frccell/--yfrccell N   key on the speed fractions $0705/$0433 (the pre-F297 behaviour)
  *   --keyaddr ADDR[/DIV]     add RAM byte ADDR (divided by DIV) to the key; up to 4
+ *   --no-ges-death    pre-F300 behaviour: a rollout only counts as dead when a life is lost, so
+ *                     the death animation (GES 11) is archived as live cells
  *   --seed N, --secs N, --report N, --out DIR
  *
  * Path file: a text header line then `len` raw input bytes.  Replay = movie's own inputs to
@@ -263,6 +265,7 @@ int main(int argc, char **argv) {
     long root=-1, input_skip=2, ncells=150000, rlo=8, rhi=64, horizon=900, secs=300, report=15, coast=400;
     long xcell=4, ycell=8, scell=64, spdcell=8, ecell=16, seedwr=1, probex=-1, nullmax=200, relcell=2;
     long subcell=0, ysubcell=0, frccell=0, yfrccell=0;
+    int gesdeath=1;   /* F300: a rollout is dead as soon as GES = 11 (PlayerDeath) / 6 (PlayerLoseLife) or $b5 > 1 (below the screen) */
     long kaddr[4]; long kdiv[4]; int nkey=0;   /* --keyaddr ADDR[/DIV]: raw RAM bytes in the cell key */
     long wlo=-1, whi=-1, maxaddr=-1, maxw=0, anomaly=0;
     double tournp=0.75;
@@ -285,6 +288,7 @@ int main(int argc, char **argv) {
         else if(!strcmp(argv[i],"--subcell")) subcell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--ysubcell")) ysubcell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--frccell")) frccell=strtol(argv[++i],NULL,0);
+        else if(!strcmp(argv[i],"--no-ges-death")) gesdeath=0;
         else if(!strcmp(argv[i],"--keyaddr") && nkey<4) { char *e; kaddr[nkey]=strtol(argv[++i],&e,0); kdiv[nkey]=(*e=='/')?strtol(e+1,NULL,0):1; if(kdiv[nkey]<1) kdiv[nkey]=1; nkey++; }
         else if(!strcmp(argv[i],"--yfrccell")) yfrccell=strtol(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--max-addr")) maxaddr=strtol(argv[++i],NULL,0);
@@ -560,6 +564,7 @@ int main(int argc, char **argv) {
             for(j=0;j<d;j++){
                 cur_pad=a; g_retro_run(); frames++; f++; path[plen++]=a; ram=RAMP();
                 if(ram[LIVES]<g_lives0||ram[OPERMODE]==3){ deaths++; L=0; break; }
+                if(gesdeath && (ram[GES]==11||ram[GES]==6||ram[PYHI]>1)){ deaths++; L=0; break; }
                 if(goal_hit(ram)){ ONGOAL(f,plen); L=0; break; }
                 INSERT(f,plen);
                 /* THE OBJECTIVE, measured directly: if we stopped pressing buttons right here,

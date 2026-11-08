@@ -2672,3 +2672,11 @@ his slack, his pipe section (no inputs), and whether to tell him (user's call). 
 **Same session, evening: H35 result.** All four runs finished (a1 251M frames/463 goals, a2 250M/566, w1 245M/47, w2 168M/33). Every goal tied the WR at core 7721, 0 deaths. Recorded as F298; H35 is marked searched-dry, not refuted, because of the F297 key bug. Next: fix F297, re-gate, re-run H35 with the real subpixel key, then the F296 trace and H51.
 
 **Same session, night: F297 fix, F296 trace, H51 launch** (user: "1", then "skip 2, do 3/4 tonight"). Fixed explore's subpixel key and added `--frccell`, `--yfrccell` and `--keyaddr`; both control gates +0. Added per-combo outcome counts and `--trace-js/--trace-hold` to `ram_oracle --ending-scan`. The first trace attempt desynced because ram_oracle's `--input-skip` defaults to 0; with 2 it reproduces 17846. Result (F299): at both failing nudges all 960 combos die, on Bowser's back edge (17844) or on landing over him (17828); the flame is ~200 px away. Launched H51 (4 runs, 8 h). Found the same $0705-as-subpixel pattern in `src/search/bfs.c` and `bfs_par.c`, not yet assessed.
+
+## 2026-11-08 — H51 result; explore death blindness
+
+**Did.** Read the H51 logs: four runs, ~873M frames, all endings at 17846 (F300). The `deaths=0` total contradicted F299, so I traced it: explore only counted a death when the life counter dropped, which comes after the death animation and past the horizon. Fixed it (GES 11/6 or $b5 > 1 ends the rollout). A 90 s A/B showed 27% of rollouts were dying states and the fixed binary finds endings 24% faster per frame (F301). H35 control +0.
+
+**Learned.** H51 is dry but weaker than its frame count: death-blind, and the archive churns. Every earlier explore negative carries the same efficiency caveat, though no reported goal was wrong.
+
+**Next.** Proposed: an exhaustive two-jump enumeration in ram_oracle (hop over Bowser x final jump), which tests the crossing directly; then a fixed-binary H51 re-run if needed.
