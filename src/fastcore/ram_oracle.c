@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
     long at = -1, input_skip = 0, addr_lo = 0x5e0, addr_hi = 0x6cf, cap = -1;
     int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400; long truncate_at = -1, ending_scan = -1; long nudge = 0; long trace_js = -1, trace_hold = -1;
     long two_jump = -1, j1lo = 17770, j1hi = 17800;
+    long set_t[16]; int set_v[16]; int nset = 0;   /* --set-input T=PAD (H52) */
     uint8_t vals[256]; int nvals = 0;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--at")) at = strtol(argv[++i], NULL, 0);
@@ -126,6 +127,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--trace-hold")) trace_hold = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--nudge")) nudge = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--two-jump")) two_jump = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--set-input") && nset < 16) { char *e; set_t[nset] = strtol(argv[++i], &e, 0); set_v[nset] = (*e == '=') ? (int)strtol(e + 1, NULL, 0) : 0; nset++; }
         else if (!strcmp(argv[i], "--j1")) { char *e; j1lo = strtol(argv[++i], &e, 0); j1hi = (*e == ':') ? strtol(e + 1, NULL, 0) : j1lo; }
         else if (!strcmp(argv[i], "--probe-frames")) probe_n = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
@@ -153,6 +155,11 @@ int main(int argc, char **argv) {
     uint8_t *in = malloc(nin);
     if (fread(in, 1, nin, f) != (size_t)nin) { perror("read inputs"); return 1; }
     fclose(f);
+    for (int q = 0; q < nset; q++) {   /* H52: replace the movie input on core frame T */
+        long k = set_t[q] + input_skip;
+        if (k < 0 || k >= nin) { fprintf(stderr, "--set-input frame %ld out of range\n", set_t[q]); return 2; }
+        fprintf(stderr, "set-input core %ld: %02x -> %02x\n", set_t[q], in[k], set_v[q]); in[k] = (uint8_t)set_v[q];
+    }
     FILE *rf = fopen(rom, "rb"); if (!rf) { perror(rom); return 1; }
     fseek(rf, 0, SEEK_END); long rsz = ftell(rf); fseek(rf, 0, SEEK_SET);
     void *rdata = malloc(rsz);
@@ -178,7 +185,12 @@ int main(int argc, char **argv) {
          * measured to the last input, and 8-4 is unquantized (H24), so any reduction is frames. */
         long base = ending_scan, i, js, hold, best = 1L<<30, bjs = -1, bhold = -1, outc[4] = {0, 0, 0, 0};
         size_t sz2 = retro_serialize_size(); void *st2 = malloc(sz2);
-        for (i = 0; i < base; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        long bspawn = -1;
+        for (i = 0; i < base; i++) {
+            cur_pad = in[i + input_skip]; retro_run();
+            if (bspawn < 0 && i >= 17577) for (int q = 0; q < 6; q++) if (ram[0x16 + q] == 0x2d) { bspawn = i; break; }
+        }
+        printf("bowser_spawn core=%ld  (first frame an Enemy_ID slot holds $2D)\n", bspawn);
         if (nudge) {
             /* Margin probe: move Mario forward by `nudge` 1/256-px units at `base` (24-bit
              * PageLoc $6d : X $86 : subpixel $0400 -- SprObject_X_MoveForce for x=0, smbdis 352,
