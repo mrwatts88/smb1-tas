@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
     const char *core = argv[1], *rom = argv[2], *inputs = argv[3], *outpath = NULL;
     long at = -1, input_skip = 0, addr_lo = 0x5e0, addr_hi = 0x6cf, cap = -1;
     int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400; long truncate_at = -1, ending_scan = -1; long nudge = 0; long trace_js = -1, trace_hold = -1;
+    long two_jump = -1, j1lo = 17770, j1hi = 17800;
     uint8_t vals[256]; int nvals = 0;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--at")) at = strtol(argv[++i], NULL, 0);
@@ -124,6 +125,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--trace-js")) trace_js = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--trace-hold")) trace_hold = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--nudge")) nudge = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--two-jump")) two_jump = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--j1")) { char *e; j1lo = strtol(argv[++i], &e, 0); j1hi = (*e == ':') ? strtol(e + 1, NULL, 0) : j1lo; }
         else if (!strcmp(argv[i], "--probe-frames")) probe_n = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
         else if (!strcmp(argv[i], "--values")) {
@@ -134,7 +137,7 @@ int main(int argc, char **argv) {
                    free(dup); }
         } else { fprintf(stderr, "unknown option %s\n", argv[i]); return 2; }
     }
-    if (at < 0 && truncate_at < 0 && ending_scan < 0) { fprintf(stderr, "--at FRAME is required\n"); return 2; }
+    if (at < 0 && truncate_at < 0 && ending_scan < 0 && two_jump < 0) { fprintf(stderr, "--at FRAME is required\n"); return 2; }
     if (!nvals) { for (int v = 0; v < 256; v++) vals[nvals++] = (uint8_t)v; }
 
     void *h = dlopen(core, RTLD_NOW | RTLD_LOCAL);
@@ -221,6 +224,92 @@ int main(int argc, char **argv) {
         printf("outcomes over %ld combos: axe %ld  died %ld  pit %ld  timeout %ld\n",
                outc[0] + outc[1] + outc[2] + outc[3], outc[0], outc[1], outc[2], outc[3]);
         if (best < 17846) printf("*** %ld FRAMES EARLIER THAN THE WR ***\n", 17846 - best);
+        retro_unload_game(); retro_deinit(); dlclose(h);
+        return 0;
+    }
+
+    if (two_jump >= 0) {
+        /* H51 / F299: exhaustive two-jump enumeration of the 8-4 Bowser-room ending.  The WR hops
+         * over Bowser at 17782 (A held 32 frames), coasts with no input, presses B+R at 17839, L at
+         * 17840, then jumps for the axe at 17841 (A held 6) -> last input 17846.  F299: the final
+         * jump threads Bowser's hitbox with < 0.5 px either side, so the crossing is set by the hop.
+         * Family enumerated, all from the WR's own state at `two_jump` (default base 17760):
+         *   before j1      : WR inputs with A cleared (frames < 17782), B+R ($82) after
+         *   hop  j1 in --j1 LO:HI, hold h1 in 1..40, pad A ($01) or A+R ($81)
+         *   between jumps  : fill $00 or $82; tail variants for fill $00: none / L at js-1 /
+         *                    B+R at js-2 + L at js-1 (the WR's tail); for fill $82: none / L at js-1
+         *   final jump js in 17815..17850 (js >= j1+h1+2), hold h2 with js+h2-1 <= 17850, pad A,
+         *                    then no input until the axe (OperMode 2 && World >= 7), death
+         *                    (GES 11/6, $b5 > 1) or 200 frames.
+         * Prints every success with last input <= 17845, per-j1 best, and totals. */
+        long base = two_jump, i, nruns = 0, nok = 0, ndead = 0, best = 1L << 30;
+        long hist[8] = {0};   /* successes by last input 17843..17850 */
+        size_t sz = retro_serialize_size();
+        void *S0 = malloc(sz), *SJ = malloc(sz), *SH = malloc(sz), *SF = malloc(sz);
+        for (i = 0; i < base; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        if (!retro_serialize(S0, sz)) return 1;
+        #define DEAD() (ram[0x0e] == 11 || ram[0x0e] == 6 || ram[0xb5] > 1)
+        #define STEP(p) do { cur_pad = (p); retro_run(); ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM); } while (0)
+        static const uint8_t D1[2] = {0x01, 0x81};
+        for (long j1 = j1lo; j1 <= j1hi; j1++) {
+            long jbest = 1L << 30, jok = 0;
+            retro_unserialize(S0, sz); ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+            int dead = 0;
+            for (i = base; i < j1; i++) { STEP(i < 17782 ? (in[i + input_skip] & 0xfe) : 0x82); if (DEAD()) { dead = 1; break; } }
+            if (dead) { printf("j1=%ld dies before the hop\n", j1); continue; }
+            retro_serialize(SJ, sz);
+            for (int d = 0; d < 2; d++) for (long h1 = 1; h1 <= 40; h1++) {
+                retro_unserialize(SJ, sz); ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+                dead = 0;
+                for (i = j1; i < j1 + h1; i++) { STEP(D1[d]); if (DEAD()) { dead = 1; break; } }
+                if (dead) continue;
+                retro_serialize(SH, sz);
+                for (int fi = 0; fi < 2; fi++) {
+                    uint8_t fill = fi ? 0x82 : 0x00; int ntail = fi ? 2 : 3;
+                    retro_unserialize(SH, sz); ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+                    long cur = j1 + h1;                       /* next frame to run */
+                    long jsfirst = cur + 2 > 17815 ? cur + 2 : 17815;
+                    dead = 0;
+                    while (cur < jsfirst - 2) { STEP(fill); cur++; if (DEAD()) { dead = 1; break; } }
+                    if (dead) continue;
+                    for (long js = jsfirst; js <= 17850; js++) {
+                        /* here cur == js-2 */
+                        retro_serialize(SF, sz);
+                        for (int tv = 0; tv < ntail; tv++) for (long h2 = 1; js + h2 - 1 <= 17850; h2++) {
+                            retro_unserialize(SF, sz); ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+                            uint8_t p2 = (tv == 2) ? 0x82 : fill, p1 = (tv >= 1) ? 0x40 : fill;
+                            int outc = 0;   /* 0 timeout, 1 axe, 2 dead */
+                            STEP(p2); if (DEAD()) outc = 2;
+                            if (!outc) { STEP(p1); if (DEAD()) outc = 2; }
+                            for (i = js; !outc && i < js + 200; i++) {
+                                STEP(i < js + h2 ? 0x01 : 0x00);
+                                if (ram[OPERMODE] == 2 && ram[WORLDNUM] >= 7) outc = 1;
+                                else if (DEAD()) outc = 2;
+                            }
+                            nruns++;
+                            if (outc == 2) ndead++;
+                            if (outc == 1) {
+                                long last = js + h2 - 1; nok++; jok++;
+                                if (last >= 17843 && last <= 17850) hist[last - 17843]++;
+                                if (last < jbest) jbest = last;
+                                if (last < best) best = last;
+                                if (last <= 17845)
+                                    printf("*** RECORD CANDIDATE last=%ld  j1=%ld d1=%02x h1=%ld fill=%02x tail=%d js=%ld h2=%ld\n",
+                                           last, j1, D1[d], h1, fill, tv, js, h2);
+                                if (j1 == 17782 && d == 0 && h1 == 32 && fi == 0 && tv == 2 && js == 17841 && h2 == 6)
+                                    printf("CONTROL (WR combo) reaches the axe: last=%ld\n", last);
+                            }
+                        }
+                        retro_unserialize(SF, sz); ram = (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+                        STEP(fill); cur++;
+                        if (DEAD()) break;
+                    }
+                }
+            }
+            printf("j1=%ld  successes=%ld  best_last=%ld\n", j1, jok, jok ? jbest : -1L); fflush(stdout);
+        }
+        printf("TOTAL runs=%ld axe=%ld dead=%ld  best_last=%ld (WR 17846)\n", nruns, nok, ndead, nok ? best : -1L);
+        printf("axe by last input 17843..17850:"); for (int q = 0; q < 8; q++) printf(" %ld", hist[q]); printf("\n");
         retro_unload_game(); retro_deinit(); dlclose(h);
         return 0;
     }
