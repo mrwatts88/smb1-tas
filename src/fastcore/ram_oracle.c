@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     }
     const char *core = argv[1], *rom = argv[2], *inputs = argv[3], *outpath = NULL;
     long at = -1, input_skip = 0, addr_lo = 0x5e0, addr_hi = 0x6cf, cap = -1;
-    int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400; long truncate_at = -1, ending_scan = -1;
+    int death_exit = 1, all_rows = 0, probe = 0; long probe_n = 400; long truncate_at = -1, ending_scan = -1; long nudge = 0;
     uint8_t vals[256]; int nvals = 0;
     for (int i = 4; i < argc; i++) {
         if (!strcmp(argv[i], "--at")) at = strtol(argv[++i], NULL, 0);
@@ -121,6 +121,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--probe")) probe = 1;
         else if (!strcmp(argv[i], "--truncate")) truncate_at = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--ending-scan")) ending_scan = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--nudge")) nudge = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--probe-frames")) probe_n = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
         else if (!strcmp(argv[i], "--values")) {
@@ -173,8 +174,19 @@ int main(int argc, char **argv) {
         long base = ending_scan, i, js, hold, best = 1L<<30, bjs = -1, bhold = -1;
         size_t sz2 = retro_serialize_size(); void *st2 = malloc(sz2);
         for (i = 0; i < base; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        if (nudge) {
+            /* Margin probe: move Mario forward by `nudge` 1/256-px units at `base` (24-bit
+             * PageLoc $6d : X $86 : subpixel $0400 -- SprObject_X_MoveForce for x=0, smbdis 352,
+             * NOT $0705, which is the subspeed).  The smallest nudge that lets the scan beat the
+             * WR is how much position the approach would have to find. */
+            long p24 = ((long)ram[0x6d] << 16) | ((long)ram[0x86] << 8) | ram[0x400];
+            p24 += nudge;
+            ram[0x6d] = (uint8_t)(p24 >> 16); ram[0x86] = (uint8_t)(p24 >> 8); ram[0x400] = (uint8_t)p24;
+            if (!retro_serialize(st2, sz2)) { fprintf(stderr, "serialize failed\n"); return 1; }
+        }
         if (!retro_serialize(st2, sz2)) { fprintf(stderr, "serialize failed\n"); return 1; }
-        printf("base=%ld  enumerating jump_start x A-hold\n", base);
+        printf("base=%ld nudge=%ld (1/256 px) x=%u:%u sub=%u  enumerating jump_start x A-hold\n",
+               base, nudge, ram[0x6d], ram[0x86], ram[0x400]);
         for (js = base; js < base + 40; js++) {
             for (hold = 1; hold <= 24; hold++) {
                 if (!retro_unserialize(st2, sz2)) return 1;
