@@ -32,6 +32,19 @@
  *        --diag           print grounded-node and distinct-enemy-world counts with the progress
  *      So the search is exhaustive over jump timings for lines that keep full speed; it says
  *      nothing about lines that give up position.
+ *   --speedup F0 T        N2: structured no-L+R speed-up plans from core F0, best x at core T
+ *   --accel F0 T          N2: Pareto search over every no-L+R pad from core F0, best x at core T
+ *   --pokescan T ADDR LO HI STEP
+ *                         N3: poke one RAM byte after core frame T (LO = -1: no poke) and print the
+ *                         frame StarFlagTaskControl ($0746) first becomes non-zero and the next load
+ *   --flag F0 F1          N3: every input from core F0 at a flagpole; goal = $0746 non-zero within 6
+ *        frames of a grab (the 8-2 style ending).  Dedup per frame on the player's physical state.
+ *        --xmin X         drop nodes left of x pixel X
+ *        --walk N         for grabs up to core N, follow the automatic walk and tally the castle frame
+ *   --turn F0 D           N4: every no-L+R input from core F0; goal = vertical pipe entry with
+ *        ScreenLeft >= --slmin (3345) on a frame <= D.  Nodes that cannot reach x pixel --xgoal
+ *        (3404) by D at 1.79 units/frame of leftward acceleration are dropped (admissible).
+ *        --beam K         keep the K best nodes per physical bucket (heuristic; 0 = every node)
  *
  * Pad encoding (same as harness/ram_oracle): A 01, B 02, SEL 04, START 08, U 10, D 20, L 40, R 80.
  * Victory = OperMode ($0770) == 2 with WorldNumber ($075F) >= 7.  Death = GES ($0e) 11 or 6, or
@@ -131,6 +144,31 @@ static uint64_t state_key(const uint8_t *r) {
     return h;
 }
 
+/* Player-physics key for the flagpole search (--flag).  Only what the next frames of player motion
+ * read: joypad carry-over (A held), routine, state, directions, speeds, position and sub-pixels,
+ * collision bits, the stored running speed and its flag, the friction fraction, jump forces and
+ * the running timer.  Standing on the floor (y 176) the vertical residue and the jump forces are
+ * dead state, because the only way up from there is InitJS, which rewrites them.  Scroll, timers
+ * tied to the frame and everything cosmetic are left out. */
+static uint64_t flag_key(const uint8_t *r) {
+    uint8_t t[32]; int i = 0, fl = (r[0x1d] == 0 && r[0xce] == 176);
+    t[i++] = r[0x0d] & 0x80; t[i++] = r[0x0e]; t[i++] = r[0x1d]; t[i++] = r[0x33]; t[i++] = r[0x45];
+    t[i++] = r[0x57]; t[i++] = r[0x6d]; t[i++] = r[0x86]; t[i++] = r[0x9f]; t[i++] = r[0xb5]; t[i++] = r[0xce];
+    t[i++] = r[0x400]; t[i++] = fl ? 0 : r[0x416]; t[i++] = r[0x433]; t[i++] = r[0x490];
+    t[i++] = r[0x700]; t[i++] = r[0x703]; t[i++] = r[0x705];
+    t[i++] = fl ? 0 : r[0x709]; t[i++] = fl ? 0 : r[0x70a]; t[i++] = r[0x783];
+    return fnv_add(1469598103934665603ULL, t, (size_t)i);
+}
+
+/* --turn --beam K: keep the K best nodes (lowest projected x) in each physical bucket */
+typedef struct { uint64_t b; double s; long i; } BeamEnt;
+static int cmp_beam(const void *pa, const void *pb) {
+    const BeamEnt *a = pa, *b = pb;
+    if (a->b != b->b) return a->b < b->b ? -1 : 1;
+    if (a->s != b->s) return a->s < b->s ? -1 : 1;
+    return a->i < b->i ? -1 : (a->i > b->i);
+}
+
 typedef struct { int32_t parent; uint8_t pad; } Meta;
 typedef struct { uint64_t *keys; uint32_t cap, n; } Set;
 static void set_init(Set *s, uint32_t cap) { s->cap = cap; s->n = 0; s->keys = calloc(cap, sizeof(uint64_t)); }
@@ -154,6 +192,10 @@ int main(int argc, char **argv) {
     int allow_stomp = 0; long nstomp = 0; int diag = 0; int xprune = 1; long nxdrop = 0;
     long pick = -1;                     /* --pick N with --ground-at C: write the path to grounded node N and stop */
     long pk_addr = 0, pk_lo = 0, pk_hi = 0, pk_step = 1;   /* --pokescan T ADDR LO HI STEP */
+    long xmin = 0;                      /* --flag: drop nodes whose x pixel is left of this */
+    long walkto = -1;                   /* --flag --walk N: time the castle walk for grabs up to core N */
+    long slmin = 3345, xgoal = 3404;    /* --turn: required ScreenLeft, and the rightmost x pixel that enters the pipe */
+    long beam = 0;                      /* --turn --beam K: keep K nodes per physical bucket (0 = exhaustive) */
     FILE *f = fopen(inputs, "rb"); if (!f) { perror(inputs); return 1; }
     fseek(f, 0, SEEK_END); long nin = ftell(f); fseek(f, 0, SEEK_SET);
     uint8_t *in = malloc(nin + 4096);
@@ -175,6 +217,13 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--trace")) { mode = 2; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--speedup")) { mode = 4; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--accel")) { mode = 5; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--flag")) { mode = 7; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--xmin")) xmin = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--walk")) walkto = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--turn")) { mode = 8; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--beam")) beam = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--slmin")) slmin = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--xgoal")) xgoal = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--pokescan")) { mode = 6; tA = strtol(argv[++i], NULL, 0); pk_addr = strtol(argv[++i], NULL, 0);
             pk_lo = strtol(argv[++i], NULL, 0); pk_hi = strtol(argv[++i], NULL, 0); pk_step = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--bfs")) { mode = 3; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
@@ -420,6 +469,215 @@ int main(int argc, char **argv) {
             }
         }
         (void)tmpS;
+        return 0;
+    }
+
+    if (mode == 7) {
+        /* N3/H54: exhaustive local search at a flagpole.  Goal: StarFlagTaskControl ($0746) non-zero
+         * within 6 frames of the grab (the 8-2 style ending, no castle walk).  Pads: all of A/B/L/R
+         * on the ground; in the air B is not read and L+R acts as L or R alone, so A/L/R while
+         * rising and L/R while falling (A held through a fall only blocks the next jump).  Dedup per
+         * frame on flag_key.  Every grab is counted with its routine (4 slide, 5 glitch) and height. */
+        if (F0 < 0 || F1 <= F0) { fprintf(stderr, "--flag F0 F1 required\n"); return 2; }
+        for (long i = 0; i < F0; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        long nfr = F1 - F0 + 1, ncur = 1, capx = 1 << 12, steps = 0, ndrop = 0, nskip = 0, first5 = -1;
+        long g4 = 0, g5 = 0, gy[256]; memset(gy, 0, sizeof gy);
+        long cas[600]; memset(cas, 0, sizeof cas); long casbest = -1, caslen = 0, casgrab = -1; int casy = 0, casfive = 0; uint8_t *caspath = NULL;
+        void **tmpl = calloc(nfr + 2, sizeof(void *)); Meta **meta = calloc(nfr + 2, sizeof(Meta *));
+        uint8_t *cur = malloc(RAMSZ), *nxt = malloc((size_t)capx * RAMSZ);
+        tmpl[0] = malloc(ssz); if (!retro_serialize(tmpl[0], ssz)) return 1;
+        memcpy(cur, ram, RAMSZ);
+        meta[0] = malloc(sizeof(Meta)); meta[0][0].parent = -1; meta[0][0].pad = 0;
+        Set seen; set_init(&seen, 1u << 24);
+        static const uint8_t gp[16] = { 0x00,0x40,0x80,0x01,0x41,0x81,0xc0,0xc1,0x02,0x42,0x82,0xc2,0x03,0x43,0x83,0xc3 };
+        double t0 = now();
+        printf("flag search %ld..%ld xmin %ld  start x %d y %d xspd %d abs %d  savestate %zu bytes\n", F0, F1, xmin,
+               (ram[0x6d] << 8) | ram[0x86], ram[0xce], (int8_t)ram[0x57], ram[0x700], ssz);
+        for (long k = 0; k < nfr; k++) {
+            long t = F0 + k, nn = 0, capm = ncur * 16 + 1;
+            long gmax = -1, gmax25 = -1, hop = -1;      /* diagnostics, x in 1/256 px */
+            meta[k + 1] = malloc((size_t)capm * sizeof(Meta)); set_clear(&seen);
+            for (long n = 0; n < ncur; n++) {
+                const uint8_t *r0 = cur + n * RAMSZ;
+                int np = r0[0x1d] == 0 ? 16 : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
+                for (int p = 0; p < np; p++) {
+                    retro_unserialize(tmpl[k], ssz); RAMP(); memcpy(ram, r0, RAMSZ);
+                    cur_pad = gp[p]; retro_run(); RAMP(); steps++;
+                    if (DEAD(ram)) continue;
+                    long x = ((long)ram[0x6d] << 8) | ram[0x86], xf = (x << 8) | ram[0x400];
+                    if (x < xmin) { ndrop++; continue; }
+                    if (ram[0x0e] == 4 || ram[0x0e] == 5) {
+                        int five = ram[0x0e] == 5, y = ram[0xce], sk = 0;
+                        if (five) g5++; else g4++;
+                        gy[y]++;
+                        if (five && first5 < 0) { first5 = t; printf("  first glitch grab (routine 5) on core %ld, y %d\n", t, y); }
+                        long jw = 0;
+                        for (int j = 0; j < 6 && !sk; j++) { if (ram[0x746]) sk = 1; else { cur_pad = 0; retro_run(); RAMP(); steps++; jw++; } }
+                        /* --walk N: for grabs up to core N, follow the automatic slide/wait/walk to the
+                         * castle door and tally the entry frame (the level's framerule hangs on it) */
+                        sk = sk || ram[0x746];          /* decided before the walk is followed */
+                        if (!sk && t <= walkto) {
+                            while (jw < 260 && !ram[0x746]) { cur_pad = 0; retro_run(); RAMP(); steps++; jw++; }
+                            long cf = ram[0x746] ? t + jw : -1;
+                            if (cf >= 0 && cf - F0 < 600) {
+                                cas[cf - F0]++;
+                                if (casbest < 0 || cf < casbest) {
+                                    casbest = cf; free(caspath); caspath = malloc(k + 2); long idx = n; caslen = k + 1;
+                                    for (long q = k; q >= 1; q--) { caspath[q - 1] = meta[q][idx].pad; idx = meta[q][idx].parent; }
+                                    caspath[k] = gp[p]; casgrab = t; casy = y; casfive = five;
+                                }
+                            }
+                        }
+                        if (sk) {
+                            nskip++;
+                            if (nskip <= show) {
+                                uint8_t *path = malloc(k + 2); long idx = n;
+                                for (long q = k; q >= 1; q--) { path[q - 1] = meta[q][idx].pad; idx = meta[q][idx].parent; }
+                                path[k] = gp[p];
+                                printf("SKIP: grab on core %ld at y %d, castle entered at once.  pads from core %ld:", t, y, F0);
+                                for (long q = 0; q <= k; q++) printf(" %02x", path[q]);
+                                printf("\n");
+                                if (nskip == 1 && outpath) { FILE *o = fopen(outpath, "wb"); if (!o) { perror(outpath); return 1; }
+                                    fwrite(in, 1, F0 + input_skip, o); fwrite(path, 1, k + 1, o);
+                                    uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o); printf("wrote %s\n", outpath); }
+                                free(path);
+                            }
+                        }
+                        continue;
+                    }
+                    if (ram[0x1d] == 0 && ram[0xce] == 176) { if (xf > gmax) gmax = xf; if (ram[0x700] >= 25 && xf > gmax25) gmax25 = xf; }
+                    if ((int8_t)ram[0x9f] < 0 && ram[0xce] >= 165 && ram[0xce] <= 167 && xf > hop) hop = xf;
+                    if (!set_add(&seen, flag_key(ram))) continue;
+                    if (!tmpl[k + 1]) { tmpl[k + 1] = malloc(ssz); retro_serialize(tmpl[k + 1], ssz); }
+                    if (nn >= capx) { capx *= 2; nxt = realloc(nxt, (size_t)capx * RAMSZ); if (!nxt) { fprintf(stderr, "out of memory\n"); return 1; } }
+                    memcpy(nxt + nn * RAMSZ, ram, RAMSZ);
+                    meta[k + 1][nn].parent = (int32_t)n; meta[k + 1][nn].pad = gp[p]; nn++;
+                }
+            }
+            printf("  core %ld: %ld nodes  grabs slide %ld glitch %ld  skips %ld  left-drops %ld  floor max x %.3f  with speed byte >= 25: %.3f  rising at y 165-167: %.3f  (%.0fs, %ld steps)\n",
+                   t + 1, nn, g4, g5, nskip, ndrop, gmax / 256.0, gmax25 / 256.0, hop / 256.0, now() - t0, steps);
+            fflush(stdout);
+            if (nn == 0) { printf("frontier died out at core %ld\n", t); break; }
+            if (nn > maxnodes) { printf("frontier %ld > maxnodes at core %ld\n", nn, t); break; }
+            if (seen.n * 2 > seen.cap) { fprintf(stderr, "hash set too full\n"); return 1; }
+            meta[k + 1] = realloc(meta[k + 1], (size_t)(nn + 1) * sizeof(Meta));
+            cur = realloc(cur, (size_t)nn * RAMSZ); memcpy(cur, nxt, (size_t)nn * RAMSZ); ncur = nn;
+        }
+        printf("grab heights (y: count):"); for (int y = 0; y < 256; y++) if (gy[y]) printf(" %d:%ld", y, gy[y]); printf("\n");
+        if (walkto >= 0) {
+            printf("castle-entry frame after the automatic walk (core: grabs):"); for (int q = 0; q < 600; q++) if (cas[q]) printf(" %ld:%ld", F0 + q, cas[q]); printf("\n");
+            if (casbest >= 0) { printf("earliest castle entry core %ld: grab on core %ld, y %d, routine %d.  pads from core %ld:", casbest, casgrab, casy, casfive ? 5 : 4, F0);
+                for (long q = 0; q < caslen; q++) printf(" %02x", caspath[q]); printf("\n");
+                if (outpath) { FILE *o = fopen(outpath, "wb"); if (!o) { perror(outpath); return 1; }
+                    fwrite(in, 1, F0 + input_skip, o); fwrite(caspath, 1, caslen, o);
+                    uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o); printf("wrote %s\n", outpath); } }
+        }
+        printf("done: %ld steps in %.0fs, skips found %ld\n", steps, now() - t0, nskip);
+        return 0;
+    }
+
+    if (mode == 8) {
+        /* N4: a turn-around-and-enter-a-pipe search without Left+Right (Maru's 8-4 room 3).
+         * --turn F0 D: every no-L+R input from core F0; goal = vertical pipe entry
+         * (GameEngineSubroutine 3) with ScreenLeft >= --slmin on a frame <= D, at x pixel <= --xgoal.
+         * Pads: 12 on the floor, plus the 6 Down pads when standing high (y <= 96); A/L/R while
+         * rising, L/R while falling.  Dedup per frame on the full gameplay key.  A node is dropped
+         * when it cannot reach the pipe even with the best leftward acceleration on every remaining
+         * frame (1.79 units per frame, cap 40), or cannot still finish the scroll and return. */
+        if (F0 < 0 || F1 <= F0) { fprintf(stderr, "--turn F0 D required\n"); return 2; }
+        for (long i = 0; i < F0; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        long D = F1, nfr = D - F0 + 1, ncur = 1, capx = 1 << 12, steps = 0, nbound = 0, ngoal = 0;
+        void **tmpl = calloc(nfr + 2, sizeof(void *)); Meta **meta = calloc(nfr + 2, sizeof(Meta *));
+        uint8_t *cur = malloc(RAMSZ), *nxt = malloc((size_t)capx * RAMSZ);
+        double *score = malloc((size_t)capx * sizeof(double));
+        tmpl[0] = malloc(ssz); if (!retro_serialize(tmpl[0], ssz)) return 1;
+        memcpy(cur, ram, RAMSZ);
+        meta[0] = malloc(sizeof(Meta)); meta[0][0].parent = -1; meta[0][0].pad = 0;
+        Set seen; set_init(&seen, 1u << 24);
+        static const uint8_t fp[18] = { 0x00,0x40,0x80,0x01,0x41,0x81,0x02,0x42,0x82,0x03,0x43,0x83, 0x20,0x60,0xa0,0x22,0x62,0xa2 };
+        double t0 = now(), xg = xgoal + 255.0 / 256.0;
+        printf("turn search %ld..%ld  slmin %ld  xgoal %ld  start x %d y %d xspd %d SL %d\n", F0, D, slmin, xgoal,
+               (ram[0x6d] << 8) | ram[0x86], ram[0xce], (int8_t)ram[0x57], (ram[0x71a] << 8) | ram[0x71c]);
+        for (long k = 0; k < nfr; k++) {
+            long t = F0 + k, nn = 0, nok = 0; double minx = 1e9;
+            meta[k + 1] = malloc(((size_t)ncur * 18 + 1) * sizeof(Meta)); set_clear(&seen);
+            for (long n = 0; n < ncur; n++) {
+                const uint8_t *r0 = cur + n * RAMSZ;
+                int floor = r0[0x1d] == 0, np = floor ? (r0[0xce] <= 96 ? 18 : 12) : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
+                for (int p = 0; p < np; p++) {
+                    retro_unserialize(tmpl[k], ssz); RAMP(); memcpy(ram, r0, RAMSZ);
+                    cur_pad = fp[p]; retro_run(); RAMP(); steps++;
+                    if (DEAD(ram)) continue;
+                    long sl = ((long)ram[0x71a] << 8) | ram[0x71c];
+                    double x = (((long)ram[0x6d] << 8) | ram[0x86]) + ram[0x400] / 256.0, v = (int8_t)ram[0x57];
+                    if (ram[0x0e] == 3) {
+                        if (sl < slmin) continue;       /* the game decides the entry itself; only the scroll is required here */
+                        ngoal++;
+                        if (ngoal <= show) {
+                            uint8_t *path = malloc(k + 2); long idx = n;
+                            for (long q = k; q >= 1; q--) { path[q - 1] = meta[q][idx].pad; idx = meta[q][idx].parent; }
+                            path[k] = fp[p];
+                            printf("GOAL: pipe entered on core %ld at x %.3f (area pointer $%02x, entrance page %u).  pads from core %ld:", t, x, ram[0x750], ram[0x751], F0);
+                            for (long q = 0; q <= k; q++) printf(" %02x", path[q]);
+                            printf("\n");
+                            if (ngoal == 1 && outpath) { FILE *o = fopen(outpath, "wb"); if (!o) { perror(outpath); return 1; }
+                                fwrite(in, 1, F0 + input_skip, o); fwrite(path, 1, k + 1, o);
+                                uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o); printf("wrote %s\n", outpath); }
+                            free(path);
+                        }
+                        continue;
+                    }
+                    if (p >= 12) continue;                 /* Down without a pipe entry duplicates the plain pad */
+                    if (ram[0x0e] != 8) continue;
+                    /* bound: frames left after this one */
+                    long rem = D - t; int ok = 1; double bx = x, bv = v;
+                    if (sl >= slmin) {
+                        for (long q = 0; q < rem; q++) { bv -= 1.79; if (bv < -40) bv = -40; bx += bv / 16.0; }
+                        if (bx > xg) ok = 0;
+                    } else {
+                        long m = (slmin - sl + 2) / 3; bv = 0;
+                        for (long q = 0; q < rem - m; q++) { bv -= 1.79; if (bv < -40) bv = -40; bx += bv / 16.0; }
+                        if (rem - m < 0 || bx > xg) ok = 0;
+                    }
+                    if (!ok) { nbound++; continue; }
+                    if (!set_add(&seen, state_key(ram))) continue;
+                    if (!tmpl[k + 1]) { tmpl[k + 1] = malloc(ssz); retro_serialize(tmpl[k + 1], ssz); }
+                    if (nn >= capx) { capx *= 2; nxt = realloc(nxt, (size_t)capx * RAMSZ); score = realloc(score, (size_t)capx * sizeof(double));
+                        if (!nxt || !score) { fprintf(stderr, "out of memory\n"); return 1; } }
+                    score[nn] = bx;
+                    memcpy(nxt + nn * RAMSZ, ram, RAMSZ);
+                    meta[k + 1][nn].parent = (int32_t)n; meta[k + 1][nn].pad = fp[p]; nn++;
+                    if (sl >= slmin) { nok++; if (x < minx) minx = x; }
+                }
+            }
+            printf("  core %ld: %ld nodes (%ld with the scroll done, leftmost x %.3f)  goals %ld  bound-drops %ld  (%.0fs, %ld steps)\n",
+                   t + 1, nn, nok, nok ? minx : 0.0, ngoal, nbound, now() - t0, steps);
+            fflush(stdout);
+            if (ngoal) { printf("goal layer reached on core %ld\n", t); break; }
+            if (nn == 0) { printf("frontier died out at core %ld: no pipe entry by core %ld\n", t, D); break; }
+            if (nn > maxnodes) { printf("frontier %ld > maxnodes at core %ld\n", nn, t); break; }
+            if (seen.n * 2 > seen.cap) { fprintf(stderr, "hash set too full\n"); return 1; }
+            if (beam > 0) {
+                /* bucket = what decides the kind of motion available next; rank = projected x at the deadline */
+                BeamEnt *e = malloc((size_t)nn * sizeof(BeamEnt));
+                for (long q = 0; q < nn; q++) { const uint8_t *r = nxt + q * RAMSZ; long sl = ((long)r[0x71a] << 8) | r[0x71c];
+                    uint8_t bk[10] = { r[0x1d], r[0xce], r[0x9f], r[0x33], r[0x45], r[0x700] >= 25, sl >= slmin, r[0x709], r[0x0d] & 0x80, r[0x703] != 0 };
+                    e[q].b = fnv_add(1469598103934665603ULL, bk, 10); e[q].s = score[q]; e[q].i = q; }
+                qsort(e, (size_t)nn, sizeof(BeamEnt), cmp_beam);
+                Meta *m2 = malloc((size_t)(nn + 1) * sizeof(Meta)); cur = realloc(cur, (size_t)nn * RAMSZ); long j = 0, run = 0;
+                for (long q = 0; q < nn; q++) { run = (q && e[q].b == e[q - 1].b) ? run + 1 : 0; if (run >= beam) continue;
+                    memcpy(cur + j * RAMSZ, nxt + e[q].i * RAMSZ, RAMSZ); m2[j] = meta[k + 1][e[q].i]; j++; }
+                free(meta[k + 1]); meta[k + 1] = m2; free(e);
+                if (j < nn) printf("    beam: kept %ld of %ld\n", j, nn);
+                ncur = j;
+                continue;
+            }
+            meta[k + 1] = realloc(meta[k + 1], (size_t)(nn + 1) * sizeof(Meta));
+            cur = realloc(cur, (size_t)nn * RAMSZ); memcpy(cur, nxt, (size_t)nn * RAMSZ); ncur = nn;
+        }
+        printf("done: %ld steps in %.0fs, goals %ld\n", steps, now() - t0, ngoal);
         return 0;
     }
 
