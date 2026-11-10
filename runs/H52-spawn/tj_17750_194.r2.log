@@ -1,0 +1,12 @@
+set-input core 17750: 82 -> c2
+j1=17778  successes=0  best_last=-1
+j1=17779  successes=0  best_last=-1
+j1=17780  successes=0  best_last=-1
+j1=17781  successes=0  best_last=-1
+j1=17782  successes=0  best_last=-1
+j1=17783  successes=0  best_last=-1
+j1=17784  successes=0  best_last=-1
+j1=17785  successes=0  best_last=-1
+j1=17786  successes=0  best_last=-1
+TOTAL runs=2225940 axe=0 dead=2223921  best_last=-1 (WR 17846)
+axe by last input 17843..17850: 0 0 0 0 0 0 0 0

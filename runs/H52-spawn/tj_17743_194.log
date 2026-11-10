@@ -1,0 +1,3 @@
+set-input core 17743: 82 -> c2
+j1=17776  successes=335  best_last=17850
+j1=17777  successes=335  best_last=17850

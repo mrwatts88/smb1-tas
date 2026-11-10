@@ -1,0 +1,9 @@
+set-input core 17746: 82 -> c2
+j1=17778  successes=338  best_last=17850
+j1=17779  successes=338  best_last=17850
+j1=17780  successes=338  best_last=17850
+j1=17781  successes=81  best_last=17850
+j1=17782  successes=73  best_last=17850
+j1=17783  successes=73  best_last=17850
+j1=17784  successes=86  best_last=17850
+j1=17785  successes=54  best_last=17850

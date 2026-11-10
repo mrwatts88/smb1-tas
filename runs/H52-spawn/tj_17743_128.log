@@ -1,0 +1,4 @@
+set-input core 17743: 82 -> 80
+j1=17776  successes=1675  best_last=17847
+j1=17777  successes=1604  best_last=17847
+j1=17778  successes=1552  best_last=17847
