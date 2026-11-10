@@ -143,6 +143,47 @@ the castle-entry frame. 4,292 grabs (3,668 glitch grabs at y 164; 624 slides at 
 The earliest is 1411, the WR's own frame; 1410 would have loaded 1-2 one framerule earlier (F314).
 8,163,629 steps, 383 s.
 
+## The walk has a one-frame lever: `Player_MovingDir` at the grab (F318)
+
+1-1 is one frame short of a framerule (F29), so every byte the automatic walk reads was swept on
+the WR's grab frame (`E --pokescan 1285 ADDR LO HI STEP [--poke2 ADDR=VAL]`):
+
+| at the grab (core 1285) | castle entry | 1-2 loads |
+|---|---|---|
+| WR: `Player_MovingDir` (`$45`) = 2, x sub-pixel (`$0400`) = 80, `$0700` = 1, `RunningSpeed` (`$0703`) = 40 | 1411 | 1943 |
+| `$45` = 3 or 0, sub-pixel ≥ 48 | **1410** | **1922** |
+| `$45` = 1, sub-pixel ≥ 176 | **1410** | **1922** |
+| `$45` = 1, sub-pixel 112, `$0700` ≥ 28 | **1410** | **1922** |
+| `$45` = 1, sub-pixel < 176, `$0700` < 28 | 1411 | 1943 |
+| `$45` = 2, sub-pixel < 48, or `RunningSpeed` = 0 | 1412 | 1943 |
+| vertical sub-pixel `$0416`, `$0433`, running timer `$0783`, height 160–164 | no effect | |
+
+Mechanism (`--ptrace 1306 1352`): after the grab Mario waits 24 frames, hops 14 px to the far side
+of the pole and is caught again, waits another 24, hops 4 px and stands on the base block (core
+1333), then walks. Each hop leaves `PlayerFacingDir` = 2. On the first walking frame (1334)
+`X_Physics` doubles the acceleration when facing differs from moving direction. With moving
+direction 2 (the WR, from the Left press that keeps the hop from being pushed out of the block)
+there is no doubling, and `ProcSkid` on 1335 wipes the 208/256 gained on 1334: one frame lost. With
+3 or 0 the first frame is doubled. With 1 it is doubled too, but `RunningSpeed` is cleared a frame
+sooner unless `$0700` ≥ `$1c`, which costs half a pixel over the walk.
+
+Reachability:
+- Moving direction 3 needs `ProcSkid` on a floor frame with facing 3 (Left+Right) and then zero
+  speed up to the grab. Zero speed during the hop means two pushes out of the block (2 px) and the
+  floor frame a third; the grab zone is missed.
+- Moving direction 1 needs the last non-zero speed to be rightward: Right on the grab frame itself
+  (from speed −1, with the friction fraction ≥ 96). That leaves the x fraction at the grab at .4375
+  (sub-pixel 112) at best, because Mario's x on the last frame before he enters the block column is
+  at most 3155.9375 and the moves after it net zero. Sub-pixel 176 is needed: **0.25 px short**.
+- `$0700` ≥ 28 at the grab means a fast-class hop, which is the castle-walk skip case above.
+- Search record: the `--walk` run above covers every input from core 1262; no grab enters the
+  castle on 1410.
+
+Also checked: an exact simulation of `ImposeGravity` over every A-hold length in all three jump
+classes never falls more than 5 px in a frame (fast-class holds of 21 and 28 frames give two 5 px
+frames in a row), so the 5 px landing window cannot be skipped by a jump. The `$070a` = 186 poke
+that enters the castle on core 1349 is not a value the game writes.
+
 ## 8-2: can the Bullet Bill come earlier?
 
 Mario can be at the 8-2 pole 112 frames before the WR (F247), so an earlier bounce there would

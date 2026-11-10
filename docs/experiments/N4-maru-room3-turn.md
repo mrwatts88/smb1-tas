@@ -59,7 +59,7 @@ running flag); that part is a heuristic.
 | `E --turn 16494 16553 --beam 16` | frontier dead on core 16524; 179,241 steps |
 | `E --turn 16494 16553 --beam 200` | frontier dead on core 16546, best x 3423.25 on that frame; 8,705,520 steps, 420 s |
 | `E --turn 16494 16553` (no beam) | 1,986,904 nodes on core 16509, stopped: too big to finish |
-| `E --turn 16460 16553 --beam 48` | see STATUS (run last) |
+| `E --turn 16460 16553 --beam 48` | stopped by hand on core 16494: 914,283 nodes per frame and growing (the buckets multiply during the approach jump); 16.9 M steps, 807 s; not informative |
 
 The wide beam dies exactly at the corner of step 1: its best node on 16546 is at 3423.25, right
 of Maru's 3422.44, and no kept node can still reach the pipe by 16553.
@@ -68,6 +68,6 @@ of Maru's 3422.44, and no kept node can still reach the pipe by 16553.
 
 No pipe entry on core 16553 was found, and the hand analysis says why. This is a beam-level
 negative plus a structural argument, **not a proof**: the search without a beam does not finish,
-and the starts tested are Maru's own states at core 16494 and 16460. What would overturn it: a
+and the only start tested to the end is Maru's own state at core 16494. What would overturn it: a
 2.46 px lead into the braking, a wall right of x 3457 to stop against, or a way to reach speed 40
 by the corner.

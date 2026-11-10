@@ -196,6 +196,8 @@ int main(int argc, char **argv) {
     long walkto = -1;                   /* --flag --walk N: time the castle walk for grabs up to core N */
     long slmin = 3345, xgoal = 3404;    /* --turn: required ScreenLeft, and the rightmost x pixel that enters the pipe */
     long beam = 0;                      /* --turn --beam K: keep K nodes per physical bucket (0 = exhaustive) */
+    long ptA = -1, ptB = -2;            /* --pokescan --ptrace A B: print the poked run for core frames A..B */
+    long p2a[8], p2v[8]; int np2 = 0;   /* --pokescan --poke2 ADDR=VAL: extra fixed pokes applied with the swept one */
     FILE *f = fopen(inputs, "rb"); if (!f) { perror(inputs); return 1; }
     fseek(f, 0, SEEK_END); long nin = ftell(f); fseek(f, 0, SEEK_SET);
     uint8_t *in = malloc(nin + 4096);
@@ -222,6 +224,9 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--walk")) walkto = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--turn")) { mode = 8; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--beam")) beam = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--ptrace")) { ptA = strtol(argv[++i], NULL, 0); ptB = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--poke2") && np2 < 8) { char *eq = strchr(argv[++i], '='); if (!eq) return 2;
+            p2a[np2] = strtol(argv[i], NULL, 0); p2v[np2] = strtol(eq + 1, NULL, 0); np2++; }
         else if (!strcmp(argv[i], "--slmin")) slmin = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--xgoal")) xgoal = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--pokescan")) { mode = 6; tA = strtol(argv[++i], NULL, 0); pk_addr = strtol(argv[++i], NULL, 0);
@@ -367,9 +372,14 @@ int main(int argc, char **argv) {
         for (long v = pk_lo; v <= pk_hi; v += pk_step) {
             retro_unserialize(S, ssz); RAMP();
             if (v >= 0) ram[pk_addr] = (uint8_t)v;
+            for (int q = 0; q < np2; q++) ram[p2a[q]] = (uint8_t)p2v[q];      /* --poke2 ADDR=VAL: fixed extra pokes */
             long cas = -1, ld = -1; int seen5 = ram[0x0e] == 5 || ram[0x0e] == 4;
             for (long i = T + 1; i < T + 1200; i++) {
                 cur_pad = (i < nf) ? in[i + input_skip] : 0; retro_run(); RAMP();
+                if (i >= ptA && i <= ptB)       /* --ptrace A B: follow the poked run frame by frame */
+                    printf("    %ld ges%u st%u x%d.%03d y%u xs%d ys%d mdir%u face%u abs%u run%u xmf%u cbits%02x cst%u\n", i, ram[0x0e], ram[0x1d],
+                           (ram[0x6d] << 8) | ram[0x86], ram[0x400] * 1000 / 256, ram[0xce], (int8_t)ram[0x57], (int8_t)ram[0x9f],
+                           ram[0x45], ram[0x33], ram[0x700], ram[0x703], ram[0x705], ram[0x490], ram[0x789]);
                 if (ram[0x0e] == 5 || ram[0x0e] == 4) seen5 = 1;
                 if (cas < 0 && ram[0x746]) cas = i;
                 if (seen5 && ram[0x0e] == 0) { ld = i; break; }
