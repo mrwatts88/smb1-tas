@@ -153,6 +153,7 @@ int main(int argc, char **argv) {
     long gnd[8]; int ngnd = 0;          /* --ground-at F: keep only grounded nodes at frame F */
     int allow_stomp = 0; long nstomp = 0; int diag = 0; int xprune = 1; long nxdrop = 0;
     long pick = -1;                     /* --pick N with --ground-at C: write the path to grounded node N and stop */
+    long pk_addr = 0, pk_lo = 0, pk_hi = 0, pk_step = 1;   /* --pokescan T ADDR LO HI STEP */
     FILE *f = fopen(inputs, "rb"); if (!f) { perror(inputs); return 1; }
     fseek(f, 0, SEEK_END); long nin = ftell(f); fseek(f, 0, SEEK_SET);
     uint8_t *in = malloc(nin + 4096);
@@ -174,6 +175,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--trace")) { mode = 2; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--speedup")) { mode = 4; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--accel")) { mode = 5; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--pokescan")) { mode = 6; tA = strtol(argv[++i], NULL, 0); pk_addr = strtol(argv[++i], NULL, 0);
+            pk_lo = strtol(argv[++i], NULL, 0); pk_hi = strtol(argv[++i], NULL, 0); pk_step = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--bfs")) { mode = 3; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--coast")) { cA = strtol(argv[++i], NULL, 0); cB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
@@ -299,6 +302,33 @@ int main(int argc, char **argv) {
             printf("x=%ld+%3ld/256  (%+.3f px vs movie)  speed %d  cap after %d frames | p1=%02x hold=%d ground=%d tap=%02x J=%d\n",
                    res[i].x >> 8, res[i].x & 255, (res[i].x - base) / 256.0, res[i].spd, res[i].capf,
                    res[i].p1, res[i].h, res[i].g, res[i].tap, res[i].J);
+        return 0;
+    }
+
+    if (mode == 6) {
+        /* N3: poke one RAM byte right after core frame T and report, for each value, the frame the
+         * castle is "entered" (StarFlagTaskControl $0746 first non-zero) and the frame the next
+         * area loads (GES $0e back to 0 after the flag sequence).  The movie's own inputs follow. */
+        long T = tA;
+        for (long i = 0; i <= T; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        void *S = malloc(ssz); retro_serialize(S, ssz);
+        printf("pokescan after core %ld: addr $%04lx (movie value %u)  ->  value: castle_frame load_frame\n", T, pk_addr, ram[pk_addr]);
+        long prevc = -2, prevl = -2;
+        for (long v = pk_lo; v <= pk_hi; v += pk_step) {
+            retro_unserialize(S, ssz); RAMP();
+            if (v >= 0) ram[pk_addr] = (uint8_t)v;
+            long cas = -1, ld = -1; int seen5 = ram[0x0e] == 5 || ram[0x0e] == 4;
+            for (long i = T + 1; i < T + 1200; i++) {
+                cur_pad = (i < nf) ? in[i + input_skip] : 0; retro_run(); RAMP();
+                if (ram[0x0e] == 5 || ram[0x0e] == 4) seen5 = 1;
+                if (cas < 0 && ram[0x746]) cas = i;
+                if (seen5 && ram[0x0e] == 0) { ld = i; break; }
+                if (DEAD(ram)) break;
+            }
+            if (cas != prevc || ld != prevl || v == pk_lo) printf("  value %3ld: castle %ld  load %ld\n", v, cas, ld);
+            prevc = cas; prevl = ld;
+        }
         return 0;
     }
 
