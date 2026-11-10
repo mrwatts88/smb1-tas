@@ -196,6 +196,7 @@ int main(int argc, char **argv) {
     long walkto = -1;                   /* --flag --walk N: time the castle walk for grabs up to core N */
     long slmin = 3345, xgoal = 3404;    /* --turn: required ScreenLeft, and the rightmost x pixel that enters the pipe */
     long beam = 0;                      /* --turn --beam K: keep K nodes per physical bucket (0 = exhaustive) */
+    int allow_lr = 0;                   /* --turn --lr: also try the Left+Right floor pads (the WR's category) */
     long ptA = -1, ptB = -2;            /* --pokescan --ptrace A B: print the poked run for core frames A..B */
     long p2a[8], p2v[8]; int np2 = 0;   /* --pokescan --poke2 ADDR=VAL: extra fixed pokes applied with the swept one */
     long sw_lo = 0, sw_hi = 0x7ff, sw_limit = 300, ev_addr = 0x746, ev_seen_addr = -1;   /* --ramsweep T LO HI */
@@ -235,6 +236,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--ptrace")) { ptA = strtol(argv[++i], NULL, 0); ptB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--poke2") && np2 < 8) { char *eq = strchr(argv[++i], '='); if (!eq) return 2;
             p2a[np2] = strtol(argv[i], NULL, 0); p2v[np2] = strtol(eq + 1, NULL, 0); np2++; }
+        else if (!strcmp(argv[i], "--lr")) allow_lr = 1;
         else if (!strcmp(argv[i], "--slmin")) slmin = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--xgoal")) xgoal = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--pokescan")) { mode = 6; tA = strtol(argv[++i], NULL, 0); pk_addr = strtol(argv[++i], NULL, 0);
@@ -654,16 +656,24 @@ int main(int argc, char **argv) {
         memcpy(cur, ram, RAMSZ);
         meta[0] = malloc(sizeof(Meta)); meta[0][0].parent = -1; meta[0][0].pad = 0;
         Set seen; set_init(&seen, 1u << 24);
-        static const uint8_t fp[18] = { 0x00,0x40,0x80,0x01,0x41,0x81,0x02,0x42,0x82,0x03,0x43,0x83, 0x20,0x60,0xa0,0x22,0x62,0xa2 };
+        /* pad table: the air pads first (none/L/R, then with A), then the other floor pads, then with
+         * --lr the four Left+Right floor pads (in the air L+R acts as L or R alone), then the Down pads */
+        uint8_t fp[24]; int nfl = 0, ndn = 0;
+        { static const uint8_t base[12] = { 0x00,0x40,0x80,0x01,0x41,0x81,0x02,0x42,0x82,0x03,0x43,0x83 };
+          static const uint8_t lrp[4] = { 0xc0,0xc1,0xc2,0xc3 }, dnp[6] = { 0x20,0x60,0xa0,0x22,0x62,0xa2 }, dlr[2] = { 0xe0,0xe2 };
+          for (int q = 0; q < 12; q++) fp[nfl++] = base[q];
+          if (allow_lr) for (int q = 0; q < 4; q++) fp[nfl++] = lrp[q];
+          for (int q = 0; q < 6; q++) fp[nfl + ndn++] = dnp[q];
+          if (allow_lr) for (int q = 0; q < 2; q++) fp[nfl + ndn++] = dlr[q]; }
         double t0 = now(), xg = xgoal + 255.0 / 256.0;
         printf("turn search %ld..%ld  slmin %ld  xgoal %ld  start x %d y %d xspd %d SL %d\n", F0, D, slmin, xgoal,
                (ram[0x6d] << 8) | ram[0x86], ram[0xce], (int8_t)ram[0x57], (ram[0x71a] << 8) | ram[0x71c]);
         for (long k = 0; k < nfr; k++) {
             long t = F0 + k, nn = 0, nok = 0; double minx = 1e9;
-            meta[k + 1] = malloc(((size_t)ncur * 18 + 1) * sizeof(Meta)); set_clear(&seen);
+            meta[k + 1] = malloc(((size_t)ncur * 24 + 1) * sizeof(Meta)); set_clear(&seen);
             for (long n = 0; n < ncur; n++) {
                 const uint8_t *r0 = cur + n * RAMSZ;
-                int floor = r0[0x1d] == 0, np = floor ? (r0[0xce] <= 96 ? 18 : 12) : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
+                int floor = r0[0x1d] == 0, np = floor ? (r0[0xce] <= 96 ? nfl + ndn : nfl) : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
                 for (int p = 0; p < np; p++) {
                     retro_unserialize(tmpl[k], ssz); RAMP(); memcpy(ram, r0, RAMSZ);
                     cur_pad = fp[p]; retro_run(); RAMP(); steps++;
@@ -687,7 +697,7 @@ int main(int argc, char **argv) {
                         }
                         continue;
                     }
-                    if (p >= 12) continue;                 /* Down without a pipe entry duplicates the plain pad */
+                    if (p >= nfl) continue;                /* Down without a pipe entry duplicates the plain pad */
                     if (ram[0x0e] != 8) continue;
                     /* bound: frames left after this one */
                     long rem = D - t; int ok = 1; double bx = x, bv = v;
@@ -721,8 +731,14 @@ int main(int argc, char **argv) {
                 /* bucket = what decides the kind of motion available next; rank = projected x at the deadline */
                 BeamEnt *e = malloc((size_t)nn * sizeof(BeamEnt));
                 for (long q = 0; q < nn; q++) { const uint8_t *r = nxt + q * RAMSZ; long sl = ((long)r[0x71a] << 8) | r[0x71c];
-                    uint8_t bk[10] = { r[0x1d], r[0xce], r[0x9f], r[0x33], r[0x45], r[0x700] >= 25, sl >= slmin, r[0x709], r[0x0d] & 0x80, r[0x703] != 0 };
-                    e[q].b = fnv_add(1469598103934665603ULL, bk, 10); e[q].s = score[q]; e[q].i = q; }
+                    /* before the scroll is done the projected x says nothing useful (it favours nodes that
+                     * are behind), so those nodes are also bucketed by speed band and by how much scroll
+                     * is left, and ranked by x (further right first) */
+                    int nd = sl < slmin; long left = nd ? slmin - sl : 0; if (left > 31) left = 31;
+                    uint8_t bk[12] = { r[0x1d], r[0xce], r[0x9f], r[0x33], r[0x45], r[0x700] >= 25, sl >= slmin, r[0x709], r[0x0d] & 0x80, r[0x703] != 0,
+                                       nd ? (uint8_t)(((int8_t)r[0x57] + 64) / 3) : 0, (uint8_t)(left / 2) };
+                    e[q].b = fnv_add(1469598103934665603ULL, bk, 12);
+                    e[q].s = nd ? -((((long)r[0x6d] << 8) | r[0x86]) + r[0x400] / 256.0) : score[q]; e[q].i = q; }
                 qsort(e, (size_t)nn, sizeof(BeamEnt), cmp_beam);
                 Meta *m2 = malloc((size_t)(nn + 1) * sizeof(Meta)); cur = realloc(cur, (size_t)nn * RAMSZ); long j = 0, run = 0;
                 for (long q = 0; q < nn; q++) { run = (q && e[q].b == e[q - 1].b) ? run + 1 : 0; if (run >= beam) continue;
