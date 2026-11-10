@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--replay")) mode = 1;
         else if (!strcmp(argv[i], "--trace")) { mode = 2; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--speedup")) { mode = 4; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--accel")) { mode = 5; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--bfs")) { mode = 3; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--coast")) { cA = strtol(argv[++i], NULL, 0); cB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
@@ -298,6 +299,97 @@ int main(int argc, char **argv) {
             printf("x=%ld+%3ld/256  (%+.3f px vs movie)  speed %d  cap after %d frames | p1=%02x hold=%d ground=%d tap=%02x J=%d\n",
                    res[i].x >> 8, res[i].x & 255, (res[i].x - base) / 256.0, res[i].spd, res[i].capf,
                    res[i].p1, res[i].h, res[i].g, res[i].tap, res[i].J);
+        return 0;
+    }
+
+    if (mode == 5) {
+        /* N2: Pareto search for the best speed-up from core frame F0 to T with no Left+Right.
+         * Every pad without L+R / Up / Down is tried each frame (B is not varied in the air, where
+         * it has no effect on x physics).  Nodes are grouped by "mode" (player state, facing and
+         * moving direction, the whole vertical state, A held, running flags, collision bits) and
+         * within a mode a node is dropped when another one is at least as far right AND at least
+         * as fast and within 4 px of it (the 4 px keeps positional variety near ledges).
+         * A finder, not a proof: dominance is assumed monotone.  Reports the furthest x at T among
+         * nodes at speed 40, against the movie's own x, with the pad sequence. */
+        long F0a = tA, T = tB;
+        for (long i = 0; i < F0a; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        long nfa = T - F0a + 1;
+        void **tm = calloc(nfa + 2, sizeof(void *)); Meta **mt = calloc(nfa + 2, sizeof(Meta *));
+        tm[0] = malloc(ssz); retro_serialize(tm[0], ssz);
+        uint8_t *cu = malloc(RAMSZ), *nx = NULL; long nc = 1, capx = 0;
+        memcpy(cu, ram, RAMSZ);
+        mt[0] = malloc(sizeof(Meta)); mt[0][0].parent = -1; mt[0][0].pad = 0;
+        /* movie baseline */
+        void *tmpS = malloc(ssz); retro_serialize(tmpS, ssz);
+        for (long i = F0a; i <= T; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        long basex = ((long)ram[0x6d] << 16) | ((long)ram[0x86] << 8) | ram[0x400];
+        printf("movie: x at core %ld = %ld+%ld/256 speed %u\n", T, basex >> 8, basex & 255, ram[0x57]);
+        typedef struct { uint64_t key; int n; int idx[24]; } Slot;
+        uint32_t hcap = 1u << 18; Slot *ht = malloc(sizeof(Slot) * hcap);
+        long *nxX = NULL, *nxV = NULL; uint8_t *alive = NULL; double ta = now(); long st = 0;
+        static const uint8_t GP[12] = {0x00,0x40,0x80,0x02,0x42,0x82,0x01,0x41,0x81,0x03,0x43,0x83};
+        static const uint8_t AP[6]  = {0x02,0x42,0x82,0x03,0x43,0x83};
+        for (long k = 0; k < nfa; k++) {
+            long maxch = nc * 12 + 16;
+            if (maxch > capx) { capx = maxch; nx = realloc(nx, (size_t)capx * RAMSZ); nxX = realloc(nxX, capx * sizeof(long)); nxV = realloc(nxV, capx * sizeof(long)); alive = realloc(alive, capx); }
+            mt[k + 1] = malloc((size_t)maxch * sizeof(Meta));
+            memset(ht, 0, sizeof(Slot) * hcap);
+            long nn = 0;
+            for (long n = 0; n < nc; n++) {
+                const uint8_t *src = cu + n * RAMSZ;
+                int air = src[0x1d] != 0; const uint8_t *PL = air ? AP : GP; int np = air ? 6 : 12;
+                for (int p = 0; p < np; p++) {
+                    retro_unserialize(tm[k], ssz); RAMP(); memcpy(ram, src, RAMSZ);
+                    cur_pad = PL[p]; retro_run(); RAMP(); st++;
+                    if (DEAD(ram) || ram[0x0e] != 8) continue;
+                    if (!tm[k + 1]) { tm[k + 1] = malloc(ssz); retro_serialize(tm[k + 1], ssz); }
+                    long X = ((long)ram[0x6d] << 16) | ((long)ram[0x86] << 8) | ram[0x400];
+                    long V = (long)(int8_t)ram[0x57] * 256 + ram[0x705];
+                    uint8_t mk[20] = { ram[0x1d], ram[0x33], ram[0x45], ram[0xce], ram[0xb5], ram[0x9f], ram[0x433],
+                                       (uint8_t)(ram[0x1d] ? ram[0x416] : 0), ram[0x709], ram[0x70a],
+                                       (uint8_t)(ram[0x1d] ? ram[0x708] : 0), (uint8_t)(ram[0x0a] & 0x80), (uint8_t)(ram[0x783] != 0),
+                                       (uint8_t)(ram[0x703] != 0), ram[0x490], ram[0x785], ram[0x0e], ram[0x704], ram[0x70e], ram[0x714] };
+                    uint64_t key = fnv_add(1469598103934665603ULL, mk, sizeof mk); if (!key) key = 1;
+                    uint32_t hi = (uint32_t)(key * 11400714819323198485ULL >> 32) & (hcap - 1);
+                    while (ht[hi].key && ht[hi].key != key) hi = (hi + 1) & (hcap - 1);
+                    Slot *s = &ht[hi]; s->key = key;
+                    int dom = 0;
+                    for (int q = 0; q < s->n; q++) { long j = s->idx[q]; if (!alive[j]) continue;
+                        if (nxX[j] >= X && nxV[j] >= V && nxX[j] - X <= 1024) { dom = 1; break; } }
+                    if (dom) continue;
+                    for (int q = 0; q < s->n; q++) { long j = s->idx[q]; if (alive[j] && X >= nxX[j] && V >= nxV[j] && X - nxX[j] <= 1024) alive[j] = 0; }
+                    int w = 0; for (int q = 0; q < s->n; q++) if (alive[s->idx[q]]) s->idx[w++] = s->idx[q];
+                    s->n = w;
+                    if (s->n >= 24) continue;                 /* mode full: keep what is there */
+                    memcpy(nx + nn * RAMSZ, ram, RAMSZ); nxX[nn] = X; nxV[nn] = V; alive[nn] = 1;
+                    mt[k + 1][nn].parent = (int32_t)n; mt[k + 1][nn].pad = PL[p]; s->idx[s->n++] = (int)nn; nn++;
+                }
+            }
+            long j = 0;                                        /* compact the survivors */
+            for (long n = 0; n < nn; n++) if (alive[n]) {
+                if (j != n) { memmove(nx + j * RAMSZ, nx + n * RAMSZ, RAMSZ); mt[k + 1][j] = mt[k + 1][n]; nxX[j] = nxX[n]; nxV[j] = nxV[n]; }
+                j++; }
+            nn = j;
+            if (!nn) { printf("frontier empty at core %ld\n", F0a + k); return 1; }
+            { uint8_t *sw = cu; cu = nx; nx = sw; } nc = nn;
+            nx = realloc(nx, (size_t)capx * RAMSZ);
+            if (k % 5 == 4 || k == nfa - 1) { printf("  core %ld: %ld nodes (%.0fs, %ld steps)\n", F0a + k + 1, nc, now() - ta, st); fflush(stdout); }
+            if (k == nfa - 1) {
+                long best = -1, bx = -1;
+                for (long n = 0; n < nc; n++) { const uint8_t *r = cu + n * RAMSZ; if (r[0x57] != 40) continue;
+                    long X = ((long)r[0x6d] << 16) | ((long)r[0x86] << 8) | r[0x400]; if (X > bx) { bx = X; best = n; } }
+                if (best < 0) { printf("no node at speed 40 by core %ld\n", T); return 1; }
+                printf("best: x at core %ld = %ld+%ld/256  (%+.4f px vs movie)\n", T, bx >> 8, bx & 255, (bx - basex) / 256.0);
+                uint8_t *path = malloc(nfa + 1); long idx = best;
+                for (long q = nfa; q >= 1; q--) { path[q - 1] = mt[q][idx].pad; idx = mt[q][idx].parent; }
+                printf("pads from core %ld:", F0a); for (long q = 0; q < nfa; q++) printf(" %02x", path[q]); printf("\n");
+                if (outpath) { FILE *o = fopen(outpath, "wb"); fwrite(in, 1, F0a + input_skip, o); fwrite(path, 1, nfa, o);
+                    fwrite(in + T + 1 + input_skip, 1, nin - (T + 1 + input_skip), o); fclose(o); printf("wrote %s (movie with the segment replaced)\n", outpath); }
+            }
+        }
+        (void)tmpS;
         return 0;
     }
 

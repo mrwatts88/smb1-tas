@@ -188,3 +188,18 @@ water acceleration (3), and one each in rooms 1 and 3.
   were 1.0–1.2 px better than Maru's it would pay in three rooms at once), room 2's wall jump, and
   room 3's turnaround as a whole. Maru wrote that he left sub-pixels unoptimized in the last two.
   Any frame gained upstream re-rolls the water room and Bowser; `endlab` re-routes the last room.
+
+**Same day, the speed-up settled (`endlab --accel`, a Pareto search over every no-Left+Right pad).**
+- Bowser-room pipe exit, `--accel 17598 17645` on Maru's movie: best x at core 17645 is
+  4223 + 80/256, **+0.3125 px** over Maru, the same optimum the structured enumeration found
+  (pads `40 02 81`, then `82` in the air, `80`, `40`, `81`, `82`…). 2.3M emulated frames, 106 s.
+- Room 1's start, `--accel 15221 15275`: **+0.0000 px**. Maru is already at the optimum there, and
+  the search reproduces his x exactly, which is also the control for the method.
+- So for Maru: rooms 1 and 2, the water room and the Bowser room are closed. Room 1 needs 2.13 px
+  and has none. Room 2 needs 1.19 px before the wall and its climb from the wall is the WR's own
+  21 frames, which F139 searched exhaustively with every input. Water is forced. The Bowser room
+  needs 1.0 px and has 0.31. **Only room 3's turnaround is unsearched**, about 0.4–0.9 px short by
+  hand arithmetic.
+- `--accel` is a finder: it keeps, per player mode, the nodes not beaten in both position and speed
+  by a node within 4 px. Two independent methods agreeing on 0.3125 and the exact tie in room 1 are
+  the evidence that it is not dropping the answer; it is not a proof.
