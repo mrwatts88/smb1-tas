@@ -146,3 +146,45 @@ Frame conventions: core frame = fm2 input line − 2 (`--input-skip 2`); FCEUX d
 2. **An axe-neutral version does not exist in this room** at cap speed: the control is exhaustive
    and arrival is pinned. A record by axe frame has to come from upstream.
 3. The 12 H52 follow-up jobs on the box can be stopped; see above.
+
+## 2026-11-09, later — the user's ruling and what else this session's work can reach (N2)
+
+**Ruling (user):** SMB1 is timed to the axe. By that measure N1 is 17,869 frames, one more than
+the WR, and is not a record. The user's reading is that N1 rebuilds klmz's ending (klmz's movie was
+17,869; HappyLee's frame over him came from the water room, so klmz loaded the Bowser room one
+frame later, which is exactly N1's scene). Not checked against klmz's file; we do not have it.
+
+**Can the same work move the axe earlier in the WR? No.** Checked, not assumed:
+- Bowser room: arrival is pinned (acceleration = room 2's solved speed-up; cap after). The axe
+  needs +1.44 px at core 17863 (x 4802.56 against 4804.0).
+- Water room: the exit pipe is missed one frame earlier by **3/16 px** (x 1074.81 at core 17411
+  against 1075.0), but the room is rigid: 29 forced acceleration frames (Left+Right zeroes speed
+  below 11 through `ProcSkid`, so the doubled rate cannot start before frame 18; integer speeds
+  sum to 317 units) and then exactly 1.5 px per frame at the swim cap.
+- The re-roll lever changes Bowser, and Bowser never cost HappyLee axe time.
+
+**Maru's no-Left+Right movie (17,882 to the axe), room by room on the core** (control → exit):
+
+| room | WR | Maru | Maru's shortfall for one frame earlier |
+|---|---|---|---|
+| 1 | 524 | 525 | 2.13 px at the pipe (x 273.875 at 15744, needs 276.0) |
+| 2 | 267 | 270 | 1.19 px at the wall contact (x 2417.81 at 16163, needs 2419.0); 0.5 px on the pipe top if B is held there |
+| 3 | 195 | 199 | 0.94 px at the pipe (x 3405.94 at 16553, needs <= 3404.99) |
+| water | 696 | 699 | forced: no facing trick exists in water without Left+Right, 0.59/frame for 39 frames |
+| Bowser | 278 | 281 | 1.0 px at the axe (x 4803.0 at 17877, needs 4804.0) |
+
+His extra frames are the Left+Right-free speed-ups (3 each in rooms 2, 3 and the Bowser room), the
+water acceleration (3), and one each in rooms 1 and 3.
+
+- `endlab --speedup 17598 17645` (new mode: 640 structured plans from a standstill at the pipe
+  exit) finds a speed-up **0.31 px better than Maru's** in the Bowser room: same two set-up
+  frames and one-frame hop, two ground frames instead of three, Left tap one frame earlier, then
+  a jump instead of the ledge. The same geometry starts rooms 2 and 3.
+- That is not enough anywhere. Bowser room needs 1.0. In room 2 the lead is lost at the wall
+  contact. In room 3 the stop would have to come one frame earlier at x >= 3456.0: all-air
+  deceleration reaches speed 10.6 by 16512 but only x 3455.09, and the available lead (0.31 from
+  the speed-up, about 0.19 from his tuning taps) leaves it about 0.4 px short.
+- Not searched: the exact optimum of the no-Left+Right speed-up (a bounded 36-frame problem; if it
+  were 1.0–1.2 px better than Maru's it would pay in three rooms at once), room 2's wall jump, and
+  room 3's turnaround as a whole. Maru wrote that he left sub-pixels unoptimized in the last two.
+  Any frame gained upstream re-rolls the water room and Bowser; `endlab` re-routes the last room.

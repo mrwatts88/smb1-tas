@@ -172,6 +172,7 @@ int main(int argc, char **argv) {
             memmove(in + k, in + k + 1, nin - k - 1); nin--; fprintf(stderr, "delete core %ld\n", t); }
         else if (!strcmp(argv[i], "--replay")) mode = 1;
         else if (!strcmp(argv[i], "--trace")) { mode = 2; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--speedup")) { mode = 4; tA = strtol(argv[++i], NULL, 0); tB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--bfs")) { mode = 3; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--coast")) { cA = strtol(argv[++i], NULL, 0); cB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--out")) outpath = argv[++i];
@@ -242,6 +243,61 @@ int main(int argc, char **argv) {
             printf(" | %02x %02x %02x", ram[0x7a7], ram[0x7a8], ram[0x7a9]);
             printf("%s%s\n", WON(ram) ? " WON" : "", DEAD(ram) ? " DEAD" : "");
         }
+        return 0;
+    }
+
+    if (mode == 4) {
+        /* N2: structured enumeration of no-Left+Right speed-ups from a standstill at a pipe exit.
+         * Plan: p1 (L or L+B) | B (skid-zero, keeps facing left) | jump A+R+B held h, R+B until
+         * landed | g ground frames R+B | one-frame L tap | J frames A+R+B (0 = walk off) | R+B.
+         * Reports Mario's 24-bit x (1/256 px) at frame T for every plan, best first, against the
+         * movie's own inputs. */
+        long F0s = tA, T = tB;
+        for (long i = 0; i < F0s; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        void *S = malloc(ssz); retro_serialize(S, ssz);
+        for (long i = F0s; i <= T; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        long base = ((long)ram[0x6d] << 16) | ((long)ram[0x86] << 8) | ram[0x400];
+        printf("movie: x at core %ld = %ld + %ld/256 (speed %u)\n", T, base >> 8, base & 255, ram[0x57]);
+        typedef struct { long x; int p1, h, g, tap, J, spd, capf; } Res;
+        Res *res = malloc(sizeof(Res) * 4096); int nres = 0;
+        static const uint8_t P1[2] = {0x40, 0x42}, TP[2] = {0x40, 0x42};
+        for (int a = 0; a < 2; a++) for (int h = 1; h <= 8; h++) for (int g = 1; g <= 5; g++)
+        for (int tp = 0; tp < 2; tp++) for (int J = 0; J <= 3; J++) {
+            retro_unserialize(S, ssz); RAMP();
+            int phase = 0, cnt = 0, dead = 0, capf = -1;
+            for (long i = F0s; i <= T; i++) {
+                uint8_t pad = 0x82;
+                switch (phase) {
+                case 0: pad = P1[a]; break;
+                case 1: pad = 0x02; break;
+                case 2: pad = (cnt < h) ? 0x83 : 0x82; break;
+                case 3: pad = 0x82; break;
+                case 4: pad = TP[tp]; break;
+                default: pad = (cnt < J) ? 0x83 : 0x82; break;
+                }
+                cur_pad = pad; retro_run(); RAMP();
+                if (DEAD(ram)) { dead = 1; break; }
+                if (capf < 0 && ram[0x57] == 40) capf = (int)(i - F0s);
+                switch (phase) {
+                case 0: phase = 1; break;
+                case 1: phase = 2; cnt = 0; break;
+                case 2: cnt++; if (cnt >= 2 && ram[0x1d] == 0) { phase = 3; cnt = 0; } break;
+                case 3: cnt++; if (cnt >= g) phase = 4; break;
+                case 4: phase = 5; cnt = 0; break;
+                default: cnt++; break;
+                }
+            }
+            if (dead) continue;
+            res[nres].x = ((long)ram[0x6d] << 16) | ((long)ram[0x86] << 8) | ram[0x400];
+            res[nres].p1 = P1[a]; res[nres].h = h; res[nres].g = g; res[nres].tap = TP[tp]; res[nres].J = J;
+            res[nres].spd = ram[0x57]; res[nres].capf = capf; nres++;
+        }
+        for (int i = 0; i < nres; i++) for (int j = i + 1; j < nres; j++) if (res[j].x > res[i].x) { Res t = res[i]; res[i] = res[j]; res[j] = t; }
+        for (int i = 0; i < nres && i < show; i++)
+            printf("x=%ld+%3ld/256  (%+.3f px vs movie)  speed %d  cap after %d frames | p1=%02x hold=%d ground=%d tap=%02x J=%d\n",
+                   res[i].x >> 8, res[i].x & 255, (res[i].x - base) / 256.0, res[i].spd, res[i].capf,
+                   res[i].p1, res[i].h, res[i].g, res[i].tap, res[i].J);
         return 0;
     }
 
