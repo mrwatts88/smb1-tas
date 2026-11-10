@@ -735,9 +735,12 @@ int main(int argc, char **argv) {
                      * are behind), so those nodes are also bucketed by speed band and by how much scroll
                      * is left, and ranked by x (further right first) */
                     int nd = sl < slmin; long left = nd ? slmin - sl : 0; if (left > 31) left = 31;
-                    uint8_t bk[12] = { r[0x1d], r[0xce], r[0x9f], r[0x33], r[0x45], r[0x700] >= 25, sl >= slmin, r[0x709], r[0x0d] & 0x80, r[0x703] != 0,
-                                       nd ? (uint8_t)(((int8_t)r[0x57] + 64) / 3) : 0, (uint8_t)(left / 2) };
-                    e[q].b = fnv_add(1469598103934665603ULL, bk, 12);
+                    /* after the scroll is done the bucket also holds the x pixel: ranking a whole height
+                     * class by projected x keeps only the leftmost nodes, and those are the ones that
+                     * run into the pipe's corner (the Maru control lost his own line that way) */
+                    uint8_t bk[14] = { r[0x1d], r[0xce], r[0x9f], r[0x33], r[0x45], r[0x700] >= 25, sl >= slmin, r[0x709], r[0x0d] & 0x80, r[0x703] != 0,
+                                       nd ? (uint8_t)(((int8_t)r[0x57] + 64) / 3) : 0, (uint8_t)(left / 2), nd ? 0 : r[0x86], nd ? 0 : r[0x6d] };
+                    e[q].b = fnv_add(1469598103934665603ULL, bk, 14);
                     e[q].s = nd ? -((((long)r[0x6d] << 8) | r[0x86]) + r[0x400] / 256.0) : score[q]; e[q].i = q; }
                 qsort(e, (size_t)nn, sizeof(BeamEnt), cmp_beam);
                 Meta *m2 = malloc((size_t)(nn + 1) * sizeof(Meta)); cur = realloc(cur, (size_t)nn * RAMSZ); long j = 0, run = 0;

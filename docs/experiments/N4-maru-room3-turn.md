@@ -64,10 +64,44 @@ running flag); that part is a heuristic.
 The wide beam dies exactly at the corner of step 1: its best node on 16546 is at 3423.25, right
 of Maru's 3422.44, and no kept node can still reach the pipe by 16553.
 
+## Correction, later the same day: the beam is not trustworthy here
+
+Two defects in `--turn --beam` showed up when the same search was pointed at the WR's room 3
+(`--lr`, start core 16486, deadline 16546 = the WR's own entry):
+
+1. **Ranking before the scroll is done.** Those nodes were ranked by projected x, which favours
+   nodes that are behind. The WR control died on core 16517. Fixed: before the scroll is done,
+   nodes are bucketed by speed band and scroll left, and ranked by x (further right first). With the
+   fix the WR control passes: 32 entries on core 16546, x 3404.875–3404.938, and the leftmost node
+   one frame earlier is at 3407.375, the WR's own position (12.6 M steps, 595 s, beam 24).
+2. **Ranking after the scroll is done.** Projected x prefers the nodes furthest left in each
+   bucket, and those are exactly the ones that hit the pipe's corner. With the fixed build the
+   **Maru control from core 16494 fails**: `E --turn 16494 16554 --beam 24` dies on core 16547 at
+   the corner without finding his own entry on 16554 (8.7 M steps, 428 s; log
+   `runs/N3-flag/maru_room3_ctl_d16554_b24_v2.log`). The only Maru control that ever passed is the
+   short one from core 16513.
+
+3. **A third attempt, also failing.** Adding the x pixel to the bucket after the scroll is done
+   (so a height class keeps nodes at every x, not just the leftmost) and rerunning the Maru control
+   with `--beam 4` still dies at the corner on core 16548 (879,540 steps, 42 s;
+   `runs/N3-flag/maru_room3_ctl_d16554_b4_v3.log`). Likely cause: before the scroll is done the
+   beam prefers nodes a sixteenth of a pixel further right, and Maru's stop is tuned so that the
+   take-off step crosses pixel 3456 exactly; the preferred nodes miss that crossing. The WR control
+   was not rerun with this build. The two deadline-minus-one runs started with the build of point 1
+   (WR 16545, Maru 16553, beam 48) were stopped unfinished.
+
+A heuristic beam is the wrong tool for a sequence this finely tuned.
+
+So the table's deadline-16553 rows are **not evidence**: a search that loses the known line cannot
+be trusted when it finds nothing. What is left for H55 is the hand analysis above and the trace.
+A sound version needs either no beam with a much tighter bound (one that knows about the corner
+and the 9-frame jump), or the Rust engine on the Fedora box (`smb-opt bfscx W84Room3`, which has
+the x table and the return-cost classes of F133) with a no-Left+Right input filter added.
+
 ## Conclusion
 
-No pipe entry on core 16553 was found, and the hand analysis says why. This is a beam-level
-negative plus a structural argument, **not a proof**: the search without a beam does not finish,
-and the only start tested to the end is Maru's own state at core 16494. What would overturn it: a
+No pipe entry on core 16553 was found, and the hand analysis says why. After the correction above
+this rests on the structural argument alone, **not on a search and not on a proof**: the search
+without a beam does not finish, and the beam loses Maru's own line. What would overturn it: a
 2.46 px lead into the braking, a wall right of x 3457 to stop against, or a way to reach speed 40
 by the corner.
