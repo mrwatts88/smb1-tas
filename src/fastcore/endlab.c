@@ -198,6 +198,8 @@ int main(int argc, char **argv) {
     long beam = 0;                      /* --turn --beam K: keep K nodes per physical bucket (0 = exhaustive) */
     long ptA = -1, ptB = -2;            /* --pokescan --ptrace A B: print the poked run for core frames A..B */
     long p2a[8], p2v[8]; int np2 = 0;   /* --pokescan --poke2 ADDR=VAL: extra fixed pokes applied with the swept one */
+    long sw_lo = 0, sw_hi = 0x7ff, sw_limit = 300, ev_addr = 0x746, ev_seen_addr = -1;   /* --ramsweep T LO HI */
+    int ev_val = 0, ev_nz = 1, ev_seen_val = 0;
     FILE *f = fopen(inputs, "rb"); if (!f) { perror(inputs); return 1; }
     fseek(f, 0, SEEK_END); long nin = ftell(f); fseek(f, 0, SEEK_SET);
     uint8_t *in = malloc(nin + 4096);
@@ -223,6 +225,12 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--xmin")) xmin = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--walk")) walkto = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--turn")) { mode = 8; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--ramsweep")) { mode = 9; tA = strtol(argv[++i], NULL, 0); sw_lo = strtol(argv[++i], NULL, 0); sw_hi = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--ev") || !strcmp(argv[i], "--ev-seen")) { int sn = argv[i][4] == '-'; char *eq = strchr(argv[++i], '='); if (!eq) return 2;
+            if (sn) { ev_seen_addr = strtol(argv[i], NULL, 0); ev_seen_val = (int)strtol(eq + 1, NULL, 0); }
+            else { ev_addr = strtol(argv[i], NULL, 0); ev_val = (int)strtol(eq + 1, NULL, 0); ev_nz = 0; } }
+        else if (!strcmp(argv[i], "--ev-nz")) { ev_addr = strtol(argv[++i], NULL, 0); ev_nz = 1; }
+        else if (!strcmp(argv[i], "--limit")) sw_limit = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--beam")) beam = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--ptrace")) { ptA = strtol(argv[++i], NULL, 0); ptB = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--poke2") && np2 < 8) { char *eq = strchr(argv[++i], '='); if (!eq) return 2;
@@ -584,6 +592,46 @@ int main(int argc, char **argv) {
                     uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o); printf("wrote %s\n", outpath); } }
         }
         printf("done: %ld steps in %.0fs, skips found %ld\n", steps, now() - t0, nskip);
+        return 0;
+    }
+
+    if (mode == 9) {
+        /* N5: blind single-byte sweep of a fixed (input-independent) sequence.  After core frame T,
+         * poke every RAM address in [LO, HI] with each of a fixed value list, run the movie on, and
+         * list every poke that makes the event come EARLIER than in the unpoked run.  Event: first
+         * frame with RAM[--ev ADDR]==VAL (or non-zero with --ev-nz ADDR), counted only after
+         * RAM[--ev-seen ADDR]==VAL has been observed when that option is given.  Most hits are
+         * bytes the game would never hold; the point is to see every byte the sequence reads. */
+        long T = tA;
+        for (long i = 0; i <= T; i++) { cur_pad = in[i + input_skip]; retro_run(); }
+        RAMP();
+        void *S = malloc(ssz); retro_serialize(S, ssz);
+        uint8_t orig[RAMSZ]; memcpy(orig, ram, RAMSZ);
+        static const int vals[] = { 0x00,0x01,0x02,0x03,0x04,0x08,0x0c,0x10,0x18,0x19,0x1c,0x20,0x28,0x40,0x80,0xc0,0xfe,0xff };
+        int nv = (int)(sizeof vals / sizeof vals[0]);
+        long base = -1, nearly = 0, nlate = 0, nnever = 0, ntr = 0, naddr = 0; double t0 = now();
+        for (long a = sw_lo - 1; a <= sw_hi; a++) {          /* a == sw_lo-1 is the unpoked baseline */
+            int printed = 0;
+            for (int q = 0; q < (a < sw_lo ? 1 : nv); q++) {
+                if (a >= sw_lo && vals[q] == orig[a]) continue;
+                retro_unserialize(S, ssz); RAMP();
+                if (a >= sw_lo) ram[a] = (uint8_t)vals[q];
+                long ev = -1; int seen = ev_seen_addr < 0;
+                for (long i = T + 1; i <= T + sw_limit; i++) {
+                    cur_pad = (i < nf) ? in[i + input_skip] : 0; retro_run(); RAMP();
+                    if (!seen && ram[ev_seen_addr] == ev_seen_val) seen = 1;
+                    if (seen && (ev_nz ? ram[ev_addr] != 0 : ram[ev_addr] == ev_val)) { ev = i; break; }
+                }
+                if (a < sw_lo) { base = ev; printf("ramsweep after core %ld: baseline event on core %ld; addresses $%04lx-$%04lx, %d values each, limit %ld frames\n", T, base, sw_lo, sw_hi, nv, sw_limit);
+                    if (base < 0) { printf("no baseline event inside the limit\n"); return 1; } continue; }
+                ntr++;
+                if (ev < 0) nnever++; else if (ev > base) nlate++; else if (ev < base) { nearly++;
+                    if (!printed) { printf("  $%04lx (holds $%02x):", a, orig[a]); printed = 1; naddr++; }
+                    printf(" %02x:%ld", vals[q], ev - base); }
+            }
+            if (printed) { printf("\n"); fflush(stdout); }
+        }
+        printf("done: %ld pokes in %.0fs; earlier %ld (in %ld addresses), later %ld, never %ld\n", ntr, now() - t0, nearly, naddr, nlate, nnever);
         return 0;
     }
 

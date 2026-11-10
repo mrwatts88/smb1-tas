@@ -179,6 +179,32 @@ Reachability:
 - Search record: the `--walk` run above covers every input from core 1262; no grab enters the
   castle on 1410.
 
+### Every byte the walk reads (blind sweep)
+
+The table above came from a dozen hand-picked bytes. `E --ramsweep 1285 0x0000 0x07ff --ev-nz 0x746
+--limit 135` pokes every RAM address with 18 values on the grab frame and lists each poke that
+brings the castle entry forward (35,329 pokes, 199 s; log `runs/N3-flag/ramsweep_1285_castle.log`).
+23 addresses do. Leaving out the goal byte, Mario's position (`$6d`, `$86`, `$b5`), level tiles in
+the block buffer (`$0596`–`$05bb`) and the scroll byte `$071c` (an inconsistent poke):
+
+| byte | effect on castle entry | can the game hold it there? |
+|---|---|---|
+| `$45` `Player_MovingDir` | anything but 1 or 2: −1 | 3 only through `ProcSkid` with facing 3; see above |
+| `$33` `PlayerFacingDir` = 2 | **−24** (castle 1387, 1-2 loads at **1901**: two framerules) | `FlagpoleCollision` writes 1 at the grab. `PutPlayerOnVine` writes 2 only when Mario is within 16 px of the screen's left edge (`Player_X_Position − ScreenLeft_X_Pos < $10`, 8-bit); the scroll never leaves him left of screen x 80 |
+| `$ce` `Player_Y_Position` 8–128 | −11 (158: −2, 159: −1) | a glitch grab needs y ≥ 162 and is snapped to 160; a slide stops at 158/159 only after the 61-frame flag |
+| `$0783` `RunningTimer` | 64: −2; ≥ 128: −17 | the game only writes 10, and 48 frames pass before the walk |
+| `$0789` `ClimbSideTimer` | one frame per unit below `$18` | rewritten to `$18` on every frame Mario is not climbing |
+| `$0490` `Player_CollisionBits` | −22 | rebuilt every frame |
+
+Why facing 2 is worth 24 frames (`--pokescan 1285 0x33 2 2 1 --ptrace 1307 1340`):
+`PutPlayerOnVine` re-places Mario from his facing on every frame he is on the pole, so facing 2
+puts him on the far side at once, the first hop (+4 px) frees him, and the second 24-frame wait
+never happens. Why height matters: leaving the pole in the air keeps the stale `RunningSpeed` flag,
+which gives the faster `$d0` acceleration until the first floor frame.
+
+So at the single-byte level the picture is complete: the only one of these the player's own inputs
+write is `Player_MovingDir`.
+
 Also checked: an exact simulation of `ImposeGravity` over every A-hold length in all three jump
 classes never falls more than 5 px in a frame (fast-class holds of 21 and 28 frames give two 5 px
 frames in a row), so the 5 px landing window cannot be skipped by a jump. The `$070a` = 186 poke
