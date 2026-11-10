@@ -8,6 +8,13 @@ its date and fact number.
 
 ---
 
+> **2026-11-09 — N1 found a movie with an earlier last input (H53, F305–F310).** Loading the Bowser
+> room one frame late re-rolls Bowser's walk range and buys a 22-frame coast: last input 3 frames
+> before the WR's, axe 1 frame after it. `data/candidates/smb1-warps-n1-17846.fm2`,
+> `docs/experiments/N1-bowser-reroll.md`. The same work closes the zero-cost side of the Bowser room:
+> every full-speed line in the unmodified scene ends at the WR's last input (F308), and neither his
+> spawn frame nor his slot can move for free (F307). What is left open is the convention, not a search.
+
 ## THE LIVE BOARD — **EMPTY** (2026-08-26 s22). Every thread is closed, dry, or parked.
 
 **L7 was the last one and it finished dry** (F285/F286): ~3.25 billion frames across all five of 8-4's
