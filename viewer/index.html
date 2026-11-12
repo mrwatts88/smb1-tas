@@ -1,0 +1,282 @@
+<title>Maru Route Viewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Press+Start+2P&display=swap">
+<style>
+/* Layout: sticky transport bar on top; levels stacked vertically, each room a horizontally scrolling panorama strip. Single dark "debugger" look by choice. */
+:root {
+  --bg: #12141b; --panel: #1b1e28; --line: #2c3040; --fg: #e4e6ee; --muted: #8b90a5;
+  --accent: #6fb3ff; --good: #4fd18b; --warn: #ffc940; --bad: #ff5a4e; --cut: #7d8296;
+  --f-display: "Press Start 2P", ui-monospace, monospace;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 20px 12px; display: grid; gap: 6px; }
+h1 { font-family: var(--f-display); font-size: 18px; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.sub { color: var(--muted); max-width: 75ch; margin: 0; }
+.sub b { color: var(--fg); font-weight: 600; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); padding-block: 10px; }
+.bar .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.bar .row + .row { margin-top: 8px; }
+button, select { font: 500 13px var(--f-body); color: var(--fg); background: #262a37; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.play { min-width: 74px; background: var(--accent); color: #0b1220; border-color: var(--accent); font-weight: 600; }
+.scrub { flex: 1 1 260px; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.scrub input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.readout { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); }
+.readout b { color: var(--fg); font-weight: 600; }
+.pad { display: inline-flex; gap: 3px; }
+.pad span { min-width: 18px; text-align: center; border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; color: #555b70; }
+.pad span.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.spd { display: inline-block; width: 80px; height: 8px; background: #262a37; border-radius: 4px; vertical-align: middle; overflow: hidden; }
+.spd i { display: block; height: 100%; background: var(--good); }
+label.tog { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; user-select: none; }
+.legend { display: inline-flex; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); }
+.legend .sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.grad { width: 70px !important; background: linear-gradient(90deg, var(--warn), var(--bad)); }
+
+main { padding-block: 16px 60px; display: grid; gap: 28px; }
+section.level { display: grid; gap: 10px; }
+.lvhead { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: baseline; }
+.lvhead h2 { font-family: var(--f-display); font-size: 15px; margin: 0; }
+.lvhead .end { color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; align-content: start; }
+.stat .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font: 600 17px var(--f-mono); font-variant-numeric: tabular-nums; }
+.stat .n { font-size: 12px; color: var(--muted); }
+.v.good { color: var(--good); } .v.warn { color: var(--warn); } .v.bad { color: var(--bad); }
+.fr { display: grid; grid-template-columns: repeat(21, 1fr); gap: 2px; margin-top: 4px; }
+.fr i { height: 9px; border-radius: 2px; background: #2f3446; }
+.fr i.s { background: var(--good); } .fr i.d { background: var(--warn); }
+.room { display: grid; gap: 4px; }
+.room .rh { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+.room .rh b { color: var(--fg); font-weight: 600; }
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
+.scroller.cur { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.stage { position: relative; }
+.stage img, .stage canvas { position: absolute; left: 0; top: 0; image-rendering: pixelated; }
+.stage canvas { cursor: crosshair; }
+.mario { position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 2px #000, 0 0 10px 2px rgba(255,255,255,.6); border-radius: 2px; pointer-events: none; }
+.foot { color: var(--muted); font-size: 12px; max-width: 90ch; }
+.foot code { font-family: var(--f-mono); }
+@media (max-width: 560px) { h1 { font-size: 14px; } .lvhead h2 { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header class="top wrap">
+  <h1>MARU · RTA-RULES ROUTE</h1>
+  <p class="sub" id="intro">Maru's no-Left+Right warps TAS (<span class="mono">data/wr/maru-rtarules.fm2</span>) replayed frame by frame on the QuickNES core. Every room is stitched from the emulator's own screens. The path is Mario's position each frame. With the overlay on, frames where Mario is <b>below top speed</b> are coloured yellow to red.</p>
+</header>
+
+<div class="bar wrap" id="bar">
+  <div class="row">
+    <button id="back10" title="Back 10 frames (Shift+←)">−10</button>
+    <button id="back1" title="Back one frame (←)">◀ 1</button>
+    <button id="play" class="play" title="Play / pause (Space)">Play</button>
+    <button id="fwd1" title="Forward one frame (→)">1 ▶</button>
+    <button id="fwd10" title="Forward 10 frames (Shift+→)">+10</button>
+    <select id="rate" title="Playback speed" aria-label="Playback speed">
+      <option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1× (60 fps)</option><option value="2">2×</option><option value="4">4×</option>
+    </select>
+    <div class="scrub"><input type="range" id="scrub" min="0" value="0" aria-label="Frame"><span class="mono" id="fnum"></span></div>
+  </div>
+  <div class="row">
+    <div class="readout" id="readout"></div>
+  </div>
+  <div class="row">
+    <label class="tog"><input type="checkbox" id="slow" checked> Below-top-speed overlay</label>
+    <label class="tog"><input type="checkbox" id="path" checked> Path</label>
+    <label class="tog"><input type="checkbox" id="follow" checked> Follow Mario</label>
+    <select id="zoom" aria-label="Zoom"><option value="1">1× zoom</option><option value="2">2× zoom</option><option value="3">3× zoom</option></select>
+    <span class="legend"><span><span class="sw" style="background:var(--accent)"></span>top speed</span><span><span class="sw grad"></span>1 → 10+ below</span><span><span class="sw" style="background:var(--cut)"></span>no control</span></span>
+  </div>
+</div>
+
+<main class="wrap" id="levels"></main>
+<footer class="wrap foot" id="foot"></footer>
+
+<script src="route.js"></script>
+<script>
+const R = window.ROUTE;
+const F = {}; R.fields.forEach((k, i) => F[k] = i);
+const LABEL = {
+  "1_1_1": "Overworld", "1_1_2": "Coin room (pipe)", "1_1_3": "Overworld after the exit pipe",
+  "1_2_1": "Entrance walk (automatic)", "1_2_2": "Underground to the warp zone",
+  "4_1_1": "Overworld", "4_2_1": "Entrance walk (automatic)", "4_2_2": "Underground", "4_2_3": "Warp-zone area",
+  "8_1_1": "Overworld", "8_2_1": "Overworld", "8_3_1": "Overworld",
+  "8_4_1": "Room 1", "8_4_2": "Room 1 after the loop-back", "8_4_3": "Room 2", "8_4_4": "Room 3",
+  "8_4_5": "Water room", "8_4_6": "Bowser"
+};
+const STATE = ["ground", "jump", "fall", "climb"];
+const BTN = [["A",1],["B",2],["Se",4],["St",8],["↑",16],["↓",32],["←",64],["→",128]];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = { top: css("--accent"), warn: css("--warn"), bad: css("--bad"), cut: css("--cut") };
+
+// top speed for a frame: 40 on land (2.5 px/frame), 24 while swimming (1.5 px/frame)
+const topSpeed = fr => fr[F.swim] ? 24 : 40;
+const isControl = fr => fr[F.ges] === 8;
+const below = fr => isControl(fr) ? Math.max(0, topSpeed(fr) - Math.abs(fr[F.speed])) : 0;
+function mix(a, b, t) {
+  const p = s => [1,3,5].map(i => parseInt(s.slice(i, i + 2), 16));
+  const x = p(a), y = p(b);
+  return "rgb(" + x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(",") + ")";
+}
+const colFor = fr => !isControl(fr) ? COL.cut : below(fr) === 0 ? COL.top : mix(COL.warn, COL.bad, Math.min(1, (below(fr) - 1) / 9));
+
+// global timeline
+const G = [];
+R.segments.forEach((s, si) => s.frames.forEach((fr, fi) => G.push([si, fi])));
+let zoom = window.innerWidth > 900 ? 2 : 1;
+document.getElementById("zoom").value = zoom;
+
+// per-room stats
+R.segments.forEach(s => {
+  let ctl = 0, slowN = 0, lost = 0;
+  s.frames.forEach(fr => { if (isControl(fr)) { ctl++; const d = below(fr); if (d > 0) { slowN++; lost += d / 16; } } });
+  s.ctl = ctl; s.slowN = slowN; s.lostPx = lost;
+  s.lostFr = s.frames.length ? lost / (topSpeed(s.frames.find(isControl) || s.frames[0]) / 16) : 0;
+});
+
+// build page
+const host = document.getElementById("levels");
+const rooms = [];
+R.levels.forEach(lv => {
+  const sec = document.createElement("section"); sec.className = "level"; sec.id = "w" + lv.level.replace("-", "");
+  const segs = R.segments.filter(s => s.level === lv.level);
+  const diff = lv.wr_frames != null ? lv.frames - lv.wr_frames : null;
+  const sl = parseInt(lv.slack), df = parseInt(lv.deficit);
+  const quant = !isNaN(sl);
+  const slowTot = segs.reduce((a, s) => a + s.slowN, 0), lostTot = segs.reduce((a, s) => a + s.lostFr, 0);
+  let frHtml = "";
+  if (quant) { frHtml = '<div class="fr" title="21-frame framerule: green = frames that could be lost for free, yellow = frames needed to reach the earlier framerule">'; for (let i = 0; i < 21; i++) frHtml += `<i class="${i < sl ? "s" : "d"}"></i>`; frHtml += "</div>"; }
+  sec.innerHTML = `
+    <div class="lvhead"><h2>WORLD ${lv.level}</h2><span class="end">${lv.end_event} · timer ${lv.timer}</span></div>
+    <div class="stats">
+      <div class="stat"><span class="k">Frames (load → next)</span><span class="v">${lv.frames}</span><span class="n">movie frames ${lv.load}–${lv.next_load}</span></div>
+      <div class="stat"><span class="k">vs WR #1715M</span><span class="v ${diff > 0 ? "bad" : diff < 0 ? "good" : ""}">${diff == null ? "–" : (diff > 0 ? "+" : "") + diff}</span><span class="n">WR ${lv.wr_frames ?? "–"} (with Left+Right)</span></div>
+      ${quant ? `
+      <div class="stat"><span class="k">To next framerule</span><span class="v ${df <= 3 ? "good" : df <= 8 ? "warn" : "bad"}">${df} f</span><span class="n">frames to find for a 21-frame save</span>${frHtml}</div>
+      <div class="stat"><span class="k">Slack</span><span class="v">${sl} f</span><span class="n">could lose this many for free</span></div>`
+      : `<div class="stat"><span class="k">To next framerule</span><span class="v">n/a</span><span class="n">ends on the axe: every frame counts</span></div>`}
+      <div class="stat"><span class="k">Below top speed</span><span class="v">${slowTot} f</span><span class="n">≈ ${lostTot.toFixed(1)} frames of distance vs holding top speed</span></div>
+    </div>`;
+  segs.forEach(s => {
+    const r = document.createElement("div"); r.className = "room";
+    r.innerHTML = `<div class="rh"><b>${LABEL[s.name] || s.name}</b><span>frames ${s.frames[0][0]}–${s.frames[s.frames.length - 1][0]}</span><span>${s.ctl} with control</span><span>${s.slowN} below top speed (≈ ${s.lostPx.toFixed(1)} px, ${s.lostFr.toFixed(1)} f)</span></div>
+      <div class="scroller"><div class="stage"><img alt="${lv.level} ${LABEL[s.name] || s.name} panorama" src="pano/${s.name}.png"><canvas></canvas><div class="mario" hidden></div></div></div>`;
+    sec.appendChild(r);
+    const o = { s, el: r, sc: r.querySelector(".scroller"), st: r.querySelector(".stage"), img: r.querySelector("img"), cv: r.querySelector("canvas"), mk: r.querySelector(".mario") };
+    o.cv.addEventListener("click", e => {
+      const b = o.cv.getBoundingClientRect(), px = (e.clientX - b.left) / zoom + s.x0, py = (e.clientY - b.top) / zoom + 32;
+      let best = 0, bd = 1e9;
+      s.frames.forEach((fr, i) => { const d = (fr[F.x] + 8 - px) ** 2 + (fr[F.y] + 24 - py) ** 2; if (d < bd) { bd = d; best = i; } });
+      const gi = G.findIndex(g => g[0] === R.segments.indexOf(s) && g[1] === best);
+      pause(); go(gi, false);
+    });
+    rooms.push(o);
+  });
+  host.appendChild(sec);
+});
+document.getElementById("intro").innerHTML += ` Total: <b>${R.total_frames}</b> frames to the axe on this core.`;
+document.getElementById("foot").innerHTML = `Built by <code>tools/route_viewer.py</code> (replay: <code>build/viewdump</code>, ${R.core}). Panoramas keep the most common colour per pixel over every frame that shows it, so moving enemies drop out; blocks that changed show whichever state lasted longer. “Below top speed” counts control frames where |x speed| &lt; 40 (2.5 px/frame), or &lt; 24 while swimming; it includes unavoidable slowdowns like starting from rest, pipes, and bumps. Framerule slack and the frames to the next framerule come from <code>tools/slack_table.py</code> (F27–F29). Click any panorama to jump to the nearest frame. Keys: Space, ←/→, Shift for 10.`;
+
+function sizeRooms() {
+  rooms.forEach(o => {
+    const w = o.s.pw * zoom, h = o.s.ph * zoom;
+    o.st.style.width = w + "px"; o.st.style.height = h + "px";
+    o.img.style.width = w + "px"; o.img.style.height = h + "px";
+    o.cv.width = w; o.cv.height = h; o.cv.style.width = w + "px"; o.cv.style.height = h + "px";
+    drawRoom(o);
+  });
+}
+function drawRoom(o) {
+  const c = o.cv.getContext("2d"), s = o.s, z = zoom;
+  c.clearRect(0, 0, o.cv.width, o.cv.height);
+  const slowOn = document.getElementById("slow").checked, pathOn = document.getElementById("path").checked;
+  const P = fr => [(fr[F.x] + 8 - s.x0) * z, (fr[F.y] + 24 - 32) * z];  // small Mario: 16x16 box in the lower half of the 32-px player box
+  if (slowOn) {  // shaded columns where Mario was below top speed
+    s.frames.forEach(fr => {
+      const d = below(fr); if (!d) return;
+      c.fillStyle = colFor(fr); c.globalAlpha = 0.16;
+      c.fillRect((fr[F.x] - s.x0) * z, 0, 16 * z, o.cv.height);
+    });
+    c.globalAlpha = 1;
+  }
+  if (pathOn || slowOn) {
+    c.lineWidth = Math.max(2, z * 1.5); c.lineCap = "round";
+    for (let i = 1; i < s.frames.length; i++) {
+      const a = s.frames[i - 1], b = s.frames[i];
+      if (Math.abs(b[F.x] - a[F.x]) > 64) continue;
+      const slow = below(b) > 0;
+      if (!pathOn && !slow) continue;
+      c.strokeStyle = slowOn ? colFor(b) : (isControl(b) ? COL.top : COL.cut);
+      c.beginPath(); const p = P(a), q = P(b); c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); c.stroke();
+    }
+  }
+}
+
+// playback
+const scrub = document.getElementById("scrub"); scrub.max = G.length - 1;
+let cur = 0, playing = false, acc = 0, last = 0, curRoom = null;
+function fmt(n, d) { return Number(n).toFixed(d); }
+function go(i, auto) {
+  cur = Math.max(0, Math.min(G.length - 1, i)); scrub.value = cur;
+  const [si, fi] = G[cur], s = R.segments[si], fr = s.frames[fi], o = rooms[si];
+  if (curRoom !== o) { if (curRoom) { curRoom.mk.hidden = true; curRoom.sc.classList.remove("cur"); } o.mk.hidden = false; o.sc.classList.add("cur"); curRoom = o; }
+  const tall = fr[F.small] ? 16 : 32;
+  o.mk.style.left = (fr[F.x] - s.x0) * zoom + "px"; o.mk.style.top = (fr[F.y] + 32 - tall - 32) * zoom + "px";
+  o.mk.style.width = 16 * zoom + "px"; o.mk.style.height = tall * zoom + "px";
+  o.mk.style.borderColor = colFor(fr);
+  if (document.getElementById("follow").checked) {
+    const mx = (fr[F.x] - s.x0) * zoom, w = o.sc.clientWidth;
+    if (auto) o.sc.scrollLeft = mx - w * 0.4;
+    else if (mx < o.sc.scrollLeft + 40 || mx > o.sc.scrollLeft + w - 60) o.sc.scrollLeft = mx - w * 0.4;
+    const r = o.el.getBoundingClientRect(), barH = document.getElementById("bar").getBoundingClientRect().bottom;
+    if (r.top < barH || r.bottom > window.innerHeight) window.scrollBy({ top: r.top - barH - 60, behavior: auto ? "auto" : "smooth" });
+  }
+  const spd = fr[F.speed], top = topSpeed(fr), ctl = isControl(fr);
+  document.getElementById("fnum").textContent = `frame ${fr[F.frame]}`;
+  const pad = BTN.map(([n, m]) => `<span class="${fr[F.input] & m ? "on" : ""}">${n}</span>`).join("");
+  document.getElementById("readout").innerHTML =
+    `<span>World <b>${s.level}</b> · ${LABEL[s.name] || s.name}</span>` +
+    `<span>x <b>${fmt(fr[F.x], 2)}</b> y <b>${fmt(fr[F.y], 2)}</b></span>` +
+    `<span>speed <b style="color:${colFor(fr)}">${spd}</b>/${top} <span class="spd"><i style="width:${Math.min(100, Math.abs(spd) / top * 100)}%;background:${colFor(fr)}"></i></span> sub ${fr[F.subspeed]}</span>` +
+    `<span>${ctl ? STATE[fr[F.state]] || "state " + fr[F.state] : "<b>no control</b> (engine " + fr[F.ges] + ")"}${fr[F.swim] ? " · swimming" : ""}</span>` +
+    `<span class="pad">${pad}</span>` +
+    `<span>framerule ctr <b>${fr[F.itc]}</b> · timer <b>${fr[F.timer]}</b></span>`;
+}
+function tick(t) {
+  if (!playing) return;
+  const rate = +document.getElementById("rate").value;
+  acc += (t - last) / (1000 / 60) * rate; last = t;
+  const n = Math.floor(acc);
+  if (n > 0) { acc -= n; if (cur + n >= G.length - 1) { go(G.length - 1, true); pause(); return; } go(cur + n, true); }
+  requestAnimationFrame(tick);
+}
+function play() { playing = true; last = performance.now(); acc = 0; document.getElementById("play").textContent = "Pause"; requestAnimationFrame(tick); }
+function pause() { playing = false; document.getElementById("play").textContent = "Play"; }
+document.getElementById("play").onclick = () => playing ? pause() : play();
+[["back10", -10], ["back1", -1], ["fwd1", 1], ["fwd10", 10]].forEach(([id, d]) => document.getElementById(id).onclick = () => { pause(); go(cur + d, false); });
+scrub.oninput = () => { pause(); go(+scrub.value, true); };
+["slow", "path"].forEach(id => document.getElementById(id).onchange = () => rooms.forEach(drawRoom));
+document.getElementById("zoom").onchange = e => { zoom = +e.target.value; sizeRooms(); go(cur, true); };
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" && e.target.type === "range") return;
+  if (e.key === " ") { e.preventDefault(); playing ? pause() : play(); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); pause(); go(cur + (e.shiftKey ? 10 : 1), false); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); pause(); go(cur - (e.shiftKey ? 10 : 1), false); }
+});
+sizeRooms();
+// start at the first frame with control in 1-1
+go(Math.max(0, G.findIndex(([si, fi]) => isControl(R.segments[si].frames[fi]))), false);
+window.scrollTo(0, 0);
+</script>
