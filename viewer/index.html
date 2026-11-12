@@ -93,7 +93,7 @@ section.level { display: grid; gap: 10px; }
     <div class="readout" id="readout"></div>
   </div>
   <div class="row">
-    <label class="tog"><input type="checkbox" id="slow" checked> Below-top-speed overlay</label>
+    <label class="tog"><input type="checkbox" id="slow" checked> Below-top-speed shading</label>
     <label class="tog"><input type="checkbox" id="path" checked> Path</label>
     <label class="tog"><input type="checkbox" id="follow" checked> Follow Mario</label>
     <select id="zoom" aria-label="Zoom"><option value="1">1× zoom</option><option value="2">2× zoom</option><option value="3">3× zoom</option></select>
@@ -218,7 +218,7 @@ function drawRoom(o) {
       if (Math.abs(b[F.x] - a[F.x]) > 64) continue;
       const slow = below(b) > 0;
       if (!pathOn && !slow) continue;
-      c.strokeStyle = slowOn ? colFor(b) : (isControl(b) ? COL.top : COL.cut);
+      c.strokeStyle = colFor(b);
       c.beginPath(); const p = P(a), q = P(b); c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); c.stroke();
     }
   }
