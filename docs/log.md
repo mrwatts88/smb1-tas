@@ -2733,3 +2733,10 @@ arming (F326), read `ChkMoveDir` and poke-tested the speed-keeping entry (F327: 
 `--flag` gained `--through`, `--clip`, `--clipfrom`, `--airfull`, `--pickfloor`, `--pickxmax`, `--boxy`, `--xmax`;
 new `tools/clip_poke_lab.py`. Four blind searches exploded and were stopped. Verdict: not viable by the known
 mechanism, not refuted (H58). Next per the user: room 3 on the box, then L8 on the Mac.
+
+**2026-11-12 (Mac + box, night) — room 3 exact search tried and dropped; L8 launched.** The user approved a
+whole-room exact search of 8-4 room 3 (my proposal). Reading L3/H25 first: three beam runs already exist (F133 d/e,
+F275) and the user parked the thread on 2026-08-25. A no-beam run was the one thing not tried, so I measured it:
+infeasible on the box (F328). Then, per the user's list, launched L8 (object-lens novelty sweeps, six roots) on the
+box instead of the Mac, because the box was free and the launcher is systemd-based. Box clone fast-forwarded to
+3d6a6a4 and `build/explore` rebuilt. Next: L8 read-out.
