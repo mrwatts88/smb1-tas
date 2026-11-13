@@ -1,0 +1,164 @@
+root=10970  state=12792 B  lives=2  area=$32  x=0  y=0  WR last input before root=10341
+archive: 80000 cells, state 1.02 GB, paths 0.16 GB
+  MAX $0300 = 0  at frame 10970 x 0
+  MAX $0300 = 7  at frame 10972 x 0
+  MAX $0300 = 14  at frame 11076 x 245
+  MAX $0300 = 21  at frame 11077 x 248
+  MAX $0300 = 29  at frame 12475 x 3447
+  MAX $0300 = 37  at frame 12477 x 3445
+  MAX $0300 = 52  at frame 12478 x 3444
+  MAX $0300 = 67  at frame 12479 x 3443
+anomaly calibration from the WR line: 4 GES / 1 OperMode / 1 World / 3 AreaPointer / 4 PlayerState / 13 Enemy_ID values are normal here
+seeded WR line: 920 cells, incumbent last_input=1073741824
+  *** ANOMALY SecondaryHardMode = 1  frame 12398 x 3290 y 300  runs/L8-e6-objectlens/anom_14_f12398.path
+  *** ANOMALY Y above world = 254  frame 12413 x 3300 y 254  runs/L8-e6-objectlens/anom_0_f12413.path
+  *** ANOMALY Y above world = 251  frame 12414 x 3301 y 251  runs/L8-e6-objectlens/anom_0_f12414.path
+  *** ANOMALY position jump (clip/teleport) = 6  frame 12473 x 3449 y 421  runs/L8-e6-objectlens/anom_16_f12473.path
+  *** ANOMALY EnemyFrenzyBuffer = 18  frame 11162 x 460 y 233  runs/L8-e6-objectlens/anom_6_f11162.path   *** OOB ENEMY PRIMITIVE ***
+  *** ANOMALY EnemyFrenzyQueue = 24  frame 11298 x 745 y 385  runs/L8-e6-objectlens/anom_13_f11298.path
+  *** ANOMALY Y above world = 255  frame 11183 x 513 y 255  runs/L8-e6-objectlens/anom_0_f11183.path
+  *** ANOMALY GES = 4  frame 12494 x 3449 y 409  runs/L8-e6-objectlens/anom_1_f12494.path
+  *** ANOMALY ScrollLock = 2  frame 12495 x 3449 y 411  runs/L8-e6-objectlens/anom_12_f12495.path
+  *** ANOMALY ScrollLock = 3  frame 12496 x 3449 y 413  runs/L8-e6-objectlens/anom_12_f12496.path
+  *** ANOMALY ScrollLock = 4  frame 12497 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12497.path
+  *** ANOMALY ScrollLock = 5  frame 12498 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12498.path
+  *** ANOMALY ScrollLock = 6  frame 12499 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12499.path
+  *** ANOMALY ScrollLock = 7  frame 12500 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12500.path
+  *** ANOMALY ScrollLock = 8  frame 12501 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12501.path
+  *** ANOMALY ScrollLock = 9  frame 12502 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12502.path
+  *** ANOMALY ScrollLock = 10  frame 12503 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12503.path
+  *** ANOMALY ScrollLock = 11  frame 12504 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12504.path
+  *** ANOMALY ScrollLock = 12  frame 12505 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12505.path
+  *** ANOMALY ScrollLock = 13  frame 12506 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12506.path
+  *** ANOMALY ScrollLock = 14  frame 12507 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12507.path
+  *** ANOMALY ScrollLock = 15  frame 12508 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12508.path
+  *** ANOMALY ScrollLock = 16  frame 12509 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12509.path
+  *** ANOMALY ScrollLock = 17  frame 12510 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12510.path
+  *** ANOMALY ScrollLock = 18  frame 12511 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12511.path
+  *** ANOMALY ScrollLock = 19  frame 12512 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12512.path
+  *** ANOMALY ScrollLock = 20  frame 12513 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12513.path
+  *** ANOMALY ScrollLock = 21  frame 12514 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12514.path
+  *** ANOMALY ScrollLock = 22  frame 12515 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12515.path
+  *** ANOMALY ScrollLock = 23  frame 12516 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12516.path
+  *** ANOMALY ScrollLock = 24  frame 12517 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12517.path
+  *** ANOMALY ScrollLock = 25  frame 12518 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12518.path
+  *** ANOMALY ScrollLock = 26  frame 12519 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12519.path
+  *** ANOMALY ScrollLock = 27  frame 12520 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12520.path
+  *** ANOMALY Y above world = 252  frame 12419 x 3320 y 252  runs/L8-e6-objectlens/anom_0_f12419.path
+  *** ANOMALY Y above world = 250  frame 12420 x 3321 y 250  runs/L8-e6-objectlens/anom_0_f12420.path
+  *** ANOMALY ScrollLock = 28  frame 12518 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12518.path
+  *** ANOMALY ScrollLock = 29  frame 12519 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12519.path
+  *** ANOMALY ScrollLock = 30  frame 12520 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12520.path
+  *** ANOMALY ScrollLock = 31  frame 12521 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12521.path
+  *** ANOMALY ScrollLock = 32  frame 12522 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12522.path
+  *** ANOMALY ScrollLock = 33  frame 12523 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12523.path
+  *** ANOMALY ScrollLock = 34  frame 12524 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12524.path
+  *** ANOMALY ScrollLock = 35  frame 12525 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12525.path
+  *** ANOMALY ScrollLock = 36  frame 12526 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12526.path
+  *** ANOMALY ScrollLock = 37  frame 12527 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12527.path
+  *** ANOMALY ScrollLock = 38  frame 12528 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12528.path
+  *** ANOMALY ScrollLock = 39  frame 12529 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12529.path
+  *** ANOMALY ScrollLock = 40  frame 12530 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12530.path
+  *** ANOMALY ScrollLock = 41  frame 12401 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12401.path
+  *** ANOMALY ScrollLock = 42  frame 12402 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12402.path
+  *** ANOMALY ScrollLock = 43  frame 12403 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12403.path
+  *** ANOMALY ScrollLock = 44  frame 12404 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12404.path
+  *** ANOMALY ScrollLock = 45  frame 12405 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12405.path
+  *** ANOMALY ScrollLock = 46  frame 12406 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12406.path
+  *** ANOMALY ScrollLock = 47  frame 12407 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12407.path
+  *** ANOMALY ScrollLock = 48  frame 12408 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12408.path
+  *** ANOMALY ScrollLock = 49  frame 12409 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12409.path
+  *** ANOMALY ScrollLock = 50  frame 12410 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12410.path
+  *** ANOMALY ScrollLock = 51  frame 12411 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12411.path
+  *** ANOMALY ScrollLock = 52  frame 12412 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12412.path
+  *** ANOMALY ScrollLock = 53  frame 12413 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12413.path
+  *** ANOMALY ScrollLock = 54  frame 12414 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12414.path
+  *** ANOMALY ScrollLock = 55  frame 12415 x 3449 y 414  runs/L8-e6-objectlens/anom_12_f12415.path
+  *** ANOMALY Y above world = 253  frame 12347 x 3407 y 253  runs/L8-e6-objectlens/anom_0_f12347.path
+  *** ANOMALY position jump (clip/teleport) = 14  frame 12509 x 3463 y 416  runs/L8-e6-objectlens/anom_16_f12509.path
+  *** ANOMALY position jump (clip/teleport) = 12  frame 11272 x 703 y 394  runs/L8-e6-objectlens/anom_16_f11272.path
+  *** ANOMALY position jump (clip/teleport) = 11  frame 11273 x 704 y 383  runs/L8-e6-objectlens/anom_16_f11273.path
+  *** ANOMALY position jump (clip/teleport) = 10  frame 11275 x 707 y 362  runs/L8-e6-objectlens/anom_16_f11275.path
+  *** ANOMALY GES = 3  frame 12015 x 2500 y 368  runs/L8-e6-objectlens/anom_1_f12015.path
+  *** ANOMALY GES = 9  frame 11739 x 1664 y 432  runs/L8-e6-objectlens/anom_1_f11739.path
+  *** ANOMALY AltEntranceControl = 1  frame 12110 x 2504 y 416  runs/L8-e6-objectlens/anom_11_f12110.path
+  *** ANOMALY ScrollLock = 56  frame 12516 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12516.path
+  *** ANOMALY ScrollLock = 57  frame 12517 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12517.path
+  *** ANOMALY ScrollLock = 58  frame 12518 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12518.path
+  *** ANOMALY ScrollLock = 59  frame 12519 x 3449 y 415  runs/L8-e6-objectlens/anom_12_f12519.path
+  *** ANOMALY PlayerSize = 0  frame 11716 x 1619 y 394  runs/L8-e6-objectlens/anom_9_f11716.path
+  *** ANOMALY AreaPointer = 48  frame 12136 x 2072 y 288  runs/L8-e6-objectlens/anom_4_f12136.path
+  *** ANOMALY position jump (clip/teleport) = 255  frame 12136 x 2072 y 288  runs/L8-e6-objectlens/anom_16_f12136.path
+[   300s] cells=48698 rollouts=73192 frames=1.90M (6k fps) goals=0 deaths=9259 best=- maxx=3554 maxrel=137 maxaddr=67 anom=0x17a53 improved=32123 evict=0
+[   600s] cells=75210 rollouts=147138 frames=3.78M (6k fps) goals=0 deaths=20138 best=- maxx=3554 maxrel=143 maxaddr=67 anom=0x17a53 improved=58194 evict=0
+[   900s] cells=80000 rollouts=221228 frames=5.66M (6k fps) goals=0 deaths=31515 best=- maxx=3554 maxrel=168 maxaddr=67 anom=0x17a53 improved=78190 evict=29658
+[  1200s] cells=80000 rollouts=294414 frames=7.53M (6k fps) goals=0 deaths=42621 best=- maxx=3554 maxrel=183 maxaddr=67 anom=0x17a53 improved=92131 evict=70733
+[  1500s] cells=80000 rollouts=367207 frames=9.38M (6k fps) goals=0 deaths=53520 best=- maxx=3554 maxrel=183 maxaddr=67 anom=0x17a53 improved=103793 evict=111551
+[  1800s] cells=80000 rollouts=439296 frames=11.23M (6k fps) goals=0 deaths=64349 best=- maxx=3554 maxrel=183 maxaddr=67 anom=0x17a53 improved=113567 evict=154269
+[  2100s] cells=80000 rollouts=512020 frames=13.08M (6k fps) goals=0 deaths=75042 best=- maxx=3554 maxrel=195 maxaddr=67 anom=0x17a53 improved=122171 evict=199620
+[  2400s] cells=80000 rollouts=584588 frames=14.93M (6k fps) goals=0 deaths=85936 best=- maxx=3554 maxrel=195 maxaddr=67 anom=0x17a53 improved=129602 evict=247984
+[  2700s] cells=80000 rollouts=656939 frames=16.78M (6k fps) goals=0 deaths=96461 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=136751 evict=297223
+[  3000s] cells=80000 rollouts=729235 frames=18.63M (6k fps) goals=0 deaths=107036 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=143070 evict=347820
+[  3300s] cells=80000 rollouts=802221 frames=20.50M (6k fps) goals=0 deaths=117667 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=148948 evict=399518
+[  3600s] cells=80000 rollouts=875020 frames=22.36M (6k fps) goals=0 deaths=128487 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=154009 evict=451936
+[  3900s] cells=80000 rollouts=947294 frames=24.20M (6k fps) goals=0 deaths=138894 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=158641 evict=503342
+[  4200s] cells=80000 rollouts=1020048 frames=26.06M (6k fps) goals=0 deaths=149341 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=163402 evict=557178
+[  4500s] cells=80000 rollouts=1092415 frames=27.92M (6k fps) goals=0 deaths=159930 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=167651 evict=610512
+[  4800s] cells=80000 rollouts=1164409 frames=29.76M (6k fps) goals=0 deaths=170510 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=171269 evict=664635
+[  5100s] cells=80000 rollouts=1236976 frames=31.62M (6k fps) goals=0 deaths=181186 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=174634 evict=718770
+[  5400s] cells=80000 rollouts=1309615 frames=33.47M (6k fps) goals=0 deaths=191708 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=177802 evict=772195
+[  5700s] cells=80000 rollouts=1382425 frames=35.33M (6k fps) goals=0 deaths=202507 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=180762 evict=827759
+[  6000s] cells=80000 rollouts=1455109 frames=37.19M (6k fps) goals=0 deaths=213179 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=183349 evict=884245
+[  6300s] cells=80000 rollouts=1527756 frames=39.05M (6k fps) goals=0 deaths=223829 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=185807 evict=940467
+[  6600s] cells=80000 rollouts=1600465 frames=40.91M (6k fps) goals=0 deaths=234683 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=188075 evict=995857
+[  6900s] cells=80000 rollouts=1672903 frames=42.76M (6k fps) goals=0 deaths=245474 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=190239 evict=1051435
+[  7200s] cells=80000 rollouts=1745816 frames=44.62M (6k fps) goals=0 deaths=256297 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=192246 evict=1107797
+[  7500s] cells=80000 rollouts=1819004 frames=46.48M (6k fps) goals=0 deaths=267336 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=194298 evict=1164859
+[  7800s] cells=80000 rollouts=1891505 frames=48.34M (6k fps) goals=0 deaths=278058 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=196140 evict=1222495
+[  8100s] cells=80000 rollouts=1964779 frames=50.20M (6k fps) goals=0 deaths=289008 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=197994 evict=1279263
+[  8400s] cells=80000 rollouts=2037562 frames=52.05M (6k fps) goals=0 deaths=299937 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=199818 evict=1335437
+[  8700s] cells=80000 rollouts=2110771 frames=53.91M (6k fps) goals=0 deaths=311118 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=201604 evict=1394312
+[  9000s] cells=80000 rollouts=2184198 frames=55.78M (6k fps) goals=0 deaths=322411 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=203334 evict=1452412
+[  9300s] cells=80000 rollouts=2257793 frames=57.64M (6k fps) goals=0 deaths=333915 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=204891 evict=1509827
+[  9600s] cells=80000 rollouts=2331277 frames=59.50M (6k fps) goals=0 deaths=345641 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=206461 evict=1568370
+[  9900s] cells=80000 rollouts=2404988 frames=61.36M (6k fps) goals=0 deaths=357558 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=207922 evict=1627289
+[ 10200s] cells=80000 rollouts=2478523 frames=63.21M (6k fps) goals=0 deaths=369583 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=209354 evict=1687762
+[ 10500s] cells=80000 rollouts=2552506 frames=65.07M (6k fps) goals=0 deaths=381836 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=210778 evict=1747768
+[ 10800s] cells=80000 rollouts=2626821 frames=66.93M (6k fps) goals=0 deaths=394344 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=212025 evict=1807960
+[ 11100s] cells=80000 rollouts=2700753 frames=68.78M (6k fps) goals=0 deaths=406970 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=213312 evict=1869418
+[ 11400s] cells=80000 rollouts=2774971 frames=70.64M (6k fps) goals=0 deaths=419749 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=214530 evict=1931094
+[ 11700s] cells=80000 rollouts=2849072 frames=72.50M (6k fps) goals=0 deaths=432422 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=215663 evict=1994918
+[ 12000s] cells=80000 rollouts=2923496 frames=74.36M (6k fps) goals=0 deaths=445287 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=216835 evict=2060070
+[ 12300s] cells=80000 rollouts=2997462 frames=76.22M (6k fps) goals=0 deaths=458089 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=218027 evict=2124395
+[ 12600s] cells=80000 rollouts=3071762 frames=78.08M (6k fps) goals=0 deaths=470797 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=219113 evict=2190133
+[ 12900s] cells=80000 rollouts=3146167 frames=79.95M (6k fps) goals=0 deaths=483684 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=220338 evict=2255777
+[ 13200s] cells=80000 rollouts=3220858 frames=81.81M (6k fps) goals=0 deaths=496735 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=221471 evict=2323984
+[ 13500s] cells=80000 rollouts=3295607 frames=83.68M (6k fps) goals=0 deaths=509640 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=222542 evict=2390841
+[ 13800s] cells=80000 rollouts=3369823 frames=85.53M (6k fps) goals=0 deaths=522593 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=223442 evict=2457299
+[ 14100s] cells=80000 rollouts=3444705 frames=87.41M (6k fps) goals=0 deaths=535683 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=224401 evict=2525261
+  *** ANOMALY GES = 2  frame 12205 x 2245 y 432  runs/L8-e6-objectlens/anom_1_f12205.path
+[ 14400s] cells=80000 rollouts=3518703 frames=89.26M (6k fps) goals=0 deaths=548498 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=225314 evict=2593661
+[ 14700s] cells=80000 rollouts=3593008 frames=91.11M (6k fps) goals=0 deaths=561385 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=226209 evict=2661372
+[ 15000s] cells=80000 rollouts=3667258 frames=92.97M (6k fps) goals=0 deaths=574375 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=227129 evict=2728868
+[ 15300s] cells=80000 rollouts=3741174 frames=94.82M (6k fps) goals=0 deaths=587169 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=227998 evict=2798570
+[ 15600s] cells=80000 rollouts=3815191 frames=96.67M (6k fps) goals=0 deaths=600032 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=228857 evict=2868140
+[ 15900s] cells=80000 rollouts=3889374 frames=98.53M (6k fps) goals=0 deaths=613221 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=229946 evict=2937815
+[ 16200s] cells=80000 rollouts=3963451 frames=100.38M (6k fps) goals=0 deaths=626417 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=230850 evict=3006524
+[ 16500s] cells=80000 rollouts=4037634 frames=102.22M (6k fps) goals=0 deaths=639633 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=231719 evict=3074976
+[ 16800s] cells=80000 rollouts=4111378 frames=104.06M (6k fps) goals=0 deaths=652844 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=232501 evict=3144482
+[ 17100s] cells=80000 rollouts=4185750 frames=105.91M (6k fps) goals=0 deaths=666295 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=233374 evict=3214281
+[ 17400s] cells=80000 rollouts=4259762 frames=107.75M (6k fps) goals=0 deaths=679661 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=234248 evict=3285168
+[ 17700s] cells=80000 rollouts=4334660 frames=109.61M (6k fps) goals=0 deaths=693240 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=235027 evict=3357776
+[ 18000s] cells=80000 rollouts=4409245 frames=111.46M (6k fps) goals=0 deaths=707086 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=235939 evict=3429855
+[ 18300s] cells=80000 rollouts=4483601 frames=113.31M (6k fps) goals=0 deaths=720821 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=236818 evict=3502273
+[ 18600s] cells=80000 rollouts=4558099 frames=115.15M (6k fps) goals=0 deaths=734638 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=237549 evict=3573509
+[ 18900s] cells=80000 rollouts=4633048 frames=117.02M (6k fps) goals=0 deaths=748619 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=238337 evict=3647241
+[ 19200s] cells=80000 rollouts=4708398 frames=118.88M (6k fps) goals=0 deaths=762471 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=239204 evict=3721282
+[ 19500s] cells=80000 rollouts=4783346 frames=120.73M (6k fps) goals=0 deaths=776709 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=240062 evict=3793866
+[ 19800s] cells=80000 rollouts=4859082 frames=122.60M (6k fps) goals=0 deaths=791215 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=240910 evict=3869517
+[ 20100s] cells=80000 rollouts=4934263 frames=124.46M (6k fps) goals=0 deaths=805400 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=242603 evict=3947419
+[ 20400s] cells=80000 rollouts=5009366 frames=126.31M (6k fps) goals=0 deaths=819713 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=243683 evict=4024315
+[ 20700s] cells=80000 rollouts=5083400 frames=128.14M (6k fps) goals=0 deaths=833826 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=244641 evict=4100722
+[ 21000s] cells=80000 rollouts=5157294 frames=129.97M (6k fps) goals=0 deaths=847772 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=245528 evict=4178103
+[ 21300s] cells=80000 rollouts=5231527 frames=131.80M (6k fps) goals=0 deaths=862054 best=- maxx=3555 maxrel=195 maxaddr=67 anom=0x17a53 improved=246367 evict=4255137
+done: cells=80000 rollouts=5306504 frames=133.64M goals=0 deaths=876494 best_last_input=- (WR 17846) maxx=3555

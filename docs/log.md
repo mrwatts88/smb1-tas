@@ -2740,3 +2740,11 @@ F275) and the user parked the thread on 2026-08-25. A no-beam run was the one th
 infeasible on the box (F328). Then, per the user's list, launched L8 (object-lens novelty sweeps, six roots) on the
 box instead of the Mac, because the box was free and the launcher is systemd-based. Box clone fast-forwarded to
 3d6a6a4 and `build/explore` rebuilt. Next: L8 read-out.
+
+**2026-11-13 (Mac + box, afternoon) — L8 read out; L8b launched.** All six L8 sweeps finished at 01:57 CST.
+Masks and totals in `docs/experiments/L8-e6-objectlens.md`: 1.02 billion frames, class 18 never fired, three
+class-17 hits replayed (new `tools/slot_replay.py`, stdlib only, six slots) and all ordinary (F329). The 4-1 hit
+is a real quirk worth a fact: `Demote` writes one bit of the enemy's screen x into `Enemy_ID` (F330); value set
+{0,1}, so H50 stays closed. Checking the horizons against the WR's control frames showed L8 skipped 1-1's coin
+room and tail, 4-2's warp-zone room, the flagpole approaches of 4-1 and 8-3, and 8-1 entirely; launched L8b on
+the box for those (six processes, 1–6 h). Next: L8b read-out.
