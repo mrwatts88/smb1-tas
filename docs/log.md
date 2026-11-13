@@ -2725,3 +2725,11 @@ searched space, best y 161), F325 (piranha margin 9-10 frames; coin room 111 = o
 `--xline X T`, `--pads`, `--fullfrom F`, `--fully Y`, a `--diag` printout and saves the first glitch grab to `--out`.
 Viewer: the per-level 'vs WR' tile now compares exit frames on the same core (the old load-to-load difference read
 as Maru being 3 frames faster in 8-1). Next: H57's open ends, or the user's next pick from the viewer.
+
+**2026-11-12 (Mac, evening) — N7, the user's warp-zone staircase clip.** Asked for thoughts on cross-level
+dependencies and new clips; the user proposed clipping through 4-2's warp-zone staircase. Did: traced the warp
+arming (F326), read `ChkMoveDir` and poke-tested the speed-keeping entry (F327: impossible), dumped the stair grid
+(one-tile faces, air above), scripted the slow entry at a step (no progress standing; full hops only). endlab
+`--flag` gained `--through`, `--clip`, `--clipfrom`, `--airfull`, `--pickfloor`, `--pickxmax`, `--boxy`, `--xmax`;
+new `tools/clip_poke_lab.py`. Four blind searches exploded and were stopped. Verdict: not viable by the known
+mechanism, not refuted (H58). Next per the user: room 3 on the box, then L8 on the Mac.

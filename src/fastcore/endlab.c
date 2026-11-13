@@ -43,6 +43,10 @@
  *        --walk N         for grabs up to core N, follow the automatic walk and tally the castle frame
  *        --pads P1,P2,... restrict the search to these pads (e.g. 0x82,0x83 = full speed, jump timing only)
  *        --fullfrom F     with --pads: every pad again from core F on
+ *        --airfull        --pads restricts floor frames only; in the air every pad is tried
+ *        --clip           air pads: Right or a Left tap while moving direction is right; coast or Left after it
+ *        --through X Y    wall-clip probe: report the first node whose left side point is inside a non-empty
+ *                         tile at speed >= 20, and the first node with x >= X and y >= Y; paths go to --out.embed/.through
  *        --fully Y        with --fullfrom: entering core F keep only on-screen nodes with y >= Y
  *        --xline X T      drop nodes that cannot have x pixel >= X on core T at the 2.5 px/frame cap
  *                         (admissible when every wanted grab needs x >= X no later than core T)
@@ -199,6 +203,13 @@ int main(int argc, char **argv) {
     long pk_addr = 0, pk_lo = 0, pk_hi = 0, pk_step = 1;   /* --pokescan T ADDR LO HI STEP */
     long xmin = 0;                      /* --flag: drop nodes whose x pixel is left of this */
     long walkto = -1;                   /* --flag --walk N: time the castle walk for grabs up to core N */
+    long pickf_y = -1, pickf_t = -1, pickf_xmax = -1;   /* --flag --pickfloor Y F [--pickxmax X] */
+    long xmax = -1;                     /* --flag --xmax X: drop nodes right of x pixel X */
+    long boxy = -1;                     /* --flag --boxy Y: from --fullfrom on, drop nodes above y pixel Y */
+    long clipfrom = -1;                 /* --flag --clipfrom F: the --clip grammar starts on core F (restricted pads before) */
+    int clipg = 0;                      /* --flag --clip: air pads follow the wall-entry grammar (see the search loop) */
+    int airfull = 0;                    /* --flag --airfull: --pads restricts the floor only; every air pad is tried */
+    long thr_x = -1, thr_y = 0;         /* --flag --through X Y: report nodes with x pixel >= X and y >= Y (on screen) */
     long fully = -1;                    /* --flag --fully Y: on the last restricted frame keep only nodes with y >= Y (on screen) */
     long fullfrom = -1;                 /* --flag --fullfrom F: with --pads, use every pad again from core F on */
     long xline_x = -1, xline_t = -1;    /* --flag --xline X T: drop nodes that cannot reach x pixel X by core T at 2.5 px/frame */
@@ -235,6 +246,14 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--walk")) walkto = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--fullfrom")) fullfrom = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--fully")) fully = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--airfull")) airfull = 1;
+        else if (!strcmp(argv[i], "--clip")) clipg = 1;
+        else if (!strcmp(argv[i], "--boxy")) boxy = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--xmax")) xmax = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--pickfloor")) { pickf_y = strtol(argv[++i], NULL, 0); pickf_t = strtol(argv[++i], NULL, 0); }
+        else if (!strcmp(argv[i], "--pickxmax")) pickf_xmax = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--clipfrom")) clipfrom = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--through")) { thr_x = strtol(argv[++i], NULL, 0); thr_y = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--xline")) { xline_x = strtol(argv[++i], NULL, 0); xline_t = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--turn")) { mode = 8; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--ramsweep")) { mode = 9; tA = strtol(argv[++i], NULL, 0); sw_lo = strtol(argv[++i], NULL, 0); sw_hi = strtol(argv[++i], NULL, 0); }
@@ -515,6 +534,7 @@ int main(int argc, char **argv) {
         long nfr = F1 - F0 + 1, ncur = 1, capx = 1 << 12, steps = 0, ndrop = 0, nskip = 0, first5 = -1;
         long g4 = 0, g5 = 0, gy[256]; memset(gy, 0, sizeof gy);
         long gminpx = 1L << 40, gminpx5 = 1L << 40;
+        long nemb = 0, nthr = 0; int embbest = 0, embfirst = 0, thrfirst = 0;
         long cas[600]; memset(cas, 0, sizeof cas); long casbest = -1, caslen = 0, casgrab = -1; int casy = 0, casfive = 0; uint8_t *caspath = NULL;
         void **tmpl = calloc(nfr + 2, sizeof(void *)); Meta **meta = calloc(nfr + 2, sizeof(Meta *));
         uint8_t *cur = malloc(RAMSZ), *nxt = malloc((size_t)capx * RAMSZ);
@@ -534,16 +554,42 @@ int main(int argc, char **argv) {
                 const uint8_t *r0 = cur + n * RAMSZ;
                 int np = r0[0x1d] == 0 ? 16 : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
                 int restricted = npads > 0 && (fullfrom < 0 || t < fullfrom);
+                if (restricted && airfull && r0[0x1d] != 0) restricted = 0;
                 if (restricted) np = npads;
+                /* --clip: air grammar for a speed-keeping wall entry.  Moving direction right: Right held or a
+                 * Left tap; moving direction left (after the tap): coast or more Left.  A only while rising. */
+                static const uint8_t cg_r[4] = { 0x80, 0x40, 0x81, 0x41 }, cg_l[4] = { 0x00, 0x40, 0x01, 0x41 };
+                int clipair = clipg && t >= clipfrom && r0[0x1d] != 0;
+                if (clipair) np = (int8_t)r0[0x9f] < 0 ? 4 : 2;
                 for (int p = 0; p < np; p++) {
-                    uint8_t thispad = restricted ? pads[p] : gp[p];
+                    uint8_t thispad = clipair ? (r0[0x45] == 2 ? cg_l[p] : cg_r[p]) : restricted ? pads[p] : gp[p];
                     retro_unserialize(tmpl[k], ssz); RAMP(); memcpy(ram, r0, RAMSZ);
                     cur_pad = thispad; retro_run(); RAMP(); steps++;
                     if (DEAD(ram)) continue;
                     long x = ((long)ram[0x6d] << 8) | ram[0x86], xf = (x << 8) | ram[0x400];
-                    if (x < xmin) { ndrop++; continue; }
+                    if (x < xmin && (fullfrom < 0 || t >= fullfrom)) { ndrop++; continue; }
+                    if (boxy >= 0 && (fullfrom < 0 || t >= fullfrom) && ram[0x0e] == 8 && (ram[0xb5] != 1 || ram[0xce] < boxy)) { ndrop++; continue; }
+                    if (xmax >= 0 && x > xmax) { ndrop++; continue; }
                     if (fully >= 0 && t + 1 == fullfrom && ram[0x0e] == 8 && (ram[0xb5] != 1 || ram[0xce] < fully)) { ndrop++; continue; }
                     if (xline_t >= 0 && ram[0x0e] == 8 && (t > xline_t || xf < (xline_x << 8) - 640 * (xline_t - t))) { ndrop++; continue; }
+                    if (thr_x >= 0) {       /* wall-clip probes: left side point inside a non-empty tile at speed, and "got through" */
+                        int col = (int)((x + 2) >> 4), row = ((int)ram[0xce] + 24 - 32) >> 4, spd = (int8_t)ram[0x57], hit = 0;
+                        if (ram[0xb5] == 1 && ram[0xce] + 24 >= 32 && row >= 0 && row < 13 &&
+                            ram[0x500 + ((col >> 4) & 1) * 0xd0 + row * 16 + (col & 15)] && spd >= 20) {
+                            nemb++; if (spd > embbest) embbest = spd; if (!embfirst) { embfirst = 1; hit = 1; } }
+                        if (x >= thr_x && ram[0xb5] == 1 && ram[0xce] >= thr_y) { nthr++; if (!thrfirst) { thrfirst = 1; hit = 2; } }
+                        if (hit) {
+                            uint8_t *gpath = malloc(k + 2); long gi = n;
+                            for (long q = k; q >= 1; q--) { gpath[q - 1] = meta[q][gi].pad; gi = meta[q][gi].parent; }
+                            gpath[k] = thispad;
+                            printf("  FIRST %s on core %ld: x %.3f y %d xspd %d state %d movingdir %d (probe col %d row %d)\n", hit == 1 ? "EMBEDDED AT SPEED" : "THROUGH", t,
+                                   xf / 256.0, ram[0xce], spd, ram[0x1d], ram[0x45], col, row);
+                            printf("  last 24 pads:"); for (long q = k > 23 ? k - 23 : 0; q <= k; q++) printf(" %02x", gpath[q]); printf("\n");
+                            if (outpath) { char nm[1200]; snprintf(nm, sizeof nm, "%s.%s", outpath, hit == 1 ? "embed" : "through");
+                                FILE *o = fopen(nm, "wb"); if (o) { fwrite(in, 1, F0 + input_skip, o); fwrite(gpath, 1, k + 1, o);
+                                uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o); printf("  wrote %s\n", nm); } }
+                            free(gpath); fflush(stdout); }
+                    }
                     if (ram[0x0e] == 4 || ram[0x0e] == 5) {
                         int five = ram[0x0e] == 5, y = ram[0xce], sk = 0;
                         if (diag && y >= 156) { static int nd; if (nd++ < 12)
@@ -609,6 +655,20 @@ int main(int argc, char **argv) {
             }
             printf("  core %ld: %ld nodes  grabs slide %ld glitch %ld  skips %ld  left-drops %ld  floor max x %.3f  with speed byte >= 25: %.3f  rising at y 165-167: %.3f  (%.0fs, %ld steps)\n",
                    t + 1, nn, g4, g5, nskip, ndrop, gmax / 256.0, gmax25 / 256.0, hop / 256.0, now() - t0, steps);
+            if (pickf_t == t + 1) {      /* --pickfloor Y F: write the movie to the right-most node standing at y Y after core F-1 */
+                long bi = -1, bx = -1;
+                for (long q = 0; q < nn; q++) { const uint8_t *r = nxt + q * RAMSZ;
+                    long qx = ((((long)r[0x6d] << 8) | r[0x86]) << 8) | r[0x400];
+                    if (r[0x1d] == 0 && r[0xce] == pickf_y && qx > bx && (pickf_xmax < 0 || (qx >> 8) <= pickf_xmax)) { bx = qx; bi = q; } }
+                if (bi < 0) { printf("pickfloor: no node standing at y %ld\n", pickf_y); return 1; }
+                uint8_t *gpath = malloc(k + 2); long gi = bi;
+                for (long q = k + 1; q >= 1; q--) { gpath[q - 1] = meta[q][gi].pad; gi = meta[q][gi].parent; }
+                FILE *o = fopen(outpath, "wb"); if (!o) { perror(outpath); return 1; }
+                fwrite(in, 1, F0 + input_skip, o); fwrite(gpath, 1, k + 1, o); uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o);
+                printf("pickfloor: node at x %.3f y %ld after core %ld; movie written to %s (search it from core %ld)\n", bx / 256.0, pickf_y, t, outpath, t + 1);
+                return 0;
+            }
+            if (thr_x >= 0) printf("    embedded at speed >= 20 so far: %ld (best speed %d)   through so far: %ld\n", nemb, embbest, nthr);
             fflush(stdout);
             if (nn == 0) { printf("frontier died out at core %ld\n", t); break; }
             if (nn > maxnodes) { printf("frontier %ld > maxnodes at core %ld\n", nn, t); break; }
