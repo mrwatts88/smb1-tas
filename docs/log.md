@@ -2716,3 +2716,12 @@ segments by area loads plus the 8-4 loop pull-back (18 rooms), writes `viewer/pa
 `tools/slack_table.py` (Maru, this core: 1-1 slack 16 / deficit 5, 1-2 10/11, 4-1 9/12, 4-2 5/16, 8-1 2/19,
 8-2 2/19, 8-3 13/8, 8-4 axe at 17879). Top speed for the overlay: 40 on land, 24 swimming (the water room's
 cruise speed). Page published as a private artifact; see STATUS.
+
+**2026-11-12 (Mac, later) — user review of the route viewer; N6.** User's reads: 8-3 has many slowdowns, 1-1's coin
+room slows before the pipe, is 8-1 on the same framerule in both movies, is 8-4 room 3's pipe entry limited by the
+piranha. Answers, all from core replays of both movies: F322 (viewer, same framerules from 8-2 on), F323 (8-3
+slowdowns wait for timer 242; the WR grabs on the last 244 frame), F324/H57 (N6: no glitch grab by 14486 in the
+searched space, best y 161), F325 (piranha margin 9-10 frames; coin room 111 = optimum). endlab: `--flag` gained
+`--xline X T`, `--pads`, `--fullfrom F`, `--fully Y`, a `--diag` printout and saves the first glitch grab to `--out`.
+Viewer: the per-level 'vs WR' tile now compares exit frames on the same core (the old load-to-load difference read
+as Maru being 3 frames faster in 8-1). Next: H57's open ends, or the user's next pick from the viewer.

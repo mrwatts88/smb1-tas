@@ -152,7 +152,7 @@ const rooms = [];
 R.levels.forEach(lv => {
   const sec = document.createElement("section"); sec.className = "level"; sec.id = "w" + lv.level.replace("-", "");
   const segs = R.segments.filter(s => s.level === lv.level);
-  const diff = lv.wr_frames != null ? lv.frames - lv.wr_frames : null;
+  const diff = lv.wr_next_load != null ? lv.next_load - lv.wr_next_load : null;
   const sl = parseInt(lv.slack), df = parseInt(lv.deficit);
   const quant = !isNaN(sl);
   const slowTot = segs.reduce((a, s) => a + s.slowN, 0), lostTot = segs.reduce((a, s) => a + s.lostFr, 0);
@@ -161,8 +161,8 @@ R.levels.forEach(lv => {
   sec.innerHTML = `
     <div class="lvhead"><h2>WORLD ${lv.level}</h2><span class="end">${lv.end_event} · timer ${lv.timer}</span></div>
     <div class="stats">
-      <div class="stat"><span class="k">Frames (load → next)</span><span class="v">${lv.frames}</span><span class="n">movie frames ${lv.load}–${lv.next_load}</span></div>
-      <div class="stat"><span class="k">vs WR #1715M</span><span class="v ${diff > 0 ? "bad" : diff < 0 ? "good" : ""}">${diff == null ? "–" : (diff > 0 ? "+" : "") + diff}</span><span class="n">WR ${lv.wr_frames ?? "–"} (with Left+Right)</span></div>
+      <div class="stat"><span class="k">${lv.level === "8-4" ? "Axe on frame" : "Next level loads on"}</span><span class="v">${lv.next_load}</span><span class="n">this level loaded on ${lv.load} (${lv.frames} frames here)</span></div>
+      <div class="stat"><span class="k">Behind WR at the exit</span><span class="v ${diff > 0 ? "bad" : diff < 0 ? "good" : ""}">${diff == null ? "–" : diff === 0 ? "even" : (diff > 0 ? "+" : "") + diff + " f"}</span><span class="n">WR #1715M exits on ${lv.wr_next_load ?? "–"} (same core)</span></div>
       ${quant ? `
       <div class="stat"><span class="k">To next framerule</span><span class="v ${df <= 3 ? "good" : df <= 8 ? "warn" : "bad"}">${df} f</span><span class="n">frames to find for a 21-frame save</span>${frHtml}</div>
       <div class="stat"><span class="k">Slack</span><span class="v">${sl} f</span><span class="n">could lose this many for free</span></div>`

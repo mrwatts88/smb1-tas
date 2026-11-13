@@ -17,6 +17,8 @@ ROM = "roms/smb.nes" if os.path.exists("roms/smb.nes") else "roms/Super Mario Br
 TMP = "runs/viewer"
 # HappyLee #1715M per-level frames (load -> next load), F29
 WR_FRAMES = {"1-1": 1902, "1-2": 1870, "4-1": 2228, "4-2": 1729, "8-1": 3042, "8-2": 2143, "8-3": 2101, "8-4": 2810}
+# HappyLee #1715M on this same core (this tool run on the WR movie): frame the NEXT level loads (8-4: the axe)
+WR_NEXT_LOAD = {"1-1": 1941, "1-2": 3811, "4-1": 6039, "4-2": 7768, "8-1": 10810, "8-2": 12953, "8-3": 15054, "8-4": 17864}
 
 def png(path, w, h, rgb):
     raw = b"".join(b"\0" + rgb[y * w * 3:(y + 1) * w * 3] for y in range(h))
@@ -91,7 +93,7 @@ def main():
             lv = c[0]
             levels.append({"level": lv, "load": int(c[1]) - 1, "control": int(c[3]) - 1, "end_event": c[4],
                            "event": int(c[5]) - 1, "next_load": int(c[6]) - 1, "frames": int(c[7]),
-                           "slack": c[12], "deficit": c[13], "timer": c[17], "wr_frames": WR_FRAMES.get(lv)})
+                           "slack": c[12], "deficit": c[13], "timer": c[17], "wr_frames": WR_FRAMES.get(lv), "wr_next_load": WR_NEXT_LOAD.get(lv)})
     data = {"movie": movie, "core": "QuickNES (input-skip 2, reset0)", "total_frames": end + 1,
             "fields": ["frame", "x", "y", "speed", "subspeed", "ges", "state", "swim", "small", "input", "cam", "itc", "timer"],
             "segments": [{k: v for k, v in s.items()} for s in segs], "levels": levels}

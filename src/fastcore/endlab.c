@@ -41,6 +41,11 @@
  *        frames of a grab (the 8-2 style ending).  Dedup per frame on the player's physical state.
  *        --xmin X         drop nodes left of x pixel X
  *        --walk N         for grabs up to core N, follow the automatic walk and tally the castle frame
+ *        --pads P1,P2,... restrict the search to these pads (e.g. 0x82,0x83 = full speed, jump timing only)
+ *        --fullfrom F     with --pads: every pad again from core F on
+ *        --fully Y        with --fullfrom: entering core F keep only on-screen nodes with y >= Y
+ *        --xline X T      drop nodes that cannot have x pixel >= X on core T at the 2.5 px/frame cap
+ *                         (admissible when every wanted grab needs x >= X no later than core T)
  *   --turn F0 D           N4: every no-L+R input from core F0; goal = vertical pipe entry with
  *        ScreenLeft >= --slmin (3345) on a frame <= D.  Nodes that cannot reach x pixel --xgoal
  *        (3404) by D at 1.79 units/frame of leftward acceleration are dropped (admissible).
@@ -194,6 +199,9 @@ int main(int argc, char **argv) {
     long pk_addr = 0, pk_lo = 0, pk_hi = 0, pk_step = 1;   /* --pokescan T ADDR LO HI STEP */
     long xmin = 0;                      /* --flag: drop nodes whose x pixel is left of this */
     long walkto = -1;                   /* --flag --walk N: time the castle walk for grabs up to core N */
+    long fully = -1;                    /* --flag --fully Y: on the last restricted frame keep only nodes with y >= Y (on screen) */
+    long fullfrom = -1;                 /* --flag --fullfrom F: with --pads, use every pad again from core F on */
+    long xline_x = -1, xline_t = -1;    /* --flag --xline X T: drop nodes that cannot reach x pixel X by core T at 2.5 px/frame */
     long slmin = 3345, xgoal = 3404;    /* --turn: required ScreenLeft, and the rightmost x pixel that enters the pipe */
     long beam = 0;                      /* --turn --beam K: keep K nodes per physical bucket (0 = exhaustive) */
     int allow_lr = 0;                   /* --turn --lr: also try the Left+Right floor pads (the WR's category) */
@@ -225,6 +233,9 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--flag")) { mode = 7; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--xmin")) xmin = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--walk")) walkto = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--fullfrom")) fullfrom = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--fully")) fully = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--xline")) { xline_x = strtol(argv[++i], NULL, 0); xline_t = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--turn")) { mode = 8; F0 = strtol(argv[++i], NULL, 0); F1 = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--ramsweep")) { mode = 9; tA = strtol(argv[++i], NULL, 0); sw_lo = strtol(argv[++i], NULL, 0); sw_hi = strtol(argv[++i], NULL, 0); }
         else if (!strcmp(argv[i], "--ev") || !strcmp(argv[i], "--ev-seen")) { int sn = argv[i][4] == '-'; char *eq = strchr(argv[++i], '='); if (!eq) return 2;
@@ -503,6 +514,7 @@ int main(int argc, char **argv) {
         RAMP();
         long nfr = F1 - F0 + 1, ncur = 1, capx = 1 << 12, steps = 0, ndrop = 0, nskip = 0, first5 = -1;
         long g4 = 0, g5 = 0, gy[256]; memset(gy, 0, sizeof gy);
+        long gminpx = 1L << 40, gminpx5 = 1L << 40;
         long cas[600]; memset(cas, 0, sizeof cas); long casbest = -1, caslen = 0, casgrab = -1; int casy = 0, casfive = 0; uint8_t *caspath = NULL;
         void **tmpl = calloc(nfr + 2, sizeof(void *)); Meta **meta = calloc(nfr + 2, sizeof(Meta *));
         uint8_t *cur = malloc(RAMSZ), *nxt = malloc((size_t)capx * RAMSZ);
@@ -521,17 +533,34 @@ int main(int argc, char **argv) {
             for (long n = 0; n < ncur; n++) {
                 const uint8_t *r0 = cur + n * RAMSZ;
                 int np = r0[0x1d] == 0 ? 16 : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
+                int restricted = npads > 0 && (fullfrom < 0 || t < fullfrom);
+                if (restricted) np = npads;
                 for (int p = 0; p < np; p++) {
+                    uint8_t thispad = restricted ? pads[p] : gp[p];
                     retro_unserialize(tmpl[k], ssz); RAMP(); memcpy(ram, r0, RAMSZ);
-                    cur_pad = gp[p]; retro_run(); RAMP(); steps++;
+                    cur_pad = thispad; retro_run(); RAMP(); steps++;
                     if (DEAD(ram)) continue;
                     long x = ((long)ram[0x6d] << 8) | ram[0x86], xf = (x << 8) | ram[0x400];
                     if (x < xmin) { ndrop++; continue; }
+                    if (fully >= 0 && t + 1 == fullfrom && ram[0x0e] == 8 && (ram[0xb5] != 1 || ram[0xce] < fully)) { ndrop++; continue; }
+                    if (xline_t >= 0 && ram[0x0e] == 8 && (t > xline_t || xf < (xline_x << 8) - 640 * (xline_t - t))) { ndrop++; continue; }
                     if (ram[0x0e] == 4 || ram[0x0e] == 5) {
                         int five = ram[0x0e] == 5, y = ram[0xce], sk = 0;
+                        if (diag && y >= 156) { static int nd; if (nd++ < 12)
+                            printf("  low grab on core %ld: before x %.3f y %d.%03d yspd %d state %d -> y %d routine %d pad %02x\n", t,
+                                   ((((long)r0[0x6d] << 8) | r0[0x86]) * 256 + r0[0x400]) / 256.0, r0[0xce], r0[0x416] * 1000 / 256, (int8_t)r0[0x9f], r0[0x1d], y, ram[0x0e], thispad); }
+                        { long pxf = ((((long)r0[0x6d] << 8) | r0[0x86]) << 8) | r0[0x400];   /* x on the frame before the grab */
+                          if (pxf < gminpx) gminpx = pxf; if (five && pxf < gminpx5) gminpx5 = pxf; }
                         if (five) g5++; else g4++;
                         gy[y]++;
-                        if (five && first5 < 0) { first5 = t; printf("  first glitch grab (routine 5) on core %ld, y %d\n", t, y); }
+                        if (five && first5 < 0) { first5 = t; printf("  first glitch grab (routine 5) on core %ld, y %d\n", t, y);
+                            uint8_t *gpath = malloc(k + 2); long gi = n;
+                            for (long q = k; q >= 1; q--) { gpath[q - 1] = meta[q][gi].pad; gi = meta[q][gi].parent; }
+                            gpath[k] = thispad;
+                            printf("  its last 12 pads:"); for (long q = k > 11 ? k - 11 : 0; q <= k; q++) printf(" %02x", gpath[q]); printf("\n");
+                            if (outpath) { FILE *o = fopen(outpath, "wb"); if (o) { fwrite(in, 1, F0 + input_skip, o); fwrite(gpath, 1, k + 1, o);
+                                uint8_t z[1024] = {0}; fwrite(z, 1, 1000, o); fclose(o); printf("  wrote %s (movie prefix + path + zeros)\n", outpath); } }
+                            free(gpath); fflush(stdout); }
                         long jw = 0;
                         for (int j = 0; j < 6 && !sk; j++) { if (ram[0x746]) sk = 1; else { cur_pad = 0; retro_run(); RAMP(); steps++; jw++; } }
                         /* --walk N: for grabs up to core N, follow the automatic slide/wait/walk to the
@@ -545,7 +574,7 @@ int main(int argc, char **argv) {
                                 if (casbest < 0 || cf < casbest) {
                                     casbest = cf; free(caspath); caspath = malloc(k + 2); long idx = n; caslen = k + 1;
                                     for (long q = k; q >= 1; q--) { caspath[q - 1] = meta[q][idx].pad; idx = meta[q][idx].parent; }
-                                    caspath[k] = gp[p]; casgrab = t; casy = y; casfive = five;
+                                    caspath[k] = thispad; casgrab = t; casy = y; casfive = five;
                                 }
                             }
                         }
@@ -554,7 +583,7 @@ int main(int argc, char **argv) {
                             if (nskip <= show) {
                                 uint8_t *path = malloc(k + 2); long idx = n;
                                 for (long q = k; q >= 1; q--) { path[q - 1] = meta[q][idx].pad; idx = meta[q][idx].parent; }
-                                path[k] = gp[p];
+                                path[k] = thispad;
                                 printf("SKIP: grab on core %ld at y %d, castle entered at once.  pads from core %ld:", t, y, F0);
                                 for (long q = 0; q <= k; q++) printf(" %02x", path[q]);
                                 printf("\n");
@@ -566,13 +595,16 @@ int main(int argc, char **argv) {
                         }
                         continue;
                     }
+                    if (diag && (int8_t)r0[0x9f] < 0 && r0[0xce] >= 164 && r0[0xce] <= 169 && ((((long)r0[0x6d] << 8) | r0[0x86]) >= 3409)) { static int nr; if (nr++ < 12)
+                        printf("  rising near the pole, core %ld: x %.3f y %d yspd %d xspd %d -> x %.3f y %d yspd %d xspd %d state %d pad %02x\n", t,
+                               ((((long)r0[0x6d] << 8) | r0[0x86]) * 256 + r0[0x400]) / 256.0, r0[0xce], (int8_t)r0[0x9f], (int8_t)r0[0x57], xf / 256.0, ram[0xce], (int8_t)ram[0x9f], (int8_t)ram[0x57], ram[0x1d], thispad); }
                     if (ram[0x1d] == 0 && ram[0xce] == 176) { if (xf > gmax) gmax = xf; if (ram[0x700] >= 25 && xf > gmax25) gmax25 = xf; }
                     if ((int8_t)ram[0x9f] < 0 && ram[0xce] >= 165 && ram[0xce] <= 167 && xf > hop) hop = xf;
                     if (!set_add(&seen, flag_key(ram))) continue;
                     if (!tmpl[k + 1]) { tmpl[k + 1] = malloc(ssz); retro_serialize(tmpl[k + 1], ssz); }
                     if (nn >= capx) { capx *= 2; nxt = realloc(nxt, (size_t)capx * RAMSZ); if (!nxt) { fprintf(stderr, "out of memory\n"); return 1; } }
                     memcpy(nxt + nn * RAMSZ, ram, RAMSZ);
-                    meta[k + 1][nn].parent = (int32_t)n; meta[k + 1][nn].pad = gp[p]; nn++;
+                    meta[k + 1][nn].parent = (int32_t)n; meta[k + 1][nn].pad = thispad; nn++;
                 }
             }
             printf("  core %ld: %ld nodes  grabs slide %ld glitch %ld  skips %ld  left-drops %ld  floor max x %.3f  with speed byte >= 25: %.3f  rising at y 165-167: %.3f  (%.0fs, %ld steps)\n",
@@ -584,6 +616,7 @@ int main(int argc, char **argv) {
             meta[k + 1] = realloc(meta[k + 1], (size_t)(nn + 1) * sizeof(Meta));
             cur = realloc(cur, (size_t)nn * RAMSZ); memcpy(cur, nxt, (size_t)nn * RAMSZ); ncur = nn;
         }
+        printf("smallest x on the frame before a grab: %.3f (glitch grabs: %.3f)\n", gminpx / 256.0, gminpx5 < (1L << 40) ? gminpx5 / 256.0 : -1.0);
         printf("grab heights (y: count):"); for (int y = 0; y < 256; y++) if (gy[y]) printf(" %d:%ld", y, gy[y]); printf("\n");
         if (walkto >= 0) {
             printf("castle-entry frame after the automatic walk (core: grabs):"); for (int q = 0; q < 600; q++) if (cas[q]) printf(" %ld:%ld", F0 + q, cas[q]); printf("\n");
