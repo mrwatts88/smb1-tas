@@ -2766,3 +2766,5 @@ suggestion: the miss is set by hop constants, not by input coverage.
 **2026-11-13 (Mac, late) — N9 1-1 early landing.** Ran H56's unrun follow-up: the last jump one frame earlier lands a frame sooner but one right-push short (F334). Found and fixed an `endlab --flag` default that had restricted pad sets since N6 when `--pads` was absent; only N6's control label was wrong.
 
 **2026-11-13 21:55 CST (Mac) — N10 launched.** The user asked whether the near-misses extrapolate. They do: each lacks under a pixel of forward position. Added explore class 20 (ahead of the cap line), three controls, six 3-h sweeps on the Mac. Killed the N9 tail run at the user's objection.
+
+**2026-11-14 07:35 CST (Mac + box) — N10 and L10b read out.** Both dry (F335, F336). The only thing found: the WR leaves a quarter pixel unused after 1-1's pipe, replayed and explained (it keeps the last sixteenth before the pole's block column). Nothing running.

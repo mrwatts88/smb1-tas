@@ -1,0 +1,90 @@
+root=13900  state=12792 B  lives=2  area=$21  x=1948  y=353  WR last input before root=13899
+archive: 80000 cells, state 1.02 GB, paths 0.05 GB
+  MAX $0300 = 7  at frame 13900 x 1948
+  MAX $0300 = 14  at frame 13987 x 2165
+  MAX $0300 = 21  at frame 13988 x 2168
+  MAX $0300 = 31  at frame 14334 x 3032
+anomaly calibration from the WR line: 3 GES / 1 OperMode / 1 World / 1 AreaPointer / 3 PlayerState / 7 Enemy_ID values are normal here
+seeded WR line: 378 cells, incumbent last_input=1073741824
+  *** ANOMALY SecondaryHardMode = 1  frame 14517 x 3417 y 333  runs/L10b-pole-enemy/anom_14_f14517.path
+  *** ANOMALY Y above world = 251  frame 14464 x 3349 y 251  runs/L10b-pole-enemy/anom_0_f14464.path
+  *** ANOMALY Y above world = 255  frame 14465 x 3351 y 255  runs/L10b-pole-enemy/anom_0_f14465.path
+  *** ANOMALY Y above world = 252  frame 14471 x 3375 y 252  runs/L10b-pole-enemy/anom_0_f14471.path
+  *** ANOMALY position jump (clip/teleport) = 14  frame 14549 x 3431 y 395  runs/L10b-pole-enemy/anom_16_f14549.path
+  *** ANOMALY Player_State = 2  frame 14408 x 3213 y 368  runs/L10b-pole-enemy/anom_8_f14408.path
+  *** ANOMALY Y above world = 253  frame 14468 x 3366 y 253  runs/L10b-pole-enemy/anom_0_f14468.path
+  *** ANOMALY position jump (clip/teleport) = 6  frame 14487 x 3417 y 329  runs/L10b-pole-enemy/anom_16_f14487.path
+  *** ANOMALY Y above world = 254  frame 14442 x 3298 y 254  runs/L10b-pole-enemy/anom_0_f14442.path
+  *** ANOMALY Y above world = 250  frame 14444 x 3302 y 250  runs/L10b-pole-enemy/anom_0_f14444.path
+[   300s] cells=48543 rollouts=144590 frames=3.14M (10k fps) goals=0 deaths=26992 best=- maxx=3431 maxrel=129 maxaddr=31 anom=0x14101 improved=39596 evict=0
+[   600s] cells=65753 rollouts=261566 frames=5.60M (9k fps) goals=0 deaths=54811 best=- maxx=3431 maxrel=133 maxaddr=31 anom=0x14101 improved=64043 evict=0
+[   900s] cells=78199 rollouts=390024 frames=8.30M (9k fps) goals=0 deaths=85347 best=- maxx=3431 maxrel=135 maxaddr=31 anom=0x14101 improved=86366 evict=0
+[  1200s] cells=80000 rollouts=509639 frames=10.82M (9k fps) goals=0 deaths=114572 best=- maxx=3431 maxrel=137 maxaddr=31 anom=0x14101 improved=101847 evict=12890
+[  1500s] cells=80000 rollouts=617984 frames=13.13M (9k fps) goals=0 deaths=141148 best=- maxx=3431 maxrel=139 maxaddr=31 anom=0x14101 improved=113118 evict=29530
+[  1800s] cells=80000 rollouts=739186 frames=15.73M (9k fps) goals=0 deaths=170968 best=- maxx=3431 maxrel=139 maxaddr=31 anom=0x14101 improved=123821 evict=50322
+[  2100s] cells=80000 rollouts=867807 frames=18.49M (9k fps) goals=0 deaths=202538 best=- maxx=3431 maxrel=142 maxaddr=31 anom=0x14101 improved=133779 evict=74161
+[  2400s] cells=80000 rollouts=1029243 frames=21.96M (9k fps) goals=0 deaths=242564 best=- maxx=3431 maxrel=142 maxaddr=31 anom=0x14101 improved=143700 evict=106725
+[  2700s] cells=80000 rollouts=1186970 frames=25.36M (9k fps) goals=0 deaths=281797 best=- maxx=3431 maxrel=142 maxaddr=31 anom=0x14101 improved=151792 evict=141865
+[  3000s] cells=80000 rollouts=1313062 frames=28.09M (9k fps) goals=0 deaths=313565 best=- maxx=3431 maxrel=142 maxaddr=31 anom=0x14101 improved=157550 evict=171659
+[  3300s] cells=80000 rollouts=1447919 frames=31.00M (9k fps) goals=0 deaths=347645 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=163136 evict=205360
+[  3600s] cells=80000 rollouts=1584110 frames=33.94M (9k fps) goals=0 deaths=382495 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=168304 evict=240573
+[  3900s] cells=80000 rollouts=1678893 frames=35.97M (9k fps) goals=0 deaths=407163 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=171794 evict=265821
+[  4200s] cells=80000 rollouts=1774855 frames=38.04M (9k fps) goals=0 deaths=432643 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=175044 evict=291989
+[  4500s] cells=80000 rollouts=1884940 frames=40.40M (9k fps) goals=0 deaths=462222 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=178687 evict=322142
+[  4800s] cells=80000 rollouts=2002208 frames=42.90M (9k fps) goals=0 deaths=494243 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=182696 evict=356015
+[  5100s] cells=80000 rollouts=2112023 frames=45.23M (9k fps) goals=0 deaths=524925 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=186058 evict=387988
+[  5400s] cells=80000 rollouts=2258100 frames=48.34M (9k fps) goals=0 deaths=565847 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=190011 evict=431043
+[  5700s] cells=80000 rollouts=2386765 frames=51.09M (9k fps) goals=0 deaths=602118 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=193409 evict=470148
+[  6000s] cells=80000 rollouts=2515828 frames=53.84M (9k fps) goals=0 deaths=639244 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=196733 evict=511376
+[  6300s] cells=80000 rollouts=2649398 frames=56.69M (9k fps) goals=0 deaths=677820 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=199819 evict=553330
+[  6600s] cells=80000 rollouts=2772166 frames=59.31M (9k fps) goals=0 deaths=713574 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=202600 evict=594188
+[  6900s] cells=80000 rollouts=2885106 frames=61.72M (9k fps) goals=0 deaths=746403 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=205150 evict=632615
+[  7200s] cells=80000 rollouts=3014394 frames=64.50M (9k fps) goals=0 deaths=784332 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=207826 evict=679460
+[  7500s] cells=80000 rollouts=3114995 frames=66.65M (9k fps) goals=0 deaths=813738 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=209757 evict=716413
+[  7800s] cells=80000 rollouts=3244164 frames=69.42M (9k fps) goals=0 deaths=851598 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=212219 evict=765628
+[  8100s] cells=80000 rollouts=3401077 frames=72.81M (9k fps) goals=0 deaths=897676 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=215230 evict=824856
+[  8400s] cells=80000 rollouts=3539620 frames=75.78M (9k fps) goals=0 deaths=938598 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=217800 evict=878568
+[  8700s] cells=80000 rollouts=3667976 frames=78.55M (9k fps) goals=0 deaths=976382 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=219817 evict=930034
+[  9000s] cells=80000 rollouts=3775625 frames=80.87M (9k fps) goals=0 deaths=1008148 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=221512 evict=973920
+[  9300s] cells=80000 rollouts=3878072 frames=83.07M (9k fps) goals=0 deaths=1038569 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=223128 evict=1015350
+[  9600s] cells=80000 rollouts=4014477 frames=86.01M (9k fps) goals=0 deaths=1078594 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=225270 evict=1072153
+[  9900s] cells=80000 rollouts=4167459 frames=89.31M (9k fps) goals=0 deaths=1123642 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=227619 evict=1138270
+[ 10200s] cells=80000 rollouts=4268177 frames=91.50M (9k fps) goals=0 deaths=1153220 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=229266 evict=1182144
+[ 10500s] cells=80000 rollouts=4390524 frames=94.15M (9k fps) goals=0 deaths=1188924 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=230939 evict=1234462
+[ 10800s] cells=80000 rollouts=4497273 frames=96.47M (9k fps) goals=0 deaths=1220336 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=232345 evict=1281739
+[ 11100s] cells=80000 rollouts=4596515 frames=98.62M (9k fps) goals=0 deaths=1249101 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=233545 evict=1325201
+[ 11400s] cells=80000 rollouts=4744580 frames=101.85M (9k fps) goals=0 deaths=1292313 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=235393 evict=1393691
+[ 11700s] cells=80000 rollouts=4873569 frames=104.66M (9k fps) goals=0 deaths=1330150 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=236897 evict=1452711
+[ 12000s] cells=80000 rollouts=4987622 frames=107.14M (9k fps) goals=0 deaths=1363605 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=238045 evict=1505231
+[ 12300s] cells=80000 rollouts=5110614 frames=109.83M (9k fps) goals=0 deaths=1399404 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=239325 evict=1560599
+[ 12600s] cells=80000 rollouts=5226127 frames=112.35M (9k fps) goals=0 deaths=1433093 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=240532 evict=1614436
+[ 12900s] cells=80000 rollouts=5367882 frames=115.44M (9k fps) goals=0 deaths=1474554 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=241990 evict=1679697
+[ 13200s] cells=80000 rollouts=5485337 frames=118.01M (9k fps) goals=0 deaths=1508708 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=243152 evict=1734869
+[ 13500s] cells=80000 rollouts=5621236 frames=120.98M (9k fps) goals=0 deaths=1548246 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=244352 evict=1799620
+[ 13800s] cells=80000 rollouts=5742529 frames=123.64M (9k fps) goals=0 deaths=1583280 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=245413 evict=1859186
+[ 14100s] cells=80000 rollouts=5858731 frames=126.18M (9k fps) goals=0 deaths=1617080 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=246471 evict=1915173
+[ 14400s] cells=80000 rollouts=5961971 frames=128.44M (9k fps) goals=0 deaths=1646913 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=247310 evict=1965678
+[ 14700s] cells=80000 rollouts=6056966 frames=130.52M (9k fps) goals=0 deaths=1674550 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=248110 evict=2013195
+[ 15000s] cells=80000 rollouts=6149203 frames=132.55M (9k fps) goals=0 deaths=1701287 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=248877 evict=2060255
+[ 15300s] cells=80000 rollouts=6264544 frames=135.08M (9k fps) goals=0 deaths=1734721 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=249802 evict=2118938
+[ 15600s] cells=80000 rollouts=6418763 frames=138.46M (9k fps) goals=0 deaths=1779298 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=251031 evict=2197511
+[ 15900s] cells=80000 rollouts=6569169 frames=141.77M (9k fps) goals=0 deaths=1822657 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=252152 evict=2273431
+[ 16200s] cells=80000 rollouts=6715005 frames=144.97M (9k fps) goals=0 deaths=1864707 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=253307 evict=2348680
+[ 16500s] cells=80000 rollouts=6865542 frames=148.27M (9k fps) goals=0 deaths=1907935 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=254403 evict=2426473
+[ 16800s] cells=80000 rollouts=7019208 frames=151.66M (9k fps) goals=0 deaths=1952049 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=255468 evict=2505899
+[ 17100s] cells=80000 rollouts=7171572 frames=155.01M (9k fps) goals=0 deaths=1995680 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=256519 evict=2586318
+[ 17400s] cells=80000 rollouts=7267151 frames=157.11M (9k fps) goals=0 deaths=2022892 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=257115 evict=2636233
+[ 17700s] cells=80000 rollouts=7374463 frames=159.48M (9k fps) goals=0 deaths=2053710 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=257826 evict=2693337
+[ 18000s] cells=80000 rollouts=7486448 frames=161.95M (9k fps) goals=0 deaths=2085665 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=258603 evict=2751925
+[ 18300s] cells=80000 rollouts=7592499 frames=164.28M (9k fps) goals=0 deaths=2116061 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=259242 evict=2808242
+[ 18600s] cells=80000 rollouts=7716660 frames=167.03M (9k fps) goals=0 deaths=2151238 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=259963 evict=2873849
+[ 18900s] cells=80000 rollouts=7846377 frames=169.88M (9k fps) goals=0 deaths=2188217 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=260784 evict=2943119
+[ 19200s] cells=80000 rollouts=7961654 frames=172.43M (9k fps) goals=0 deaths=2220885 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=261384 evict=3004039
+[ 19500s] cells=80000 rollouts=8090192 frames=175.27M (9k fps) goals=0 deaths=2257235 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=262122 evict=3074040
+[ 19800s] cells=80000 rollouts=8202585 frames=177.75M (9k fps) goals=0 deaths=2289219 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=262780 evict=3137097
+[ 20100s] cells=80000 rollouts=8316234 frames=180.27M (9k fps) goals=0 deaths=2321191 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=263411 evict=3200207
+[ 20400s] cells=80000 rollouts=8413262 frames=182.42M (9k fps) goals=0 deaths=2348579 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=263860 evict=3253131
+[ 20700s] cells=80000 rollouts=8510609 frames=184.58M (9k fps) goals=0 deaths=2376069 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=264343 evict=3305635
+[ 21000s] cells=80000 rollouts=8622097 frames=187.06M (9k fps) goals=0 deaths=2407276 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=264840 evict=3368376
+[ 21300s] cells=80000 rollouts=8732365 frames=189.50M (9k fps) goals=0 deaths=2438313 best=- maxx=3431 maxrel=143 maxaddr=31 anom=0x14101 improved=265371 evict=3428476
+done: cells=80000 rollouts=8846956 frames=192.04M goals=0 deaths=2470411 best_last_input=- (WR 17846) maxx=3431
