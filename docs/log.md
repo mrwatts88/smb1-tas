@@ -2764,3 +2764,5 @@ suggestion: the miss is set by hop constants, not by input coverage.
 **2026-11-13 (Mac, night) — N8 big Mario pricing.** Measured the grow freeze (59 frames, framerule clock stopped), listed the mushrooms the WR already releases, classed every cell around F245's seven loss sites. No site is a brick obstacle; F333/H59.
 
 **2026-11-13 (Mac, late) — N9 1-1 early landing.** Ran H56's unrun follow-up: the last jump one frame earlier lands a frame sooner but one right-push short (F334). Found and fixed an `endlab --flag` default that had restricted pad sets since N6 when `--pads` was absent; only N6's control label was wrong.
+
+**2026-11-13 21:55 CST (Mac) — N10 launched.** The user asked whether the near-misses extrapolate. They do: each lacks under a pixel of forward position. Added explore class 20 (ahead of the cap line), three controls, six 3-h sweeps on the Mac. Killed the N9 tail run at the user's objection.
