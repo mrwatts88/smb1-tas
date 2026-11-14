@@ -197,8 +197,8 @@ static const char *ANOM_NAME[] = {
     "EnemyFrenzyBuffer", "VRAM_Buffer1_Offset", "Player_State", "PlayerSize",
     "WarpZoneControl", "AltEntranceControl", "ScrollLock", "EnemyFrenzyQueue",
     "SecondaryHardMode", "DuplicateObj_Offset", "position jump (clip/teleport)",
-    "Enemy_ID novel in a live slot", "StarFlagObject in a slot" };
-#define NANOM 19
+    "Enemy_ID novel in a live slot", "StarFlagObject in a slot", "stompable enemy at the flagpole" };
+#define NANOM 20
 /* Self-calibrating: the allowed value sets are collected from the WR's OWN line through this same
  * region during --seed-wr, so "anomaly" means "a state the reference movie never produces here"
  * rather than a hand-guessed predicate.  Without --seed-wr only the absolute predicates fire. */
@@ -206,7 +206,23 @@ static uint8_t ok_ges[256], ok_oper[256], ok_world[256], ok_area[256], ok_pstate
 static uint8_t ok_wzc[256], ok_alt[256], ok_lock[256], ok_enid[256];
 static int g_calibrating=1;   /* learn from the root + the WR line before judging anything */
 static int ok_nstarflag=0;    /* how many StarFlagObject slots the reference line ever holds here */
+/* Class 19 (L10b): a live stompable enemy (id < $15, or a bullet bill $08/$33) within 80 px left /
+ * 16 px right of the live FlagpoleFlagObject ($30), on screen.  That is the WR's own 8-2 ending (a
+ * bullet-bill bounce into the glitch grab, core 12468-12472) and what 8-3 lacks (H57).  Calibrated:
+ * if the reference line ever has it from this root, the class is off.  value = the enemy's id. */
+static int ok_pole_enemy=0;
+static inline int pole_enemy(const uint8_t *r, uint8_t *id){
+    long px=-1;
+    for(int q=0;q<6;q++) if(r[ENFLAG+q] && r[ENID+q]==0x30) px=(long)r[0x6e + q]*256+r[0x87 + q];
+    if(px<0) return 0;
+    for(int q=0;q<6;q++){ uint8_t e=r[ENID+q];
+        if(!r[ENFLAG+q] || !(e<0x15 || e==0x33) || r[0xb6 + q]!=1) continue;
+        long ex=(long)r[0x6e + q]*256+r[0x87 + q];
+        if(ex>=px-80 && ex<=px+16){ *id=e; return 1; } }
+    return 0;
+}
 static inline void anom_learn(const uint8_t *r){
+    { uint8_t e_; if(!getenv("POLE_NOCAL") && pole_enemy(r,&e_)) ok_pole_enemy=1; }  /* POLE_NOCAL=1: positive control */
     ok_ges[r[0x0e]]=1; ok_oper[r[OPERMODE]]=1; ok_world[r[WORLDNUM]]=1;
     ok_area[r[AREAPTR]]=1; ok_pstate[r[PSTATE]&3]=1; ok_size[r[0x754]]=1;
     ok_wzc[r[0x6d6]]=1; ok_alt[r[0x752]]=1; ok_lock[r[0x723]]=1;
@@ -249,6 +265,7 @@ static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
     for(int q=0;q<6;q++) if(r[ENFLAG+q] && !ok_enid[r[ENID+q]]){ m|=1u<<17; vals[17]=r[ENID+q]; }
     { int n=0, live=0; for(int q=0;q<6;q++) if(r[ENID+q]==0x31){ n++; if(r[ENFLAG+q]) live++; }
       if(n>ok_nstarflag){ m|=1u<<18; vals[18]=(uint8_t)(n|(live?0x80:0)); } }
+    if(!ok_pole_enemy){ uint8_t e_; if(pole_enemy(r,&e_)){ m|=1u<<19; vals[19]=e_; } }
     /* Mario cannot move more than ~4 px horizontally or ~8 px vertically in one frame of normal
      * play.  Anything larger is a clip, an ejection or a teleport -- the general glitch detector. */
     { long cx=(long)r[PPAGE]*256+r[PX], cy=(long)r[PYHI]*256+r[PY];
@@ -455,6 +472,7 @@ int main(int argc, char **argv) {
                            (b_==10) ? "   *** WARP ZONE CONTROL SET -- THE 3957-FRAME CELL ***" : \
                            (b_==5||b_==6) ? "   *** OOB ENEMY PRIMITIVE ***" : \
                            (b_==18) ? "   *** SECOND STAR FLAG -- F258'S 857 FRAMES ***" : \
+                           (b_==19) ? "   *** ENEMY AT THE FLAGPOLE (H57: bounce into a glitch grab) ***" : \
                            (b_==17) ? "   *** OBJECT-SLOT ANOMALY (F258 class) ***" : ""); } \
                 fflush(stdout); } } \
         if(!req_ok(ram)) break; \
