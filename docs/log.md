@@ -2760,3 +2760,5 @@ the WR dump that 8-2's glitch grab is a bullet-bill bounce, so the priced use of
 suggestion: the miss is set by hop constants, not by input coverage.
 
 **2026-11-13 (Mac, night) — reset route read.** The user asked whether the level order can change. Answered from F40-F43/F233/F235/F262, then dug the cheapest residual: the cells a soft reset preserves. F332: one writer each, no indexed store in reach (digit routine stops two bytes short). H15 narrowed.
+
+**2026-11-13 (Mac, night) — N8 big Mario pricing.** Measured the grow freeze (59 frames, framerule clock stopped), listed the mushrooms the WR already releases, classed every cell around F245's seven loss sites. No site is a brick obstacle; F333/H59.
