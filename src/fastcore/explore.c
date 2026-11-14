@@ -198,8 +198,8 @@ static const char *ANOM_NAME[] = {
     "WarpZoneControl", "AltEntranceControl", "ScrollLock", "EnemyFrenzyQueue",
     "SecondaryHardMode", "DuplicateObj_Offset", "position jump (clip/teleport)",
     "Enemy_ID novel in a live slot", "StarFlagObject in a slot", "stompable enemy at the flagpole",
-    "ahead of the cap line (1/16 px)" };
-#define NANOM 21
+    "ahead of the cap line (1/16 px)", "single-frame step over 40/16 px" };
+#define NANOM 22
 /* Self-calibrating: the allowed value sets are collected from the WR's OWN line through this same
  * region during --seed-wr, so "anomaly" means "a state the reference movie never produces here"
  * rather than a hand-guessed predicate.  Without --seed-wr only the absolute predicates fire. */
@@ -260,6 +260,7 @@ static inline void anom_learn(const uint8_t *r){
  * WorldNumber masks the one that matters.  vals[] carries the offending value per class. */
 static uint8_t anom_seen_val[NANOM][256];
 static long g_px=-1, g_py=-1;   /* previous frame's position, for the discontinuity test */
+static long g_px16=-1; static uint32_t g_parea=0; static int g_pges=0;   /* class 21: previous frame, 1/16 px */
 static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
     /* 19 classes; see ANOM_NAME */
     unsigned m=0;
@@ -303,6 +304,15 @@ static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
       if(g_px>=0 && (labs(cx-g_px)>5 || labs(cy-g_py)>9)){ m|=1u<<16;
           long d=labs(cx-g_px)>5?labs(cx-g_px):labs(cy-g_py); vals[16]=(uint8_t)(d>255?255:d); }
       g_px=cx; g_py=cy; }
+    /* Class 21 (N10): Mario moved more than 40/16 px (2.5 px) forward in one frame, in control on both
+     * frames, same area, and less than the 5 px that class 16 already reports.  The reference movie never
+     * does it anywhere (max step exactly 2.5 px in all eight levels).  This is the literal ingredient
+     * the near-misses lack: F316 needs 3.06 px in one frame, F324 3.2, F318/F334 2.75.  value = step. */
+    { long x16=x16_of(r); uint32_t ar=area_of(r);
+      if(g_px16>=0 && g_pges==8 && r[0x0e]==8 && ar==g_parea){ long dx=x16-g_px16;
+          static long thr_=-1; if(thr_<0){ const char *e_=getenv("STEP_THR"); thr_=e_?atol(e_):40; }   /* STEP_THR=39: positive control */
+          if(dx>thr_ && dx<=80){ m|=1u<<21; vals[21]=(uint8_t)dx; } }
+      g_px16=x16; g_parea=ar; g_pges=r[0x0e]; }
     return m;
 }
 typedef struct { uint64_t key; int32_t frame; int32_t plen; int32_t sidx; int32_t visits; int32_t prog; } Cell;
@@ -599,7 +609,7 @@ int main(int argc, char **argv) {
         if(!g_retro_unserialize(arena+(size_t)cl->sidx*g_ssz,g_ssz)){ fprintf(stderr,"unserialize failed\n"); return 1; }
         ram=RAMP();
         long plen=cl->plen; memcpy(path,parena+(size_t)cl->sidx*pslot,(size_t)plen);
-        g_px=-1; g_py=-1;
+        g_px=-1; g_py=-1; g_px16=-1;
         long f=cl->frame;
 
         long L=rlo+(rhi>rlo?(long)rndn((uint32_t)(rhi-rlo+1)):0);
