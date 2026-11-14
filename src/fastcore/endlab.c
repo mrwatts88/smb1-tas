@@ -285,6 +285,7 @@ int main(int argc, char **argv) {
             while (tok && npads < 16) { pads[npads++] = (uint8_t)strtol(tok, NULL, 0); tok = strtok(NULL, ","); } free(dup); }
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 2; }
     }
+    int padsgiven = npads > 0;          /* --flag: restrict pads only when --pads was passed (bug 2026-11-12..13: the default below restricted it always) */
     if (!npads) { pads[0] = 0x82; pads[1] = 0x83; npads = 2; }
     if (!mode) { fprintf(stderr, "no mode given\n"); return 2; }
 
@@ -553,7 +554,7 @@ int main(int argc, char **argv) {
             for (long n = 0; n < ncur; n++) {
                 const uint8_t *r0 = cur + n * RAMSZ;
                 int np = r0[0x1d] == 0 ? 16 : ((int8_t)r0[0x9f] < 0 ? 6 : 3);
-                int restricted = npads > 0 && (fullfrom < 0 || t < fullfrom);
+                int restricted = padsgiven && (fullfrom < 0 || t < fullfrom);
                 if (restricted && airfull && r0[0x1d] != 0) restricted = 0;
                 if (restricted) np = npads;
                 /* --clip: air grammar for a speed-keeping wall entry.  Moving direction right: Right held or a

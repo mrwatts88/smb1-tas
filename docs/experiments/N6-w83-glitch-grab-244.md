@@ -31,7 +31,7 @@ the smallest x seen on the frame before any grab was 3411.5 (loose run from 1447
 
 | run | pads | result |
 |---|---|---|
-| control `--flag 14470 14490 --xmin 3300 --walk 14490` | all | reproduces the WR: earliest grab core 14486, y 17, castle 14659 |
+| control `--flag 14470 14490 --xmin 3300 --walk 14490` | **B+R / A+B+R only** (labelled "all" until 2026-11-13: a default restricted `--flag` to these two pads when `--pads` was absent; fixed in N9) | reproduces the WR: earliest grab core 14486, y 17, castle 14659 |
 | stage 1 `--pads 0x82,0x83 --flag 14345 14486 --xline 3411 14485` | B+R / A+B+R (every full-speed jump timing) | 62,625 nodes on the last frame, 118,352 grabs on 14486, heights 17..161, **0 glitch**; 5.8 M steps, 270 s |
 | stage 1 to 14490 (`--xline 3411 14488`) | same | no further grab of any kind after 14486 (floor nodes stop at the block, x 3410.94) |
 | stage 2 `--pads 0x82,0x83 --fullfrom 14481 --fully 160 --flag 14345 14486 --xline 3410 14485` | full-speed jump timings to 14480, then **every pad** for near-floor nodes (y >= 160 entering 14481) | 338,050 nodes, 1,520,404 grabs on 14486, lowest heights 158 and 161, **0 glitch**; 17.5 M steps, 811 s |
