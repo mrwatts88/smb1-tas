@@ -244,8 +244,10 @@ static inline void anom_learn(const uint8_t *r){
         /* the +40 chain starts only once the movie has reached speed 40 in this area: before that it is
          * accelerating (forced), and the line is the movie's own position. */
         int same_=(i_>0 && g_refarea[i_-1]==g_refarea[i_]);
-        g_ref40[i_]=(uint8_t)(((same_ && g_ref40[i_-1]) || (r[0x0e]==8 && (int8_t)r[0x57]>=40)) ? 1 : 0);
-        long car_=(same_ && g_ref40[i_-1] && g_refx[i_-1]>=0) ? g_refx[i_-1]+40 : -1;
+        long capv_=r[0x704] ? 24 : 40;      /* swim areas cap at 24 (F271) */
+        g_ref40[i_]=(uint8_t)(((same_ && g_ref40[i_-1]) || (r[0x0e]==8 && (int8_t)r[0x57]>=capv_)) ? 1 : 0);
+        long car_=(same_ && g_ref40[i_-1] && g_refx[i_-1]>=0) ? g_refx[i_-1]+capv_ : -1;
+        if(own_>=0 && car_>=0 && own_<car_-16*256) car_=-1;   /* the movie was pulled back (8-4's loop): restart the line */
         g_refx[i_]= own_>car_ ? own_ : car_; } }
     { uint8_t e_; if(!getenv("POLE_NOCAL") && pole_enemy(r,&e_)) ok_pole_enemy=1; }  /* POLE_NOCAL=1: positive control */
     ok_ges[r[0x0e]]=1; ok_oper[r[OPERMODE]]=1; ok_world[r[WORLDNUM]]=1;
@@ -311,7 +313,9 @@ static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
     { long x16=x16_of(r); uint32_t ar=area_of(r);
       if(g_px16>=0 && g_pges==8 && r[0x0e]==8 && ar==g_parea){ long dx=x16-g_px16;
           static long thr_=-1; if(thr_<0){ const char *e_=getenv("STEP_THR"); thr_=e_?atol(e_):40; }   /* STEP_THR=39: positive control */
-          if(dx>thr_ && dx<=80){ m|=1u<<21; vals[21]=(uint8_t)dx; } }
+          long lim_=r[0x704] ? thr_-16 : thr_;    /* swim cap 24 */
+          if(dx<0) dx=-dx;                        /* either direction */
+          if(dx>lim_ && dx<=80){ m|=1u<<21; vals[21]=(uint8_t)dx; } }
       g_px16=x16; g_parea=ar; g_pges=r[0x0e]; }
     return m;
 }
