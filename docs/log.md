@@ -2758,3 +2758,5 @@ Checked the ledger: the pipes are priced (F233); power-ups, the springboard and 
 the WR dump that 8-2's glitch grab is a bullet-bill bounce, so the priced use of an enemy is the 8-3 pole (H57,
 42 frames). Added explore class 19 and launched six 8-3 sweeps on the box. Withdrew my 'wider 8-3 input search'
 suggestion: the miss is set by hop constants, not by input coverage.
+
+**2026-11-13 (Mac, night) — reset route read.** The user asked whether the level order can change. Answered from F40-F43/F233/F235/F262, then dug the cheapest residual: the cells a soft reset preserves. F332: one writer each, no indexed store in reach (digit routine stops two bytes short). H15 narrowed.
