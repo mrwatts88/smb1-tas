@@ -197,8 +197,9 @@ static const char *ANOM_NAME[] = {
     "EnemyFrenzyBuffer", "VRAM_Buffer1_Offset", "Player_State", "PlayerSize",
     "WarpZoneControl", "AltEntranceControl", "ScrollLock", "EnemyFrenzyQueue",
     "SecondaryHardMode", "DuplicateObj_Offset", "position jump (clip/teleport)",
-    "Enemy_ID novel in a live slot", "StarFlagObject in a slot", "stompable enemy at the flagpole" };
-#define NANOM 20
+    "Enemy_ID novel in a live slot", "StarFlagObject in a slot", "stompable enemy at the flagpole",
+    "ahead of the cap line (1/16 px)" };
+#define NANOM 21
 /* Self-calibrating: the allowed value sets are collected from the WR's OWN line through this same
  * region during --seed-wr, so "anomaly" means "a state the reference movie never produces here"
  * rather than a hand-guessed predicate.  Without --seed-wr only the absolute predicates fire. */
@@ -210,6 +211,17 @@ static int ok_nstarflag=0;    /* how many StarFlagObject slots the reference lin
  * 16 px right of the live FlagpoleFlagObject ($30), on screen.  That is the WR's own 8-2 ending (a
  * bullet-bill bounce into the glitch grab, core 12468-12472) and what 8-3 lacks (H57).  Calibrated:
  * if the reference line ever has it from this root, the class is off.  value = the enemy's id. */
+/* Class 20 (N10): Mario further right than the reference movie was on the SAME frame, in the same
+ * area, both in control.  Where the reference runs at the speed cap (4-1, 8-1, 8-3 after the start
+ * ramp, F225) any lead at all is an over-cap displacement (H47) -- the one ingredient every near-miss
+ * on the board lacks (F316 9/16 px, F318 1/4 px, F324 1/8 px, F334 11/16 px).  Where the reference
+ * waits on purpose (4-2 mint, 1-2 clip) a lead is ordinary.  value = lead in 1/16 px, capped at 255;
+ * g_maxlead tracks the largest lead and where. */
+#define REFN 8192
+static long g_refx[REFN]; static uint32_t g_refarea[REFN]; static long g_root_f=0, g_curf=0;
+static long g_maxlead=0, g_maxlead_f=0, g_maxlead40=0, g_maxlead40_f=0; static uint8_t g_ref40[REFN];
+static inline long x16_of(const uint8_t *r){ return (((long)r[0x6d]<<8)|r[0x86])*16 + (r[0x400]>>4); }
+static inline uint32_t area_of(const uint8_t *r){ return ((uint32_t)r[0x75f]<<24)|((uint32_t)r[0x75c]<<16)|((uint32_t)r[0x760]<<8)|r[0x752]; }
 static int ok_pole_enemy=0;
 static inline int pole_enemy(const uint8_t *r, uint8_t *id){
     long px=-1;
@@ -222,6 +234,19 @@ static inline int pole_enemy(const uint8_t *r, uint8_t *id){
     return 0;
 }
 static inline void anom_learn(const uint8_t *r){
+    { long i_=g_curf-g_root_f; if(i_>=0 && i_<REFN){ g_refarea[i_]=area_of(r);
+        /* g_refx = the CAP LINE, not the movie: the furthest the movie could be on this frame had it run
+         * at 40/16 px per frame from its own best earlier position in this area.  The movie slows on
+         * purpose in places (8-1 before the pole), and a lead over the movie there is ordinary.  The line
+         * is carried through frames where the movie is not in control or is above the screen, so a
+         * slowdown before such a frame is not forgotten. */
+        long own_=(r[0x0e]==8) ? x16_of(r) : -1;
+        /* the +40 chain starts only once the movie has reached speed 40 in this area: before that it is
+         * accelerating (forced), and the line is the movie's own position. */
+        int same_=(i_>0 && g_refarea[i_-1]==g_refarea[i_]);
+        g_ref40[i_]=(uint8_t)(((same_ && g_ref40[i_-1]) || (r[0x0e]==8 && (int8_t)r[0x57]>=40)) ? 1 : 0);
+        long car_=(same_ && g_ref40[i_-1] && g_refx[i_-1]>=0) ? g_refx[i_-1]+40 : -1;
+        g_refx[i_]= own_>car_ ? own_ : car_; } }
     { uint8_t e_; if(!getenv("POLE_NOCAL") && pole_enemy(r,&e_)) ok_pole_enemy=1; }  /* POLE_NOCAL=1: positive control */
     ok_ges[r[0x0e]]=1; ok_oper[r[OPERMODE]]=1; ok_world[r[WORLDNUM]]=1;
     ok_area[r[AREAPTR]]=1; ok_pstate[r[PSTATE]&3]=1; ok_size[r[0x754]]=1;
@@ -266,6 +291,12 @@ static inline unsigned anom_mask(const uint8_t *r, uint8_t *vals){
     { int n=0, live=0; for(int q=0;q<6;q++) if(r[ENID+q]==0x31){ n++; if(r[ENFLAG+q]) live++; }
       if(n>ok_nstarflag){ m|=1u<<18; vals[18]=(uint8_t)(n|(live?0x80:0)); } }
     if(!ok_pole_enemy){ uint8_t e_; if(pole_enemy(r,&e_)){ m|=1u<<19; vals[19]=e_; } }
+    { long i_=g_curf-g_root_f;
+      if(i_>=0 && i_<REFN && g_refx[i_]>=0 && r[0x0e]==8 && area_of(r)==g_refarea[i_]){
+          long lead=x16_of(r)-g_refx[i_];
+          if(lead>0){ m|=1u<<20; vals[20]=(uint8_t)(lead>255?255:lead);
+              if(lead>g_maxlead){ g_maxlead=lead; g_maxlead_f=g_curf; }
+              if(g_ref40[i_] && lead>g_maxlead40){ g_maxlead40=lead; g_maxlead40_f=g_curf; } } } }
     /* Mario cannot move more than ~4 px horizontally or ~8 px vertically in one frame of normal
      * play.  Anything larger is a clip, an ejection or a teleport -- the general glitch detector. */
     { long cx=(long)r[PPAGE]*256+r[PX], cy=(long)r[PYHI]*256+r[PY];
@@ -452,6 +483,7 @@ int main(int argc, char **argv) {
             printf("  MAX $%04lx = %ld  at frame %ld x %ld%s\n",maxaddr,best_max,(long)(F),ax_, \
                    best_max>=227?"   *** REACHES Block_BBuf_Low ***":(best_max>67?"   (above the WR's 67)":"")); \
             fflush(stdout); } \
+        g_curf=(long)(F); \
         if(anomaly && g_calibrating){ anom_learn(ram); } \
         else if(anomaly){ uint8_t av_[NANOM]={0}; unsigned am_=anom_mask(ram,av_); \
             if(am_){ unsigned nw_=0; \
@@ -515,6 +547,7 @@ int main(int argc, char **argv) {
      * and improves it, instead of having to discover the axe by chance. */
     if(seedwr){
         g_retro_unserialize(g_root_state,g_ssz); ram=RAMP();
+        g_root_f=root; g_curf=root; for(long q=0;q<REFN;q++) g_refx[q]=-1;
         anom_learn(ram);
         long plen=0, f=root;
         for(long i=0;i<horizon && root+i+input_skip < nin; i++){
@@ -635,6 +668,7 @@ int main(int argc, char **argv) {
     if(bb2==(1L<<30)) snprintf(bl,sizeof bl,"-"); else snprintf(bl,sizeof bl,"%ld",bb2);
     printf("done: cells=%ld rollouts=%ld frames=%.2fM goals=%ld deaths=%ld best_last_input=%s (WR 17846) maxx=%ld\n",
            nlive,rollouts,frames/1e6,goals,deaths,bl,best_prog);
+    printf("max lead over the cap line: %ld/16 px at frame %ld; after the reference reached top speed: %ld/16 px at frame %ld\n",g_maxlead,g_maxlead_f,g_maxlead40,g_maxlead40_f);
     g_retro_unload_game(); g_retro_deinit(); dlclose(h);
     return 0;
 }
