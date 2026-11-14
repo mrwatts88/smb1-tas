@@ -104,4 +104,31 @@ six uncovered stretches: `w81` 7930 / 2500 (6 h), `w11coin` 652 / 140 (1 h), `w1
 
 ## 5. L8b read-out
 
-(pending; the 2 h roots finish about 15:36 CST, `w81` about 19:36 CST on 2026-11-13)
+Read out 2026-11-13 20:44 CST; all six finished. **Dry: no root has bit 17 or bit 18, and no class-5 hit.**
+
+| root | stretch | root / horizon / secs | rollouts | frames | deaths | max x | max VRAM offset | `anom` mask | classes that fired |
+|---|---|---|---|---|---|---|---|---|---|
+| w81 | 8-1 whole level | 7930 / 2500 / 21600 | 10,999,587 | 270.33 M | 1,850,402 | 6059 | 41 | `0x15003` | 0 1 12 14 16 |
+| w11coin | 1-1 coin room | 652 / 140 / 3600 | 1,562,750 | 34.35 M | 0 | 237 | 55 | `0x00001` | 0 |
+| w11tail | 1-1 after the pipe | 1045 / 400 / 7200 | 2,478,582 | 67.89 M | 18,644 | 3266 | 37 | `0x11003` | 0 1 12 16 |
+| w42warp | 4-2 warp-zone room | 7244 / 520 / 7200 | 2,711,197 | 75.00 M | 1,779 | 1009 | 55 | `0x00019` | 0 3 4 |
+| w41end | 4-1 to the flagpole | 5250 / 300 / 7200 | 1,845,120 | 49.35 M | 18,359 | 3698 | 37 | `0x13043` | 0 1 6 12 13 16 |
+| w83end | 8-3 to the flagpole | 14330 / 300 / 7200 | 3,114,343 | 69.23 M | 913,892 | 3510 | 31 | `0x14001` | 0 14 16 |
+
+Total 22.7 M rollouts, 566 M frames. With §2 that is **1.59 billion frames over every non-8-4 room of the route**;
+8-4 is L7/L9 (F285).
+
+What fired, read from the log lines (none replayed; no class-17/18 hit to replay):
+
+| class | values | reading |
+|---|---|---|
+| 0 | 250–255 | high jumps, every root |
+| 1 | `GES` 4 on w81 / w11tail / w41end; `GES` 3 at x 1669 in 8-1 | an ordinary flagpole slide where the WR uses the glitch grab; a down pipe the WR does not take |
+| 12 | `ScrollLock` counting up at the flagpole x of each level | `inc ScrollLock` per frame of an ordinary slide (smbdis 12173) |
+| 16 | 6 and 14 px at each flagpole x | the flagpole snap and the jump off the pole |
+| 3 / 4 on w42warp | `WorldNumber` 5, 6; `AreaPointer` 46, 51 | the warp zone's other two pipes, worlds 6 and 7 (the WR takes 8) |
+| 6 / 13 on w41end | `EnemyFrenzyBuffer` 18, `EnemyFrenzyQueue` 24 | Lakitu's own Spiny frenzy (F262's writable sets) |
+| 14 on w81 / w83end | `SecondaryHardMode` 1 | the absolute predicate; true on the WR's own line (§3) |
+
+The coin room fired only class 0 and killed nobody in 1.56 M rollouts: 7,753 cells is all of it at this cell size.
+

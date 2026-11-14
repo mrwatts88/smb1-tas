@@ -2748,3 +2748,7 @@ is a real quirk worth a fact: `Demote` writes one bit of the enemy's screen x in
 {0,1}, so H50 stays closed. Checking the horizons against the WR's control frames showed L8 skipped 1-1's coin
 room and tail, 4-2's warp-zone room, the flagpole approaches of 4-1 and 8-3, and 8-1 entirely; launched L8b on
 the box for those (six processes, 1–6 h). Next: L8b read-out.
+
+**2026-11-13 (Mac + box, evening) — L8b read out.** All six gap sweeps finished by 19:36 CST; masks `0x15003` /
+`0x00001` / `0x11003` / `0x00019` / `0x13043` / `0x14001`, no bit 17 or 18, nothing to replay (F331, §5 of the L8
+write-up). The lens has now covered every room of the route. Nothing is running on either machine.
