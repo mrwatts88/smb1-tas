@@ -132,3 +132,13 @@ What fired, read from the log lines (none replayed; no class-17/18 hit to replay
 
 The coin room fired only class 0 and killed nobody in 1.56 M rollouts: 7,753 cells is all of it at this cell size.
 
+
+## 6. Correction to the triage wording (2026-11-13, after the user's push-back)
+
+"A pipe the WR does not take" explains why a class fired; it is not a reason the state is worthless. The reasons, where
+they exist: the down pipes in 4-1 (x 2116), 8-1 (x 1669) and 8-2 (x 2500) are priced by F233 at net losses of 226,
+354 and 379 frames (the shared coin room returns 448 / 128 / 64 px ahead against a ~405-frame detour); the warp
+pipes to worlds 2, 3, 6 and 7 and 1-2's exit to 1-3 leave more levels to play; the Minus World is F42.
+**Not priced by this read-out or, as far as I found, anywhere in the ledger:** big Mario from the 1-1 / 4-1
+power-ups, the 8-2 springboard launch (class 16 at x 703-707), and any use of the demoted Spiny (F330). L10b
+(`runs/L10b-pole-enemy/`) tests the one enemy use that has a price: a bounce into the 8-3 glitch grab (H57).

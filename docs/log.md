@@ -2752,3 +2752,9 @@ the box for those (six processes, 1–6 h). Next: L8b read-out.
 **2026-11-13 (Mac + box, evening) — L8b read out.** All six gap sweeps finished by 19:36 CST; masks `0x15003` /
 `0x00001` / `0x11003` / `0x00019` / `0x13043` / `0x14001`, no bit 17 or 18, nothing to replay (F331, §5 of the L8
 write-up). The lens has now covered every room of the route. Nothing is running on either machine.
+
+**2026-11-13 (Mac + box, night) — L10b launched.** The user objected to triage by 'the WR does not do it'.
+Checked the ledger: the pipes are priced (F233); power-ups, the springboard and the demoted Spiny are not. Found in
+the WR dump that 8-2's glitch grab is a bullet-bill bounce, so the priced use of an enemy is the 8-3 pole (H57,
+42 frames). Added explore class 19 and launched six 8-3 sweeps on the box. Withdrew my 'wider 8-3 input search'
+suggestion: the miss is set by hop constants, not by input coverage.
